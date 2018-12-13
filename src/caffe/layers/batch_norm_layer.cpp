@@ -170,15 +170,22 @@ void BatchNormLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
     const vector<bool>& propagate_down,
     const vector<Blob<Dtype>*>& bottom) {
   const Dtype* top_diff;
+  const Dtype* top_ddiff;
   if (bottom[0] != top[0]) {
     top_diff = top[0]->cpu_diff();
+    top_ddiff = top[0]->cpu_ddiff();
   } else {
     caffe_copy(x_norm_.count(), top[0]->cpu_diff(), x_norm_.mutable_cpu_diff());
     top_diff = x_norm_.cpu_diff();
+    caffe_copy(x_norm_.count(), top[0]->cpu_ddiff(), x_norm_.mutable_cpu_ddiff());
+    top_ddiff = x_norm_.cpu_ddiff();
   }
   Dtype* bottom_diff = bottom[0]->mutable_cpu_diff();
+  Dtype* bottom_ddiff = bottom[0]->mutable_cpu_ddiff();
   if (use_global_stats_) {
     caffe_div(temp_.count(), top_diff, temp_.cpu_data(), bottom_diff);
+    caffe_div(temp_.count(), top_ddiff, temp_.cpu_data(), bottom_ddiff);
+    caffe_div(temp_.count(), bottom_ddiff, temp_.cpu_data(), bottom_ddiff);
     return;
   }
   const Dtype* top_data = x_norm_.cpu_data();
@@ -239,6 +246,19 @@ void BatchNormLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
   // note: temp_ still contains sqrt(var(X)+eps), computed during the forward
   // pass.
   caffe_div(temp_.count(), bottom_diff, temp_.cpu_data(), bottom_diff);
+  
+  // if Y = (X-mean(X))/(sqrt(var(X)+eps)), then
+  //
+  // d2E(Y)/dX2 \approx
+  //   (d2E/dY2(1 - 1/n - 2*y**2/n) + mean(d2E/dY2)/n + mean(d2E/dY2 \cdot Y) \cdot 2*Y/n + mean(d2E/dY2 \cdot Y**2) \cdot Y**2/n )
+  //     ./ (var(X) + eps)
+  //
+  // where \cdot and ./ are hadamard product and elementwise division,
+  // respectively, d2E/dY2 is the top ddiff, and mean/var/sum are all computed
+  // along all dimensions except the channels dimension.  In the above
+  // equation, the operations allow for expansion (i.e. broadcast) along all
+  // dimensions except the channels dimension where required.
+
 }
 
 

@@ -306,6 +306,7 @@ void BaseConvolutionLayer<Dtype>::Reshape(const vector<Blob<Dtype>*>& bottom,
     caffe_set(bias_multiplier_.count(), Dtype(1),
         bias_multiplier_.mutable_cpu_data());
   }
+  this->weights_sqr_.Reshape(this->blobs_[0]->shape());
 }
 
 template <typename Dtype>
