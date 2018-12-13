@@ -24,7 +24,7 @@ template <typename Dtype>
 class Blob {
  public:
   Blob()
-       : data_(), diff_(), count_(0), capacity_(0) {}
+       : data_(), diff_(), ddiff_(), count_(0), capacity_(0) {}
 
   /// @brief Deprecated; use <code>Blob(const vector<int>& shape)</code>.
   explicit Blob(const int num, const int channels, const int height,
@@ -215,6 +215,11 @@ class Blob {
     CHECK(diff_);
     return diff_;
   }
+  
+  inline const shared_ptr<SyncedMemory>& ddiff() const {
+    CHECK(ddiff_);
+    return ddiff_;
+  }
 
   const Dtype* cpu_data() const;
   void set_cpu_data(Dtype* data);
@@ -223,10 +228,14 @@ class Blob {
   void set_gpu_data(Dtype* data);
   const Dtype* cpu_diff() const;
   const Dtype* gpu_diff() const;
+  const Dtype* cpu_ddiff() const;
+  const Dtype* gpu_ddiff() const;
   Dtype* mutable_cpu_data();
   Dtype* mutable_gpu_data();
   Dtype* mutable_cpu_diff();
   Dtype* mutable_gpu_diff();
+  Dtype* mutable_cpu_ddiff();
+  Dtype* mutable_gpu_ddiff();
   void Update();
   void FromProto(const BlobProto& proto, bool reshape = true);
   void ToProto(BlobProto* proto, bool write_diff = false) const;
@@ -263,12 +272,15 @@ class Blob {
    * shared_ptr calls its destructor when reset with the "=" operator.
    */
   void ShareDiff(const Blob& other);
+  
+  void ShareDdiff(const Blob& other);
 
   bool ShapeEquals(const BlobProto& other);
 
  protected:
   shared_ptr<SyncedMemory> data_;
   shared_ptr<SyncedMemory> diff_;
+  shared_ptr<SyncedMemory> ddiff_;
   shared_ptr<SyncedMemory> shape_data_;
   vector<int> shape_;
   int count_;
