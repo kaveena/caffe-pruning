@@ -44,6 +44,8 @@ void ConvolutionLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
       const vector<bool>& propagate_down, const vector<Blob<Dtype>*>& bottom) {
   const Dtype* weight = this->blobs_[0]->cpu_data();
   Dtype* weight_diff = this->blobs_[0]->mutable_cpu_diff();
+  Dtype* weights_sqr = this->weights_sqr_.mutable_cpu_data();
+  caffe_powx(this->blobs_[0]->count(), weight, (Dtype)2, weights_sqr);
   for (int i = 0; i < top.size(); ++i) {
     const Dtype* top_diff = top[i]->cpu_diff();
     const Dtype* top_ddiff = top[i]->cpu_ddiff();
@@ -58,8 +60,6 @@ void ConvolutionLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
       }
     }
     if (this->param_propagate_down_[0] || propagate_down[i]) {
-      Dtype* weights_sqr = this->weights_sqr_.mutable_cpu_data();
-      caffe_powx(this->blobs_[0]->count(), weight, (Dtype)2, weights_sqr);
       for (int n = 0; n < this->num_; ++n) {
         // gradient w.r.t. weight. Note that we will accumulate diffs.
         if (this->param_propagate_down_[0]) {

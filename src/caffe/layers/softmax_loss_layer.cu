@@ -98,9 +98,11 @@ void SoftmaxWithLossLayer<Dtype>::Backward_gpu(const vector<Blob<Dtype>*>& top,
   }
   if (propagate_down[0]) {
     Dtype* bottom_diff = bottom[0]->mutable_gpu_diff();
+    Dtype* bottom_ddiff = bottom[0]->mutable_gpu_ddiff();
     const Dtype* prob_data = prob_.gpu_data();
     const Dtype* top_data = top[0]->gpu_data();
     caffe_gpu_memcpy(prob_.count() * sizeof(Dtype), prob_data, bottom_diff);
+    caffe_gpu_memcpy(prob_.count() * sizeof(Dtype), prob_data, bottom_ddiff);
     const Dtype* label = bottom[1]->gpu_data();
     const int dim = prob_.count() / outer_num_;
     const int nthreads = outer_num_ * inner_num_;
@@ -119,9 +121,15 @@ void SoftmaxWithLossLayer<Dtype>::Backward_gpu(const vector<Blob<Dtype>*>& top,
         has_ignore_label_) {
       caffe_gpu_asum(nthreads, counts, &valid_count);
     }
+    // ddloss = p - p**2
+    caffe_gpu_powx(prob_.count(), bottom_ddiff, (Dtype)2, bottom_ddiff);
+    caffe_gpu_sub(prob_.count(), prob_data, bottom_ddiff, bottom_ddiff);
+    
+    // Scale gradients
     const Dtype loss_weight = top[0]->cpu_diff()[0] /
                               get_normalizer(normalization_, valid_count);
     caffe_gpu_scal(prob_.count(), loss_weight , bottom_diff);
+    caffe_gpu_scal(prob_.count(), loss_weight, bottom_ddiff);
   }
 }
 

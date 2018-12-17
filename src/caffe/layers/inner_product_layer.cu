@@ -60,16 +60,28 @@ void InnerProductLayer<Dtype>::Backward_gpu(const vector<Blob<Dtype>*>& top,
   if (propagate_down[0]) {
     const Dtype* top_diff = top[0]->gpu_diff();
     // Gradient with respect to bottom data
+    // ddloss = ddtop * (dtopdbottom**2)
+    const Dtype* top_ddiff = top[0]->gpu_ddiff();
+    Dtype* weights_sqr = this->weights_sqr_.mutable_gpu_data();
+    caffe_gpu_powx(this->blobs_[0]->count(), this->blobs_[0]->gpu_data(), (Dtype)2, weights_sqr);
     if (transpose_) {
       caffe_gpu_gemm<Dtype>(CblasNoTrans, CblasTrans,
           M_, K_, N_,
           (Dtype)1., top_diff, this->blobs_[0]->gpu_data(),
           (Dtype)0., bottom[0]->mutable_gpu_diff());
+      caffe_gpu_gemm<Dtype>(CblasNoTrans, CblasTrans,
+          M_, K_, N_,
+          (Dtype)1., top_ddiff, weights_sqr,
+          (Dtype)0., bottom[0]->mutable_gpu_ddiff());
     } else {
       caffe_gpu_gemm<Dtype>(CblasNoTrans, CblasNoTrans,
           M_, K_, N_,
          (Dtype)1., top_diff, this->blobs_[0]->gpu_data(),
          (Dtype)0., bottom[0]->mutable_gpu_diff());
+      caffe_gpu_gemm<Dtype>(CblasNoTrans, CblasNoTrans,
+          M_, K_, N_,
+          (Dtype)1., top_ddiff, weights_sqr,
+          (Dtype)0., bottom[0]->mutable_gpu_ddiff());
     }
   }
 }
