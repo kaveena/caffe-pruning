@@ -148,7 +148,7 @@ void BaseConvolutionLayer<Dtype>::LayerSetUp(const vector<Blob<Dtype>*>& bottom,
   int saliency_shape_0_ = 0;
   if (this->saliency_term_) {
     if ( this->layer_param_.convolution_saliency_param().saliency() == caffe::ConvolutionSaliencyParameter::ALL  ){
-      saliency_shape_0_ = 2;
+      saliency_shape_0_ = (int) (caffe::ConvolutionSaliencyParameter::ALL);
     }
     else {
       saliency_shape_0_ = 1;

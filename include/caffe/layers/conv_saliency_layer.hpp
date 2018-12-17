@@ -63,7 +63,6 @@ class ConvolutionSaliencyLayer : public BaseConvolutionLayer<Dtype> {
    */
   explicit ConvolutionSaliencyLayer(const LayerParameter& param)
       : BaseConvolutionLayer<Dtype>(param) {}
-  const int max_saliency = 2;
   virtual void Reshape(const vector<Blob<Dtype>*>& bottom,
       const vector<Blob<Dtype>*>& top);
   virtual inline const char* type() const { return "ConvolutionSaliency"; }

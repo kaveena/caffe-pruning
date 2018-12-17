@@ -27,8 +27,8 @@ void ConvolutionSaliencyLayer<Dtype>::Reshape(const vector<Blob<Dtype>*>& bottom
       const vector<Blob<Dtype>*>& top) {
   BaseConvolutionLayer<Dtype>::Reshape(bottom, top);
   this->compute_output_shape();
-  if (this->layer_param_.convolution_saliency_param().saliency()==2) {
-    output_saliencies_channel_.Reshape({this->max_saliency, this->num_output_});
+  if (this->layer_param_.convolution_saliency_param().saliency() == caffe::ConvolutionSaliencyParameter::ALL) {
+    output_saliencies_channel_.Reshape({(int)(caffe::ConvolutionSaliencyParameter::ALL), this->num_output_});
   }
   else {
     output_saliencies_channel_.Reshape({1, this->num_output_});
