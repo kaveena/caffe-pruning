@@ -89,6 +89,8 @@ class ConvolutionSaliencyLayer : public BaseConvolutionLayer<Dtype> {
   void compute_fisher_gpu(const Dtype * act_data, const Dtype * act_diff, Dtype * fisher_info);
   void compute_taylor_cpu(const Dtype * act_data, const Dtype * act_diff, Dtype * taylor);
   void compute_taylor_gpu(const Dtype * act_data, const Dtype * act_diff, Dtype * taylor);
+  void compute_hessian_diag_cpu(const Dtype * act_data, const Dtype * act_diff, const Dtype * act_ddiff, Dtype * hessian_diag);
+  void compute_hessian_diag_gpu(const Dtype * act_data, const Dtype * act_diff, const Dtype * act_ddiff, Dtype * hessian_diag);
 };
 
 }  // namespace caffe

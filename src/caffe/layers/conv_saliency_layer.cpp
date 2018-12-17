@@ -62,6 +62,7 @@ void ConvolutionSaliencyLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& t
   Dtype* weight_diff = this->blobs_[0]->mutable_cpu_diff();
   for (int i = 0; i < top.size(); ++i) {
     const Dtype* top_diff = top[i]->cpu_diff();
+    const Dtype* top_ddiff = top[i]->cpu_ddiff();
     const Dtype* top_data = top[i]->cpu_data();
     const Dtype* bottom_data = bottom[i]->cpu_data();
     Dtype* bottom_diff = bottom[i]->mutable_cpu_diff();
@@ -98,9 +99,14 @@ void ConvolutionSaliencyLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& t
         compute_taylor_cpu(top_data, top_diff, channel_saliency_data);
       } break;
 
-      case (2): {
+      case (3): {
+        compute_hessian_diag_cpu(top_data, top_diff, top_ddiff, channel_saliency_data);
+      } break;
+
+      case (4): {
         compute_fisher_cpu(top_data, top_diff, channel_saliency_data);
         compute_taylor_cpu(top_data, top_diff, channel_saliency_data + this->num_output_);
+        compute_hessian_diag_cpu(top_data, top_diff, top_ddiff, channel_saliency_data + (2*this->num_output_));
       } break;
 
       default: {
@@ -165,6 +171,33 @@ void ConvolutionSaliencyLayer<Dtype>::compute_taylor_cpu(const Dtype *  act_data
   taylor = original_channel;
   
   caffe_scal(this->num_output_, 1/(Dtype)(this->num_*this->output_shape_[0]*this->output_shape_[1]), taylor);
+  
+}
+
+template <typename Dtype>
+void ConvolutionSaliencyLayer<Dtype>::compute_hessian_diag_cpu(const Dtype *  act_data, const Dtype * act_diff, const Dtype *  act_ddiff, Dtype * hessian_diag) {
+  Dtype* output_saliency_data = output_saliencies_points_.mutable_cpu_data();    
+  Dtype* filter_saliency_data = output_saliencies_filter_.mutable_cpu_data();    
+  
+  caffe_mul(this->output_saliencies_points_.count(), act_data, act_data, output_saliency_data);
+  caffe_mul(this->output_saliencies_points_.count(), output_saliency_data, act_ddiff, output_saliency_data);
+  
+  for (int i = 0; i < this->output_saliencies_points_.count(0, 2); ++i) {
+    caffe_sum(output_saliencies_points_.count(2,4), output_saliency_data, filter_saliency_data); //sum hxw
+    output_saliency_data += output_saliencies_points_.count(2,4);
+    ++filter_saliency_data;
+  }
+  filter_saliency_data = output_saliencies_filter_.mutable_cpu_data();    
+  
+  Dtype * original_channel = hessian_diag;
+  for (int i = 0; i < this->num_output_; ++i ) { 
+    caffe_sum(this->num_, filter_saliency_data, hessian_diag,this->num_output_); // functionally it does not matter if we use sum or asum; sum across batches
+    filter_saliency_data += 1;
+    ++hessian_diag;
+  }
+  hessian_diag = original_channel;
+  
+  caffe_scal(this->num_output_, 1/(Dtype)(this->num_), hessian_diag);
   
 }
 
