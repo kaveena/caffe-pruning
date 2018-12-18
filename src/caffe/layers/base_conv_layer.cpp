@@ -188,16 +188,26 @@ void BaseConvolutionLayer<Dtype>::LayerSetUp(const vector<Blob<Dtype>*>& bottom,
     LOG(INFO) << "Skipping parameter initialization";
     if (this->mask_term_ && weight_shape != this->blobs_[this->mask_pos_]->shape()) {
       Blob<Dtype> mask_shaped_blob(weight_shape);
-      LOG(FATAL) << "Incorrect mask shape: expected shape "
+      LOG(INFO) << "Incorrect mask shape: expected shape "
           << mask_shaped_blob.shape_string() << "; instead, shape was "
           << this->blobs_[this->mask_pos_]->shape_string();
+      LOG(INFO) << "Mask Initialization";
+      this->blobs_[this->mask_pos_].reset(new Blob<Dtype>(weight_shape));
+      shared_ptr<Filler<Dtype> > mask_filler(GetFiller<Dtype>(
+          this->layer_param_.convolution_masked_param().mask_filler()));
+      mask_filler->Fill(this->blobs_[this->mask_pos_].get());
     }
-    LOG(INFO) << "Skipping parameter initialization";
     if (this->saliency_term_ && saliency_shape != this->blobs_[this->saliency_pos_]->shape()) {
       Blob<Dtype> saliency_shaped_blob(saliency_shape);
       LOG(FATAL) << "Incorrect saliency shape: expected shape "
           << saliency_shaped_blob.shape_string() << "; instead, shape was "
           << this->blobs_[this->saliency_pos_]->shape_string();
+      LOG(INFO) << "Saliency Initialization";
+      this->blobs_[this->saliency_pos_].reset(new Blob<Dtype>(saliency_shape));
+      Blob<Dtype> * saliency_blob = this->blobs_[this->saliency_pos_].get();
+      for (int i=0; i<saliency_blob->count(); ++i) {
+        saliency_blob->mutable_cpu_data()[i] = (Dtype)0.0;
+      }
     }
   } else {
       this->blobs_.resize(total_blobs);

@@ -10,6 +10,13 @@ template <typename Dtype>
 void ConvolutionSaliencyLayer<Dtype>::Forward_gpu(const vector<Blob<Dtype>*>& bottom,
       const vector<Blob<Dtype>*>& top) {
   const Dtype* weight = this->blobs_[0]->gpu_data();
+  if (this->mask_term_) {
+    const Dtype* mask = this->blobs_[this->mask_pos_]->gpu_data();
+    Dtype* weight_masked = this->weights_masked_.mutable_gpu_data();
+    const int count = this->blobs_[this->mask_pos_]->count();
+    caffe_gpu_mul(count, mask, weight, weight_masked);
+    weight = this->weights_masked_.gpu_data();
+  }
   for (int i = 0; i < bottom.size(); ++i) {
     const Dtype* bottom_data = bottom[i]->gpu_data();
     Dtype* top_data = top[i]->mutable_gpu_data();
@@ -30,6 +37,9 @@ void ConvolutionSaliencyLayer<Dtype>::Backward_gpu(const vector<Blob<Dtype>*>& t
   const Dtype* weight = this->blobs_[0]->gpu_data();
   Dtype* weight_diff = this->blobs_[0]->mutable_gpu_diff();
   Dtype* weights_sqr = this->weights_sqr_.mutable_gpu_data();
+  if (this->mask_term_) {
+    weight = this->weights_masked_.gpu_data();
+  }
   caffe_gpu_powx(this->blobs_[0]->count(), weight, (Dtype)2, weights_sqr);
   for (int i = 0; i < top.size(); ++i) {
     const Dtype* top_diff = top[i]->gpu_diff();
@@ -51,6 +61,10 @@ void ConvolutionSaliencyLayer<Dtype>::Backward_gpu(const vector<Blob<Dtype>*>& t
         if (this->param_propagate_down_[0]) {
           this->weight_gpu_gemm(bottom_data + n * this->bottom_dim_,
               top_diff + n * this->top_dim_, weight_diff);
+          if (this->mask_term_) {
+            // Don't update weights that are masked off
+            caffe_gpu_mul(this->blobs_[0]->count(), this->blobs_[this->mask_pos_]->gpu_data(), weight_diff, weight_diff);
+          }
         }
         // gradient w.r.t. bottom data, if necessary.
         if (propagate_down[i]) {
@@ -75,11 +89,11 @@ void ConvolutionSaliencyLayer<Dtype>::Backward_gpu(const vector<Blob<Dtype>*>& t
         compute_taylor_gpu(top_data, top_diff, channel_saliency_data);
       } break;
 
-      case (3): {
+      case (2): {
         compute_hessian_diag_gpu(top_data, top_diff, top_ddiff, channel_saliency_data);
       } break;
 
-      case (4): {
+      case (3): {
         compute_fisher_gpu(top_data, top_diff, channel_saliency_data);
         compute_taylor_gpu(top_data, top_diff, channel_saliency_data + this->num_output_);
         compute_hessian_diag_gpu(top_data, top_diff, top_ddiff, channel_saliency_data + (2*this->num_output_));
