@@ -29,6 +29,11 @@ void ConvolutionSaliencyLayer<Dtype>::Reshape(const vector<Blob<Dtype>*>& bottom
     weights_masked_shape_.clear();
     weights_masked_shape_.push_back(this->blobs_[this->mask_pos_]->count());
     weights_masked_.Reshape(weights_masked_shape_);
+    if (this->bias_term_) {
+      bias_masked_shape_.clear();
+      bias_masked_shape_.push_back(this->blobs_[this->mask_pos_+1]->count());
+      bias_masked_.Reshape(bias_masked_shape_);
+    }
   }
   BaseConvolutionLayer<Dtype>::Reshape(bottom, top);
   this->compute_output_shape();
@@ -46,22 +51,29 @@ template <typename Dtype>
 void ConvolutionSaliencyLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bottom,
       const vector<Blob<Dtype>*>& top) {
   const Dtype* weight = this->blobs_[0]->cpu_data();
+  const Dtype* bias;
   if (this->mask_term_) {
     const Dtype* mask = this->blobs_[this->mask_pos_]->cpu_data();
     Dtype* weight_masked = this->weights_masked_.mutable_cpu_data();
-    const int count = this->blobs_[this->mask_pos_]->count();
-    caffe_mul(count, mask, weight, weight_masked);
+    caffe_mul(this->blobs_[0]->count(), mask, weight, weight_masked);
     weight = this->weights_masked_.cpu_data();
+  }
+  if (this->bias_term_) {
+    bias = this->blobs_[1]->cpu_data();
+    if (this->mask_term_) {
+      const Dtype* bias_mask = this->blobs_[this->mask_pos_+1]->cpu_data();
+      Dtype* bias_masked = this->bias_masked_.mutable_cpu_data();
+      caffe_mul(this->blobs_[1]->count(), bias_mask, bias, bias_masked);
+      bias = this->bias_masked_.cpu_data();
+    }
   }
   for (int i = 0; i < bottom.size(); ++i) {
     const Dtype* bottom_data = bottom[i]->cpu_data();
     Dtype* top_data = top[i]->mutable_cpu_data();
-
     for (int n = 0; n < this->num_; ++n) {
       this->forward_cpu_gemm(bottom_data + n * this->bottom_dim_, weight,
           top_data + n * this->top_dim_);
       if (this->bias_term_) {
-        const Dtype* bias = this->blobs_[1]->cpu_data();
         this->forward_cpu_bias(top_data + n * this->top_dim_, bias);
       }
     }
@@ -224,7 +236,7 @@ void ConvolutionSaliencyLayer<Dtype>::compute_hessian_diag_cpu(const Dtype *  ac
   }
   hessian_diag = original_channel;
   
-  caffe_scal(this->num_output_, 1/(Dtype)(this->num_), hessian_diag);
+  caffe_scal(this->num_output_, 1/(Dtype)(2*this->num_), hessian_diag);
   
 }
 

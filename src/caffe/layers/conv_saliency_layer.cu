@@ -10,12 +10,21 @@ template <typename Dtype>
 void ConvolutionSaliencyLayer<Dtype>::Forward_gpu(const vector<Blob<Dtype>*>& bottom,
       const vector<Blob<Dtype>*>& top) {
   const Dtype* weight = this->blobs_[0]->gpu_data();
+  const Dtype* bias;
   if (this->mask_term_) {
     const Dtype* mask = this->blobs_[this->mask_pos_]->gpu_data();
     Dtype* weight_masked = this->weights_masked_.mutable_gpu_data();
-    const int count = this->blobs_[this->mask_pos_]->count();
-    caffe_gpu_mul(count, mask, weight, weight_masked);
+    caffe_gpu_mul(this->blobs_[0]->count(), mask, weight, weight_masked);
     weight = this->weights_masked_.gpu_data();
+  }
+  if (this->bias_term_) {
+    bias = this->blobs_[1]->gpu_data();
+    if (this->mask_term_) {
+      const Dtype* bias_mask = this->blobs_[this->mask_pos_+1]->gpu_data();
+      Dtype* bias_masked = this->bias_masked_.mutable_gpu_data();
+      caffe_gpu_mul(this->blobs_[1]->count(), bias_mask, bias, bias_masked);
+      bias = this->bias_masked_.gpu_data();
+    }
   }
   for (int i = 0; i < bottom.size(); ++i) {
     const Dtype* bottom_data = bottom[i]->gpu_data();
@@ -24,7 +33,6 @@ void ConvolutionSaliencyLayer<Dtype>::Forward_gpu(const vector<Blob<Dtype>*>& bo
       this->forward_gpu_gemm(bottom_data + n * this->bottom_dim_, weight,
           top_data + n * this->top_dim_);
       if (this->bias_term_) {
-        const Dtype* bias = this->blobs_[1]->gpu_data();
         this->forward_gpu_bias(top_data + n * this->top_dim_, bias);
       }
     }
@@ -187,7 +195,7 @@ void ConvolutionSaliencyLayer<Dtype>::compute_hessian_diag_gpu(const Dtype *  ac
   }
   hessian_diag = original_channel;
   
-  caffe_gpu_scal(this->num_output_, 1/(Dtype)(this->num_), hessian_diag);
+  caffe_gpu_scal(this->num_output_, 1/(Dtype)(2*this->num_), hessian_diag);
   
 }
 

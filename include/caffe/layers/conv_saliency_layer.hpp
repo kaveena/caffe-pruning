@@ -70,6 +70,7 @@ class ConvolutionSaliencyLayer : public BaseConvolutionLayer<Dtype> {
  protected:
   /// @brief The spatial dimensions of the weights_masked_.
   vector<int> weights_masked_shape_;
+  vector<int> bias_masked_shape_;
 
   virtual void Forward_cpu(const vector<Blob<Dtype>*>& bottom,
       const vector<Blob<Dtype>*>& top);
@@ -84,6 +85,7 @@ class ConvolutionSaliencyLayer : public BaseConvolutionLayer<Dtype> {
 
  private:
   Blob<Dtype> weights_masked_;
+  Blob<Dtype> bias_masked_;
   Blob<Dtype> output_saliencies_channel_;
   // Helpers for channel saliency if all is selected 
   Blob<Dtype> output_saliencies_points_;

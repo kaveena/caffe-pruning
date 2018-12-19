@@ -166,6 +166,10 @@ void BaseConvolutionLayer<Dtype>::LayerSetUp(const vector<Blob<Dtype>*>& bottom,
   if (this->mask_term_) {
     total_blobs++;
     this->saliency_pos_++;
+    if (this->mask_term_) {
+      total_blobs++;
+      this->saliency_pos_++;
+    }
   }
   if (this->saliency_term_) {
     total_blobs++;
@@ -196,6 +200,17 @@ void BaseConvolutionLayer<Dtype>::LayerSetUp(const vector<Blob<Dtype>*>& bottom,
       shared_ptr<Filler<Dtype> > mask_filler(GetFiller<Dtype>(
           this->layer_param_.convolution_masked_param().mask_filler()));
       mask_filler->Fill(this->blobs_[this->mask_pos_].get());
+    }
+    if (this->bias_term_ && this->mask_term_ && bias_shape != this->blobs_[this->mask_pos_+1]->shape()) {
+      Blob<Dtype> bias_mask_shaped_blob(bias_shape);
+      LOG(INFO) << "Incorrect bias mask shape: expected shape "
+          << bias_mask_shaped_blob.shape_string() << "; instead, shape was "
+          << this->blobs_[this->mask_pos_+1]->shape_string();
+      LOG(INFO) << "Mask Initialization";
+      this->blobs_[this->mask_pos_+1].reset(new Blob<Dtype>(bias_shape));
+      shared_ptr<Filler<Dtype> > mask_filler(GetFiller<Dtype>(
+          this->layer_param_.convolution_masked_param().mask_filler()));
+      mask_filler->Fill(this->blobs_[this->mask_pos_+1].get());
     }
     if (this->saliency_term_ && saliency_shape != this->blobs_[this->saliency_pos_]->shape()) {
       Blob<Dtype> saliency_shaped_blob(saliency_shape);
@@ -231,6 +246,12 @@ void BaseConvolutionLayer<Dtype>::LayerSetUp(const vector<Blob<Dtype>*>& bottom,
       shared_ptr<Filler<Dtype> > mask_filler(GetFiller<Dtype>(
           this->layer_param_.convolution_masked_param().mask_filler()));
       mask_filler->Fill(this->blobs_[this->mask_pos_].get());
+    }
+    if (this->bias_term_ && this->mask_term_) {
+      this->blobs_[this->mask_pos_ +1 ].reset(new Blob<Dtype>(bias_shape));
+      shared_ptr<Filler<Dtype> > mask_filler(GetFiller<Dtype>(
+          this->layer_param_.convolution_masked_param().mask_filler()));
+      mask_filler->Fill(this->blobs_[this->mask_pos_+1].get());
     }
     if (this->saliency_term_) {
       this->blobs_[this->saliency_pos_].reset(new Blob<Dtype>(saliency_shape));
