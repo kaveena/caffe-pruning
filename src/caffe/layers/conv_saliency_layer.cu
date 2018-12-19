@@ -102,9 +102,14 @@ void ConvolutionSaliencyLayer<Dtype>::Backward_gpu(const vector<Blob<Dtype>*>& t
       } break;
 
       case (3): {
+        compute_hessian_diag_approx2_gpu(top_data, top_diff, channel_saliency_data);
+      } break;
+
+      case (4): {
         compute_fisher_gpu(top_data, top_diff, channel_saliency_data);
         compute_taylor_gpu(top_data, top_diff, channel_saliency_data + this->num_output_);
         compute_hessian_diag_gpu(top_data, top_diff, top_ddiff, channel_saliency_data + (2*this->num_output_));
+        compute_hessian_diag_approx2_gpu(top_data, top_diff, channel_saliency_data + (3*this->num_output_));
       } break;
 
       default: {
@@ -118,6 +123,7 @@ void ConvolutionSaliencyLayer<Dtype>::Backward_gpu(const vector<Blob<Dtype>*>& t
     }
   }
 }
+
 template <typename Dtype>
 void ConvolutionSaliencyLayer<Dtype>::compute_fisher_gpu(const Dtype *  act_data, const Dtype *  act_diff, Dtype * fisher_info) {
   Dtype* output_saliency_data = output_saliencies_points_.mutable_gpu_data();    
@@ -199,6 +205,31 @@ void ConvolutionSaliencyLayer<Dtype>::compute_hessian_diag_gpu(const Dtype *  ac
   
 }
 
+template <typename Dtype>
+void ConvolutionSaliencyLayer<Dtype>::compute_hessian_diag_approx2_gpu(const Dtype *  act_data, const Dtype *  act_diff, Dtype * hessian_diag) {
+  Dtype* output_saliency_data = output_saliencies_points_.mutable_gpu_data();    
+  Dtype* filter_saliency_data = output_saliencies_filter_.mutable_gpu_data();    
+  
+  caffe_gpu_mul(this->output_saliencies_points_.count(), act_data, act_diff, output_saliency_data);
+  caffe_gpu_powx(this->output_saliencies_points_.count(), output_saliency_data, (Dtype)2, output_saliency_data);
+  
+  for (int i = 0; i < this->output_saliencies_points_.count(0, 2); ++i) { //mxc loop
+    caffe_gpu_sum(output_saliencies_points_.count(2,4), output_saliency_data, filter_saliency_data); //sum hxw
+    output_saliency_data += output_saliencies_points_.count(2,4);
+    ++filter_saliency_data;
+  }
+  filter_saliency_data = output_saliencies_filter_.mutable_gpu_data();    
+  
+  Dtype * original_channel = hessian_diag;
+  for (int i = 0; i < this->num_output_; ++i ) {
+    caffe_gpu_sum(this->num_, filter_saliency_data, hessian_diag, this->num_output_); // functionally it does not matter if we use sum or asum; sum across batches
+    filter_saliency_data += 1;
+    ++hessian_diag;
+  }
+  hessian_diag = original_channel;
+  
+  caffe_gpu_scal(this->num_output_, 1/(Dtype)(2*this->num_*2), hessian_diag);
+}
 
 #ifdef CPU_ONLY
 STUB_GPU(ConvolutionSaliencyLayer);
