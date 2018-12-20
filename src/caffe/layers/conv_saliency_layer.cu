@@ -54,8 +54,8 @@ void ConvolutionSaliencyLayer<Dtype>::Backward_gpu(const vector<Blob<Dtype>*>& t
     const Dtype* top_data = top[i]->gpu_data();
     const Dtype* bottom_data = bottom[i]->gpu_data();
     Dtype* bottom_diff = bottom[i]->mutable_gpu_diff();
-    Dtype* bottom_ddiff;
     const Dtype* top_ddiff;
+    Dtype* bottom_ddiff;
     if (this->phase_ == TEST) {
       bottom_ddiff = bottom[i]->mutable_gpu_ddiff();
       top_ddiff = top[i]->gpu_ddiff();
