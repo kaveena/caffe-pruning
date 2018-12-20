@@ -92,11 +92,15 @@ void ConvolutionSaliencyLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& t
   caffe_powx(this->blobs_[0]->count(), weight, (Dtype)2, weights_sqr);
   for (int i = 0; i < top.size(); ++i) {
     const Dtype* top_diff = top[i]->cpu_diff();
-    const Dtype* top_ddiff = top[i]->cpu_ddiff();
     const Dtype* top_data = top[i]->cpu_data();
     const Dtype* bottom_data = bottom[i]->cpu_data();
     Dtype* bottom_diff = bottom[i]->mutable_cpu_diff();
-    Dtype* bottom_ddiff = bottom[i]->mutable_cpu_ddiff();
+    const Dtype* top_ddiff;
+    Dtype* bottom_ddiff;
+    if (this->phase_ == TEST) {
+      top_ddiff = top[i]->cpu_ddiff();
+      bottom_ddiff = bottom[i]->mutable_cpu_ddiff();
+    }
     // Bias gradient, if necessary.
     if (this->bias_term_ && this->param_propagate_down_[1]) {
       Dtype* bias_diff = this->blobs_[1]->mutable_cpu_diff();
@@ -120,47 +124,51 @@ void ConvolutionSaliencyLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& t
           this->backward_cpu_gemm(top_diff + n * this->top_dim_, weight,
               bottom_diff + n * this->bottom_dim_);
         }
-        if (propagate_down[i]) {
-          this->backward_cpu_gemm(top_ddiff + n * this->top_dim_, weights_sqr,
-              bottom_ddiff + n * this->bottom_dim_);
+        if (this->phase_ == TEST) {
+          if (propagate_down[i]) {
+            this->backward_cpu_gemm(top_ddiff + n * this->top_dim_, weights_sqr,
+                bottom_ddiff + n * this->bottom_dim_);
+          }
         }
       }
     }
 
-    Dtype* channel_saliency_data = output_saliencies_channel_.mutable_cpu_data();    
+    if (this->phase_ == TEST) {
+      Dtype* channel_saliency_data = output_saliencies_channel_.mutable_cpu_data();    
   
-    switch (this->layer_param_.convolution_saliency_param().saliency()) {
-      case (0): { // Fisher Information
-        compute_fisher_cpu(top_data, top_diff, channel_saliency_data);
-      } break;
+      switch (this->layer_param_.convolution_saliency_param().saliency()) {
+        case (0): { // Fisher Information
+          compute_fisher_cpu(top_data, top_diff, channel_saliency_data);
+        } break;
 
-      case (1): { // Taylor Series
-        compute_taylor_cpu(top_data, top_diff, channel_saliency_data);
-      } break;
+        case (1): { // Taylor Series
+          compute_taylor_cpu(top_data, top_diff, channel_saliency_data);
+        } break;
 
-      case (2): {
-        compute_hessian_diag_cpu(top_data, top_diff, top_ddiff, channel_saliency_data);
-      } break;
+        case (2): {
+          compute_hessian_diag_cpu(top_data, top_diff, top_ddiff, channel_saliency_data);
+        } break;
 
-      case (3): {
-        compute_hessian_diag_approx2_cpu(top_data, top_diff, channel_saliency_data);
-      } break;
+        case (3): {
+          compute_hessian_diag_approx2_cpu(top_data, top_diff, channel_saliency_data);
+        } break;
 
-      case (4): {
-        compute_fisher_cpu(top_data, top_diff, channel_saliency_data);
-        compute_taylor_cpu(top_data, top_diff, channel_saliency_data + this->num_output_);
-        compute_hessian_diag_cpu(top_data, top_diff, top_ddiff, channel_saliency_data + (2*this->num_output_));
-        compute_hessian_diag_approx2_cpu(top_data, top_diff, channel_saliency_data + (3*this->num_output_));
-      } break;
+        case (4): {
+          compute_fisher_cpu(top_data, top_diff, channel_saliency_data);
+          compute_taylor_cpu(top_data, top_diff, channel_saliency_data + this->num_output_);
+          compute_hessian_diag_cpu(top_data, top_diff, top_ddiff, channel_saliency_data + (2*this->num_output_));
+          compute_hessian_diag_approx2_cpu(top_data, top_diff, channel_saliency_data + (3*this->num_output_));
+        } break;
 
-      default: {
-      } break;
-    }
-    if (this->layer_param_.convolution_saliency_param().accum()) {
-      caffe_add(output_saliencies_channel_.count(), output_saliencies_channel_.mutable_cpu_data(), this->blobs_[this->saliency_pos_]->mutable_cpu_data(), this->blobs_[this->saliency_pos_]->mutable_cpu_data()); 
-    }
-    else {
-      caffe_copy(output_saliencies_channel_.count(), output_saliencies_channel_.mutable_cpu_data(), this->blobs_[this->saliency_pos_]->mutable_cpu_data());
+        default: {
+        } break;
+      }
+      if (this->layer_param_.convolution_saliency_param().accum()) {
+        caffe_add(output_saliencies_channel_.count(), output_saliencies_channel_.mutable_cpu_data(), this->blobs_[this->saliency_pos_]->mutable_cpu_data(), this->blobs_[this->saliency_pos_]->mutable_cpu_data()); 
+      }
+      else {
+        caffe_copy(output_saliencies_channel_.count(), output_saliencies_channel_.mutable_cpu_data(), this->blobs_[this->saliency_pos_]->mutable_cpu_data());
+      }
     }
   }
 }

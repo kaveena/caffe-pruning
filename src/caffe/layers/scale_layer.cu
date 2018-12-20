@@ -132,16 +132,22 @@ void ScaleLayer<Dtype>::Backward_gpu(const vector<Blob<Dtype>*>& top,
   if (propagate_down[0]) {
     const int count = top[0]->count();
     const Dtype* top_diff = top[0]->gpu_diff();
-    const Dtype* top_ddiff = top[0]->gpu_ddiff();
     const Dtype* scale_data = scale->gpu_data();
     Dtype* bottom_diff = bottom[0]->mutable_gpu_diff();
-    Dtype* bottom_ddiff = bottom[0]->mutable_gpu_ddiff();
+    const Dtype* top_ddiff;
+    Dtype* bottom_ddiff;
+    if (this->phase_ == TEST) {
+      top_ddiff = top[0]->gpu_ddiff();
+      bottom_ddiff = bottom[0]->mutable_gpu_ddiff();
+    }
     ScaleForward<Dtype>  // NOLINT_NEXT_LINE(whitespace/operators)
         <<<CAFFE_GET_BLOCKS(count), CAFFE_CUDA_NUM_THREADS>>>(
         count, top_diff, scale_data, scale_dim_, inner_dim_, bottom_diff);
-    ScaleBackwardBackward<Dtype>  // NOLINT_NEXT_LINE(whitespace/operators)
-        <<<CAFFE_GET_BLOCKS(count), CAFFE_CUDA_NUM_THREADS>>>(
-        count, top_ddiff, scale_data, scale_dim_, inner_dim_, bottom_ddiff);
+    if (this->phase_ == TEST) {
+      ScaleBackwardBackward<Dtype>  // NOLINT_NEXT_LINE(whitespace/operators)
+          <<<CAFFE_GET_BLOCKS(count), CAFFE_CUDA_NUM_THREADS>>>(
+          count, top_ddiff, scale_data, scale_dim_, inner_dim_, bottom_ddiff);
+    }
   }
 }
 

@@ -173,19 +173,25 @@ void BatchNormLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
   const Dtype* top_ddiff;
   if (bottom[0] != top[0]) {
     top_diff = top[0]->cpu_diff();
-    top_ddiff = top[0]->cpu_ddiff();
+    if (this->phase_ == TEST) {
+      top_ddiff = top[0]->cpu_ddiff();
+    }
   } else {
     caffe_copy(x_norm_.count(), top[0]->cpu_diff(), x_norm_.mutable_cpu_diff());
     top_diff = x_norm_.cpu_diff();
-    caffe_copy(x_norm_.count(), top[0]->cpu_ddiff(), x_norm_.mutable_cpu_ddiff());
-    top_ddiff = x_norm_.cpu_ddiff();
+    if (this->phase_ == TEST) {
+      caffe_copy(x_norm_.count(), top[0]->cpu_ddiff(), x_norm_.mutable_cpu_ddiff());
+      top_ddiff = x_norm_.cpu_ddiff();
+    }
   }
   Dtype* bottom_diff = bottom[0]->mutable_cpu_diff();
   Dtype* bottom_ddiff = bottom[0]->mutable_cpu_ddiff();
   if (use_global_stats_) {
     caffe_div(temp_.count(), top_diff, temp_.cpu_data(), bottom_diff);
-    caffe_div(temp_.count(), top_ddiff, temp_.cpu_data(), bottom_ddiff);
-    caffe_div(temp_.count(), bottom_ddiff, temp_.cpu_data(), bottom_ddiff);
+    if (this->phase_ == TEST) {
+      caffe_div(temp_.count(), top_ddiff, temp_.cpu_data(), bottom_ddiff);
+      caffe_div(temp_.count(), bottom_ddiff, temp_.cpu_data(), bottom_ddiff);
+    }
     return;
   }
   const Dtype* top_data = x_norm_.cpu_data();

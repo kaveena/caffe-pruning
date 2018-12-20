@@ -204,18 +204,26 @@ void ScaleLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
   }
   if (propagate_down[0]) {
     const Dtype* top_diff = top[0]->cpu_diff();
-    const Dtype* top_ddiff = top[0]->cpu_ddiff();
     const Dtype* scale_data = scale->cpu_data();
     Dtype* bottom_diff = bottom[0]->mutable_cpu_diff();
-    Dtype* bottom_ddiff = bottom[0]->mutable_cpu_ddiff();
+    const Dtype* top_ddiff;
+    Dtype* bottom_ddiff;
+    if (this->phase_ == TEST) {
+      top_ddiff = top[0]->cpu_ddiff();
+      bottom_ddiff = bottom[0]->mutable_cpu_ddiff();
+    }
     for (int n = 0; n < outer_dim_; ++n) {
       for (int d = 0; d < scale_dim_; ++d) {
         const Dtype factor = scale_data[d];
         caffe_cpu_scale(inner_dim_, factor, top_diff, bottom_diff);
-        caffe_cpu_scale(inner_dim_, (Dtype) factor*factor, top_ddiff, bottom_ddiff);
+        if (this->phase_ == TEST) {
+          caffe_cpu_scale(inner_dim_, (Dtype) factor*factor, top_ddiff, bottom_ddiff);
+        }
         bottom_diff += inner_dim_;
-        top_ddiff += inner_dim_;
-        bottom_ddiff += inner_dim_;
+        if (this->phase_ == TEST) {
+          top_ddiff += inner_dim_;
+          bottom_ddiff += inner_dim_;
+        }
         top_diff += inner_dim_;
       }
     }

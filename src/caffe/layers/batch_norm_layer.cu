@@ -101,15 +101,19 @@ void BatchNormLayer<Dtype>::Backward_gpu(const vector<Blob<Dtype>*>& top,
   } else {
     caffe_copy(x_norm_.count(), top[0]->gpu_diff(), x_norm_.mutable_gpu_diff());
     top_diff = x_norm_.gpu_diff();
-    caffe_copy(x_norm_.count(), top[0]->gpu_ddiff(), x_norm_.mutable_gpu_ddiff());
-    top_ddiff = x_norm_.gpu_ddiff();
+    if (this->phase_ == TEST) {
+      caffe_copy(x_norm_.count(), top[0]->gpu_ddiff(), x_norm_.mutable_gpu_ddiff());
+      top_ddiff = x_norm_.gpu_ddiff();
+    }
   }
   Dtype* bottom_diff = bottom[0]->mutable_gpu_diff();
   Dtype* bottom_ddiff = bottom[0]->mutable_gpu_ddiff();
   if (use_global_stats_) {
     caffe_gpu_div(temp_.count(), top_diff, temp_.gpu_data(), bottom_diff);
-    caffe_gpu_div(temp_.count(), top_ddiff, temp_.gpu_data(), bottom_ddiff);
-    caffe_gpu_div(temp_.count(), bottom_ddiff, temp_.gpu_data(), bottom_ddiff);
+    if (this->phase_ == TEST) {
+      caffe_gpu_div(temp_.count(), top_ddiff, temp_.gpu_data(), bottom_ddiff);
+      caffe_gpu_div(temp_.count(), bottom_ddiff, temp_.gpu_data(), bottom_ddiff);
+    }
     return;
   }
   const Dtype* top_data = x_norm_.gpu_data();

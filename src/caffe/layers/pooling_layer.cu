@@ -374,11 +374,15 @@ void PoolingLayer<Dtype>::Backward_gpu(const vector<Blob<Dtype>*>& top,
   }
   const Dtype* top_diff = top[0]->gpu_diff();
   Dtype* bottom_diff = bottom[0]->mutable_gpu_diff();
-  const Dtype* top_ddiff = top[0]->gpu_ddiff();
-  Dtype* bottom_ddiff = bottom[0]->mutable_gpu_ddiff();
   const int count = bottom[0]->count();
   caffe_gpu_set(count, Dtype(0.), bottom_diff);
-  caffe_gpu_set(count, Dtype(0.), bottom_ddiff);
+  const Dtype* top_ddiff;
+  Dtype* bottom_ddiff;
+  if (this->phase_ == TEST) {
+    top_ddiff = top[0]->gpu_ddiff();
+    bottom_ddiff = bottom[0]->mutable_gpu_ddiff();
+    caffe_gpu_set(count, Dtype(0.), bottom_ddiff);
+  }
   // We'll output the mask to top[1] if it's of size >1.
   const bool use_top_mask = top.size() > 1;
   const int* mask = NULL;
@@ -396,11 +400,13 @@ void PoolingLayer<Dtype>::Backward_gpu(const vector<Blob<Dtype>*>& top,
         height_, width_, pooled_height_, pooled_width_,
         kernel_h_, kernel_w_, stride_h_, stride_w_, pad_h_, pad_w_,
         bottom_diff);
-    MaxPoolBackward<Dtype><<<CAFFE_GET_BLOCKS(count), CAFFE_CUDA_NUM_THREADS>>>(
-        count, top_ddiff, mask, top_mask, top[0]->num(), channels_,
-        height_, width_, pooled_height_, pooled_width_,
-        kernel_h_, kernel_w_, stride_h_, stride_w_, pad_h_, pad_w_,
-        bottom_ddiff);
+    if (this->phase_ == TEST) {
+      MaxPoolBackward<Dtype><<<CAFFE_GET_BLOCKS(count), CAFFE_CUDA_NUM_THREADS>>>(
+          count, top_ddiff, mask, top_mask, top[0]->num(), channels_,
+          height_, width_, pooled_height_, pooled_width_,
+          kernel_h_, kernel_w_, stride_h_, stride_w_, pad_h_, pad_w_,
+          bottom_ddiff);
+    }
     break;
   case PoolingParameter_PoolMethod_AVE:
     // NOLINT_NEXT_LINE(whitespace/operators)
@@ -408,10 +414,12 @@ void PoolingLayer<Dtype>::Backward_gpu(const vector<Blob<Dtype>*>& top,
         count, top_diff, top[0]->num(), channels_,
         height_, width_, pooled_height_, pooled_width_, kernel_h_,
         kernel_w_, stride_h_, stride_w_, pad_h_, pad_w_, bottom_diff);
-    AvePoolBackwardBackward<Dtype><<<CAFFE_GET_BLOCKS(count), CAFFE_CUDA_NUM_THREADS>>>(
+    if (this->phase_ == TEST) {
+      AvePoolBackwardBackward<Dtype><<<CAFFE_GET_BLOCKS(count), CAFFE_CUDA_NUM_THREADS>>>(
         count, top_ddiff, top[0]->num(), channels_,
         height_, width_, pooled_height_, pooled_width_, kernel_h_,
         kernel_w_, stride_h_, stride_w_, pad_h_, pad_w_, bottom_ddiff);
+    }
     break;
   case PoolingParameter_PoolMethod_STOCHASTIC:
     // NOLINT_NEXT_LINE(whitespace/operators)

@@ -128,7 +128,10 @@ void InnerProductLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
     const Dtype* top_diff = top[0]->cpu_diff();
     // Gradient with respect to bottom data
     // ddloss = ddtop * (dtopdbottom**2)
-    const Dtype* top_ddiff = top[0]->cpu_ddiff();
+    const Dtype* top_ddiff;
+    if (this->phase_ == TEST) {
+      top_ddiff = top[0]->cpu_ddiff();
+    }
     Dtype* weights_sqr = this->weights_sqr_.mutable_cpu_data();
     caffe_powx(this->blobs_[0]->count(), this->blobs_[0]->cpu_data(), (Dtype)2, weights_sqr);
     if (transpose_) {
@@ -136,19 +139,23 @@ void InnerProductLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
           M_, K_, N_,
           (Dtype)1., top_diff, this->blobs_[0]->cpu_data(),
           (Dtype)0., bottom[0]->mutable_cpu_diff());
-      caffe_cpu_gemm<Dtype>(CblasNoTrans, CblasTrans,
-          M_, K_, N_,
-          (Dtype)1., top_ddiff, weights_sqr,
-          (Dtype)0., bottom[0]->mutable_cpu_ddiff());
+      if (this->phase_ == TEST) {
+        caffe_cpu_gemm<Dtype>(CblasNoTrans, CblasTrans,
+            M_, K_, N_,
+            (Dtype)1., top_ddiff, weights_sqr,
+            (Dtype)0., bottom[0]->mutable_cpu_ddiff());
+      }
     } else {
       caffe_cpu_gemm<Dtype>(CblasNoTrans, CblasNoTrans,
           M_, K_, N_,
           (Dtype)1., top_diff, this->blobs_[0]->cpu_data(),
           (Dtype)0., bottom[0]->mutable_cpu_diff());
-      caffe_cpu_gemm<Dtype>(CblasNoTrans, CblasNoTrans,
-          M_, K_, N_,
-          (Dtype)1., top_ddiff, weights_sqr,
-          (Dtype)0., bottom[0]->mutable_cpu_ddiff());
+      if (this->phase_ == TEST) {
+        caffe_cpu_gemm<Dtype>(CblasNoTrans, CblasNoTrans,
+            M_, K_, N_,
+            (Dtype)1., top_ddiff, weights_sqr,
+            (Dtype)0., bottom[0]->mutable_cpu_ddiff());
+        }
     }
   }
 }
