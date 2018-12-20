@@ -159,9 +159,6 @@ void SoftmaxWithLossLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
     Dtype loss_weight = top[0]->cpu_diff()[0] /
                         get_normalizer(normalization_, count);
     caffe_scal(prob_.count(), loss_weight, bottom_diff);
-    if (this->phase_ == TEST) {
-      caffe_scal(prob_.count(), loss_weight, bottom_ddiff);
-    }
   }
 }
 

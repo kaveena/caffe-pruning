@@ -179,6 +179,7 @@ void ConvolutionSaliencyLayer<Dtype>::compute_fisher_cpu(const Dtype *  act_data
   Dtype* filter_saliency_data = output_saliencies_filter_.mutable_cpu_data();    
   
   caffe_mul(this->output_saliencies_points_.count(), act_data, act_diff, output_saliency_data);
+  caffe_scal(this->output_saliencies_points_.count(), (Dtype) this->num_, output_saliency_data); //get unscaled diff back
   
   for (int i = 0; i < this->output_saliencies_points_.count(0, 2); ++i) { //mxc loop
     caffe_sum(output_saliencies_points_.count(2,4), output_saliency_data, filter_saliency_data); //sum hxw
@@ -206,6 +207,7 @@ void ConvolutionSaliencyLayer<Dtype>::compute_taylor_cpu(const Dtype *  act_data
   Dtype* filter_saliency_data = output_saliencies_filter_.mutable_cpu_data();    
   
   caffe_mul(this->output_saliencies_points_.count(), act_data, act_diff, output_saliency_data);
+  caffe_scal(this->output_saliencies_points_.count(), (Dtype) this->num_, output_saliency_data); //get unscaled diff back
   caffe_abs(this->output_saliencies_points_.count(), output_saliency_data, output_saliency_data);
   
   for (int i = 0; i < this->output_saliencies_points_.count(0, 2); ++i) {
@@ -260,6 +262,7 @@ void ConvolutionSaliencyLayer<Dtype>::compute_hessian_diag_approx2_cpu(const Dty
   Dtype* filter_saliency_data = output_saliencies_filter_.mutable_cpu_data();    
   
   caffe_mul(this->output_saliencies_points_.count(), act_data, act_diff, output_saliency_data);
+  caffe_scal(this->output_saliencies_points_.count(), (Dtype) this->num_, output_saliency_data); //get unscaled diff back
   caffe_powx(this->output_saliencies_points_.count(), output_saliency_data, (Dtype)2, output_saliency_data);
   
   for (int i = 0; i < this->output_saliencies_points_.count(0, 2); ++i) { //mxc loop
