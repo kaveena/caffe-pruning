@@ -241,10 +241,10 @@ template <typename Dtype>
 void caffe_gpu_sqrt(const int n, const Dtype* a, Dtype* y);
 
 template <typename Dtype>
-void caffe_gpu_sum(const int N, const Dtype* a, Dtype* y);
+void caffe_gpu_sum(const int N, const int num, const Dtype* a, Dtype* y);
 
 template <typename Dtype>
-void caffe_gpu_sum(const int N, const Dtype* a, Dtype* y, const int inc);
+void caffe_gpu_strided_sum(const int N, const int num, const Dtype* a, Dtype* y);
 
 // caffe_gpu_rng_uniform with two arguments generates integers in the range
 // [0, UINT_MAX].
