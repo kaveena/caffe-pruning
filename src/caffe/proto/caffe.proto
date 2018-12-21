@@ -652,7 +652,7 @@ message ConvolutionMaskedParameter {
   optional int32 axis = 1 [default = 0];
   optional int32 num_axes = 2 [default = 3];
   optional FillerParameter mask_filler = 3; // The filler for the weight
-  optional bool mask_term = 4 [default = true]; // whether to have mask terms
+  optional bool mask_term = 4 [default = false]; // whether to have mask terms
 
 }
 
@@ -689,7 +689,7 @@ message ConvolutionSaliencyParameter {
   }
   // what saliency measure to use for the activations
   required SALIENCY saliency = 1 [default = ALL];
-  optional bool saliency_term = 2 [default = true]; // whether to have saliency terms
+  optional bool saliency_term = 2 [default = false]; // whether to have saliency terms
   optional bool accum = 3 [default = true]; // whether to accumulate saliency over different batches
 }
 
