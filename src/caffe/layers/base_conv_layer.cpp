@@ -166,7 +166,7 @@ void BaseConvolutionLayer<Dtype>::LayerSetUp(const vector<Blob<Dtype>*>& bottom,
   if (this->mask_term_) {
     total_blobs++;
     this->saliency_pos_++;
-    if (this->mask_term_) {
+    if (this->bias_term_) {
       total_blobs++;
       this->saliency_pos_++;
     }
@@ -246,6 +246,7 @@ void BaseConvolutionLayer<Dtype>::LayerSetUp(const vector<Blob<Dtype>*>& bottom,
       shared_ptr<Filler<Dtype> > mask_filler(GetFiller<Dtype>(
           this->layer_param_.convolution_masked_param().mask_filler()));
       mask_filler->Fill(this->blobs_[this->mask_pos_].get());
+      std::cout <<"DEEEEEEEBUUUUUUUGGGGG"<< this->blobs_[this->mask_pos_].get()->cpu_data()[0] << std::endl;
     }
     if (this->bias_term_ && this->mask_term_) {
       this->blobs_[this->mask_pos_ +1 ].reset(new Blob<Dtype>(bias_shape));
