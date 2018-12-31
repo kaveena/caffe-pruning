@@ -208,7 +208,6 @@ void ConvolutionSaliencyLayer<Dtype>::compute_taylor_cpu(const Dtype *  act_data
   
   caffe_mul(this->output_saliencies_points_.count(), act_data, act_diff, output_saliency_data);
   caffe_scal(this->output_saliencies_points_.count(), (Dtype) this->num_, output_saliency_data); //get unscaled diff back
-  caffe_abs(this->output_saliencies_points_.count(), output_saliency_data, output_saliency_data);
   
   for (int i = 0; i < this->output_saliencies_points_.count(0, 2); ++i) {
     caffe_sum(output_saliencies_points_.count(2,4), output_saliency_data, filter_saliency_data); //sum hxw

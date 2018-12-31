@@ -156,7 +156,6 @@ void ConvolutionSaliencyLayer<Dtype>::compute_taylor_gpu(const Dtype *  act_data
   
   caffe_gpu_mul(this->output_saliencies_points_.count(), act_data, act_diff, output_saliency_data);
   caffe_gpu_scal(this->output_saliencies_points_.count(), (Dtype) this->num_, output_saliency_data); //get unscaled diff back
-  caffe_gpu_abs(this->output_saliencies_points_.count(), output_saliency_data, output_saliency_data);
   
   caffe_gpu_sum(this->output_saliencies_points_.count(0, 2), output_saliencies_points_.count(2,4), output_saliency_data, filter_saliency_data); //sum hxw
   caffe_gpu_strided_sum(this->num_output_, this->num_, filter_saliency_data, taylor); // functionally it does not matter if we use sum or asum; sum across batches
