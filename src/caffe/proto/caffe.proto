@@ -685,7 +685,9 @@ message ConvolutionSaliencyParameter {
     TAYLOR = 1;
     HESSIAN_DIAG = 2;
     HESSIAN_DIAG_APPROX2 = 3;
-    ALL = 4; //needs to correspond to number of enum values excluding ALL
+    TAYLOR_2ND = 4;
+    TAYLOR_2ND_APPROX2 = 5;
+    ALL = 6; //needs to correspond to number of enum values excluding ALL
   }
   // what saliency measure to use for the activations
   required SALIENCY saliency = 1 [default = ALL];
