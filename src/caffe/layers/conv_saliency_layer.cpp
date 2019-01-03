@@ -324,9 +324,9 @@ void ConvolutionSaliencyLayer<Dtype>::compute_taylor_2nd_approx2_cpu(const Dtype
   Dtype* output_saliency_data = output_saliencies_points_.mutable_cpu_data();    
   Dtype* filter_saliency_data = output_saliencies_filter_.mutable_cpu_data();    
   
-  caffe_mul(this->output_saliencies_points_.count(), act_data, act_diff, output_saliency_data); //a * dE/da
-  caffe_mul(this->output_saliencies_points_.count(), output_saliency_data, act_diff, output_saliency_data); //a * (dE/da)**2
-  caffe_scal(this->output_saliencies_points_.count(), 1/(Dtype)(2*(this->num_)), output_saliency_data);  //1/2N * (a * (dE/da2)**2)
+  caffe_mul(this->output_saliencies_points_.count(), act_data, act_diff, output_saliency_data); //a * 1/N *dE/da
+  caffe_mul(this->output_saliencies_points_.count(), output_saliency_data, act_diff, output_saliency_data); //a * 1/N *  1/N * (dE/da)**2
+  caffe_scal(this->output_saliencies_points_.count(), (Dtype)(this->num_ / 2), output_saliency_data);  //1/2N * (a * (dE/da2)**2)
   caffe_add(this->output_saliencies_points_.count(), output_saliency_data, act_diff, output_saliency_data); //(a/2N * (dE/da2)**2) + 1/N * dE/da 
   caffe_mul(this->output_saliencies_points_.count(), output_saliency_data, act_data, output_saliency_data); //(a**2/2N * (dE/da2)**2) + a/N*dE/da
   
