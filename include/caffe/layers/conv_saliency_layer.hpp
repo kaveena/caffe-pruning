@@ -103,6 +103,8 @@ class ConvolutionSaliencyLayer : public BaseConvolutionLayer<Dtype> {
   void compute_taylor_2nd_gpu(const Dtype *  act_data, const Dtype * act_diff, const Dtype *  act_ddiff, Dtype * taylor_2nd);
   void compute_taylor_2nd_approx2_cpu(const Dtype *  act_data, const Dtype * act_diff, Dtype * taylor_2nd);
   void compute_taylor_2nd_approx2_gpu(const Dtype *  act_data, const Dtype * act_diff, Dtype * taylor_2nd);
+  void compute_norm_and_batch_avg_cpu(Dtype * saliency_data);
+  void compute_norm_and_batch_avg_gpu(Dtype * saliency_data);
 };
 
 }  // namespace caffe

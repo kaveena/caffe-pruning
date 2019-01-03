@@ -689,10 +689,21 @@ message ConvolutionSaliencyParameter {
     TAYLOR_2ND_APPROX2 = 5;
     ALL = 6; //needs to correspond to number of enum values excluding ALL
   }
+  enum NORM {
+    NONE = 0;
+    L1 = 1;
+    L2 = 2;
+  }
+  enum INPUT {
+    ACTIVATION = 0;
+    WEIGHT = 1;
+  }
   // what saliency measure to use for the activations
   required SALIENCY saliency = 1 [default = ALL];
   optional bool saliency_term = 2 [default = false]; // whether to have saliency terms
   optional bool accum = 3 [default = true]; // whether to accumulate saliency over different batches
+  optional NORM norm = 4 [default = NONE];
+  optional INPUT input = 5 [default = ACTIVATION];
 }
 
 message CropParameter {
