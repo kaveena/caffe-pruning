@@ -194,22 +194,11 @@ void ConvolutionSaliencyLayer<Dtype>::compute_fisher_cpu(const Dtype *  act_data
   caffe_mul(this->output_saliencies_points_.count(), act_data, act_diff, output_saliency_data);
   caffe_scal(this->output_saliencies_points_.count(), (Dtype) this->num_, output_saliency_data); //get unscaled diff back
   
-  for (int i = 0; i < this->output_saliencies_points_.count(0, 2); ++i) { //mxc loop
-    caffe_sum(output_saliencies_points_.count(2,4), output_saliency_data, filter_saliency_data); //sum hxw
-    output_saliency_data += output_saliencies_points_.count(2,4);
-    ++filter_saliency_data;
-  }
-  filter_saliency_data = output_saliencies_filter_.mutable_cpu_data();    
+  caffe_sum(this->output_saliencies_points_.count(0, 2), output_saliencies_points_.count(2,4), output_saliency_data, filter_saliency_data); //sum hxw
   
   caffe_powx(this->output_saliencies_filter_.count(), filter_saliency_data, (Dtype)2, filter_saliency_data);
   
-  Dtype * original_channel = fisher_info;
-  for (int i = 0; i < this->num_output_; ++i ) {
-    caffe_sum(this->num_, filter_saliency_data, fisher_info, this->num_output_); // functionally it does not matter if we use sum or asum; sum across batches
-    filter_saliency_data += 1;
-    ++fisher_info;
-  }
-  fisher_info = original_channel;
+  caffe_strided_sum(this->num_output_, this->num_, filter_saliency_data, fisher_info);
   
   caffe_scal(this->num_output_, 1/(Dtype)(2*(this->num_)), fisher_info);
 }
@@ -221,20 +210,8 @@ void ConvolutionSaliencyLayer<Dtype>::compute_taylor_cpu(const Dtype *  act_data
   
   caffe_mul(this->output_saliencies_points_.count(), act_data, act_diff, output_saliency_data);
   
-  for (int i = 0; i < this->output_saliencies_points_.count(0, 2); ++i) {
-    caffe_sum(output_saliencies_points_.count(2,4), output_saliency_data, filter_saliency_data); //sum hxw
-    output_saliency_data += output_saliencies_points_.count(2,4);
-    ++filter_saliency_data;
-  }
-  filter_saliency_data = output_saliencies_filter_.mutable_cpu_data();    
-  
-  Dtype * original_channel = taylor;
-  for (int i = 0; i < this->num_output_; ++i ) { 
-    caffe_sum(this->num_, filter_saliency_data, taylor,this->num_output_); // functionally it does not matter if we use sum or asum; sum across batches
-    filter_saliency_data += 1;
-    ++taylor;
-  }
-  taylor = original_channel;
+  caffe_sum(this->output_saliencies_points_.count(0, 2), output_saliencies_points_.count(2,4), output_saliency_data, filter_saliency_data); //sum hxw
+  caffe_strided_sum(this->num_output_, this->num_, filter_saliency_data, taylor);
   
 }
 
@@ -246,20 +223,8 @@ void ConvolutionSaliencyLayer<Dtype>::compute_hessian_diag_cpu(const Dtype *  ac
   caffe_mul(this->output_saliencies_points_.count(), act_data, act_data, output_saliency_data);
   caffe_mul(this->output_saliencies_points_.count(), output_saliency_data, act_ddiff, output_saliency_data);
   
-  for (int i = 0; i < this->output_saliencies_points_.count(0, 2); ++i) {
-    caffe_sum(output_saliencies_points_.count(2,4), output_saliency_data, filter_saliency_data); //sum hxw
-    output_saliency_data += output_saliencies_points_.count(2,4);
-    ++filter_saliency_data;
-  }
-  filter_saliency_data = output_saliencies_filter_.mutable_cpu_data();    
-  
-  Dtype * original_channel = hessian_diag;
-  for (int i = 0; i < this->num_output_; ++i ) { 
-    caffe_sum(this->num_, filter_saliency_data, hessian_diag,this->num_output_); // functionally it does not matter if we use sum or asum; sum across batches
-    filter_saliency_data += 1;
-    ++hessian_diag;
-  }
-  hessian_diag = original_channel;
+  caffe_sum(this->output_saliencies_points_.count(0, 2), output_saliencies_points_.count(2,4), output_saliency_data, filter_saliency_data); //sum hxw
+  caffe_strided_sum(this->num_output_, this->num_, filter_saliency_data, hessian_diag);
   
   caffe_scal(this->num_output_, 1/(Dtype)(2*(this->num_)), hessian_diag);
   
@@ -274,20 +239,8 @@ void ConvolutionSaliencyLayer<Dtype>::compute_hessian_diag_approx2_cpu(const Dty
   caffe_scal(this->output_saliencies_points_.count(), (Dtype) this->num_, output_saliency_data); //get unscaled diff back
   caffe_powx(this->output_saliencies_points_.count(), output_saliency_data, (Dtype)2, output_saliency_data);
   
-  for (int i = 0; i < this->output_saliencies_points_.count(0, 2); ++i) { //mxc loop
-    caffe_sum(output_saliencies_points_.count(2,4), output_saliency_data, filter_saliency_data); //sum hxw
-    output_saliency_data += output_saliencies_points_.count(2,4);
-    ++filter_saliency_data;
-  }
-  filter_saliency_data = output_saliencies_filter_.mutable_cpu_data();    
-  
-  Dtype * original_channel = hessian_diag;
-  for (int i = 0; i < this->num_output_; ++i ) {
-    caffe_sum(this->num_, filter_saliency_data, hessian_diag, this->num_output_); // functionally it does not matter if we use sum or asum; sum across batches
-    filter_saliency_data += 1;
-    ++hessian_diag;
-  }
-  hessian_diag = original_channel;
+  caffe_sum(this->output_saliencies_points_.count(0, 2), output_saliencies_points_.count(2,4), output_saliency_data, filter_saliency_data); //sum hxw
+  caffe_strided_sum(this->num_output_, this->num_, filter_saliency_data, hessian_diag);
   
   caffe_scal(this->num_output_, 1/(Dtype)(2*(this->num_)), hessian_diag);
 }
@@ -302,20 +255,8 @@ void ConvolutionSaliencyLayer<Dtype>::compute_taylor_2nd_cpu(const Dtype *  act_
   caffe_add(this->output_saliencies_points_.count(), output_saliency_data, act_diff, output_saliency_data); //(a/2N * d2E/da2) + 1/N * dE/da 
   caffe_mul(this->output_saliencies_points_.count(), output_saliency_data, act_data, output_saliency_data); //(a**2/2N * d2E/da2) + a/N*dE/da
   
-  for (int i = 0; i < this->output_saliencies_points_.count(0, 2); ++i) { //mxc loop
-    caffe_sum(output_saliencies_points_.count(2,4), output_saliency_data, filter_saliency_data); //sum hxw
-    output_saliency_data += output_saliencies_points_.count(2,4);
-    ++filter_saliency_data;
-  }
-  filter_saliency_data = output_saliencies_filter_.mutable_cpu_data();    
-  
-  Dtype * original_channel = taylor_2nd;
-  for (int i = 0; i < this->num_output_; ++i ) {
-    caffe_sum(this->num_, filter_saliency_data, taylor_2nd, this->num_output_); // functionally it does not matter if we use sum or asum; sum across batches
-    filter_saliency_data += 1;
-    ++taylor_2nd;
-  }
-  taylor_2nd = original_channel;
+  caffe_sum(this->output_saliencies_points_.count(0, 2), output_saliencies_points_.count(2,4), output_saliency_data, filter_saliency_data); //sum hxw
+  caffe_strided_sum(this->num_output_, this->num_, filter_saliency_data, taylor_2nd);
 
 }
 
@@ -330,20 +271,8 @@ void ConvolutionSaliencyLayer<Dtype>::compute_taylor_2nd_approx2_cpu(const Dtype
   caffe_add(this->output_saliencies_points_.count(), output_saliency_data, act_diff, output_saliency_data); //(a/2N * (dE/da2)**2) + 1/N * dE/da 
   caffe_mul(this->output_saliencies_points_.count(), output_saliency_data, act_data, output_saliency_data); //(a**2/2N * (dE/da2)**2) + a/N*dE/da
   
-  for (int i = 0; i < this->output_saliencies_points_.count(0, 2); ++i) { //mxc loop
-    caffe_sum(output_saliencies_points_.count(2,4), output_saliency_data, filter_saliency_data); //sum hxw
-    output_saliency_data += output_saliencies_points_.count(2,4);
-    ++filter_saliency_data;
-  }
-  filter_saliency_data = output_saliencies_filter_.mutable_cpu_data();    
-  
-  Dtype * original_channel = taylor_2nd;
-  for (int i = 0; i < this->num_output_; ++i ) {
-    caffe_sum(this->num_, filter_saliency_data, taylor_2nd, this->num_output_); // functionally it does not matter if we use sum or asum; sum across batches
-    filter_saliency_data += 1;
-    ++taylor_2nd;
-  }
-  taylor_2nd = original_channel;
+  caffe_sum(this->output_saliencies_points_.count(0, 2), output_saliencies_points_.count(2,4), output_saliency_data, filter_saliency_data); //sum hxw
+  caffe_strided_sum(this->num_output_, this->num_, filter_saliency_data, taylor_2nd);
   
 }
 

@@ -57,9 +57,9 @@ template <typename Dtype>
 void caffe_sqrt(const int N, const Dtype* a, Dtype* y);
 
 template <typename Dtype>
-void caffe_sum(const int N, const Dtype* a, Dtype* y);
+void caffe_sum(const int N, const int num, const Dtype* a, Dtype* y);
 template <typename Dtype>
-void caffe_sum(const int N, const Dtype* a, Dtype* y, const int inc);
+void caffe_strided_sum(const int N, const int num, const Dtype* a, Dtype* y);
 
 template <typename Dtype>
 void caffe_add(const int N, const Dtype* a, const Dtype* b, Dtype* y);

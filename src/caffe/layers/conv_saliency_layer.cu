@@ -157,7 +157,7 @@ void ConvolutionSaliencyLayer<Dtype>::compute_fisher_gpu(const Dtype *  act_data
   
   caffe_gpu_powx(this->output_saliencies_filter_.count(), filter_saliency_data, (Dtype)2, filter_saliency_data);
 
-  caffe_gpu_strided_sum(this->num_output_, this->num_, filter_saliency_data, fisher_info); // functionally it does not matter if we use sum or asum; sum across batches
+  caffe_gpu_strided_sum(this->num_output_, this->num_, filter_saliency_data, fisher_info);
   
   caffe_gpu_scal(this->num_output_, 1/(Dtype)(2*(this->num_)), fisher_info);
 }
@@ -170,7 +170,7 @@ void ConvolutionSaliencyLayer<Dtype>::compute_taylor_gpu(const Dtype *  act_data
   caffe_gpu_mul(this->output_saliencies_points_.count(), act_data, act_diff, output_saliency_data);
   
   caffe_gpu_sum(this->output_saliencies_points_.count(0, 2), output_saliencies_points_.count(2,4), output_saliency_data, filter_saliency_data); //sum hxw
-  caffe_gpu_strided_sum(this->num_output_, this->num_, filter_saliency_data, taylor); // functionally it does not matter if we use sum or asum; sum across batches
+  caffe_gpu_strided_sum(this->num_output_, this->num_, filter_saliency_data, taylor);
   
 }
 
@@ -183,7 +183,7 @@ void ConvolutionSaliencyLayer<Dtype>::compute_hessian_diag_gpu(const Dtype *  ac
   caffe_gpu_mul(this->output_saliencies_points_.count(), output_saliency_data, act_ddiff, output_saliency_data);
   
   caffe_gpu_sum(this->output_saliencies_points_.count(0, 2), output_saliencies_points_.count(2,4), output_saliency_data, filter_saliency_data); //sum hxw
-  caffe_gpu_strided_sum(this->num_output_, this->num_, filter_saliency_data, hessian_diag); // functionally it does not matter if we use sum or asum; sum across batches
+  caffe_gpu_strided_sum(this->num_output_, this->num_, filter_saliency_data, hessian_diag);
   
   caffe_gpu_scal(this->num_output_, 1/(Dtype)(2*(this->num_)), hessian_diag);
   
@@ -199,7 +199,7 @@ void ConvolutionSaliencyLayer<Dtype>::compute_hessian_diag_approx2_gpu(const Dty
   caffe_gpu_powx(this->output_saliencies_points_.count(), output_saliency_data, (Dtype)2, output_saliency_data);
   
   caffe_gpu_sum(this->output_saliencies_points_.count(0, 2), output_saliencies_points_.count(2,4), output_saliency_data, filter_saliency_data); //sum hxw
-  caffe_gpu_strided_sum(this->num_output_, this->num_, filter_saliency_data, hessian_diag); // functionally it does not matter if we use sum or asum; sum across batches
+  caffe_gpu_strided_sum(this->num_output_, this->num_, filter_saliency_data, hessian_diag);
   
   caffe_gpu_scal(this->num_output_, 1/(Dtype)(2*(this->num_)), hessian_diag);
 }

@@ -253,37 +253,29 @@ void caffe_sqrt<double>(const int n, const double* a, double* y) {
   vdSqrt(n, a, y);
 }
 
-template <>
-void caffe_sum<float>(const int n, const float* a, float* y) {
-  y[0] = (float) 0;
-  for (int i = 0; i < n; i++) {
-    y[0] += a[i];
+template <typename Dtype>
+void caffe_sum(const int N, const int num, const Dtype* a, Dtype* y) {
+  for (int j = 0; j < N; j++) {
+    y[j] = (Dtype) 0;
+    for (int i = 0; i < num; i++) {
+      y[j] += a[j*num + i];
+    }
   }
 }
+template void caffe_sum<float>(const int N, const int num, const float* a, float* y);
+template void caffe_sum<double>(const int N, const int num, const double* a, double* y);
 
-template <>
-void caffe_sum<double>(const int n, const double* a, double* y) {
-  y[0] = (double) 0;
-  for (int i = 0; i < n; i++) {
-    y[0] += a[i];
+template <typename Dtype>
+void caffe_strided_sum(const int N, const int num, const Dtype* a, Dtype* y) {
+  for (int j = 0; j < N; j++) {
+    y[j] = (Dtype) 0;
+    for (int i = 0; i < num; i++) {
+      y[j] += a[i*num + j];
+    }
   }
 }
-
-template <>
-void caffe_sum<float>(const int n, const float* a, float* y, const int inc) {
-  y[0] = (float) 0;
-  for (int i = 0; i < n; i++) {
-    y[0] += *(a+(inc*i));
-  }
-}
-
-template <>
-void caffe_sum<double>(const int n, const double* a, double* y, const int inc) {
-  y[0] = (double) 0;
-  for (int i = 0; i < n; i++) {
-    y[0] += *(a+(inc*i));
-  }
-}
+template void caffe_strided_sum<float>(const int N, const int num, const float* a, float* y);
+template void caffe_strided_sum<double>(const int N, const int num, const double* a, double* y);
 
 template <>
 void caffe_exp<float>(const int n, const float* a, float* y) {
