@@ -65,12 +65,17 @@ class ConvolutionSaliencyLayer : public BaseConvolutionLayer<Dtype> {
       : BaseConvolutionLayer<Dtype>(param) {}
   virtual void Reshape(const vector<Blob<Dtype>*>& bottom,
       const vector<Blob<Dtype>*>& top);
+  virtual void LayerSetUp(const vector<Blob<Dtype>*>& bottom,
+      const vector<Blob<Dtype>*>& top);
   virtual inline const char* type() const { return "ConvolutionSaliency"; }
+  int get_saliency () { return this->saliency_; }
+  void set_saliency(int saliency) {if (saliency!= (int)caffe::ConvolutionSaliencyParameter::ALL) this->saliency_ = (int) saliency;}
 
  protected:
   /// @brief The spatial dimensions of the weights_masked_.
   vector<int> weights_masked_shape_;
   vector<int> bias_masked_shape_;
+  int saliency_;
 
   virtual void Forward_cpu(const vector<Blob<Dtype>*>& bottom,
       const vector<Blob<Dtype>*>& top);

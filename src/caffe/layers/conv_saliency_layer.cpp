@@ -6,6 +6,13 @@
 namespace caffe {
 
 template <typename Dtype>
+void ConvolutionSaliencyLayer<Dtype>::LayerSetUp(const vector<Blob<Dtype>*>& bottom,
+      const vector<Blob<Dtype>*>& top) {
+  BaseConvolutionLayer<Dtype>::LayerSetUp(bottom, top);
+  this->saliency_ = this->layer_param_.convolution_saliency_param().saliency();
+}
+
+template <typename Dtype>
 void ConvolutionSaliencyLayer<Dtype>::compute_output_shape() {
   const int* kernel_shape_data = this->kernel_shape_.cpu_data();
   const int* stride_data = this->stride_.cpu_data();
