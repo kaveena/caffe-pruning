@@ -681,16 +681,18 @@ void Net<Dtype>::ShareTrainedLayersWith(const Net* other) {
     DLOG(INFO) << "Copying source layer " << source_layer_name;
     vector<shared_ptr<Blob<Dtype> > >& target_blobs =
         layers_[target_layer_id]->blobs();
-    CHECK_EQ(target_blobs.size(), source_layer->blobs().size())
-        << "Incompatible number of blobs for layer " << source_layer_name;
+//    CHECK_EQ(target_blobs.size(), source_layer->blobs().size())
+//        << "Incompatible number of blobs for layer " << source_layer_name;
     for (int j = 0; j < target_blobs.size(); ++j) {
-      Blob<Dtype>* source_blob = source_layer->blobs()[j].get();
-      CHECK(target_blobs[j]->shape() == source_blob->shape())
-          << "Cannot share param " << j << " weights from layer '"
-          << source_layer_name << "'; shape mismatch.  Source param shape is "
-          << source_blob->shape_string() << "; target param shape is "
-          << target_blobs[j]->shape_string();
-      target_blobs[j]->ShareData(*source_blob);
+      if (j < source_layer->blobs().size()) {
+        Blob<Dtype>* source_blob = source_layer->blobs()[j].get();
+        CHECK(target_blobs[j]->shape() == source_blob->shape())
+            << "Cannot share param " << j << " weights from layer '"
+            << source_layer_name << "'; shape mismatch.  Source param shape is "
+            << source_blob->shape_string() << "; target param shape is "
+            << target_blobs[j]->shape_string();
+        target_blobs[j]->ShareData(*source_blob);
+      }
     }
   }
 }
