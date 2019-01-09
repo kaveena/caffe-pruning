@@ -13,6 +13,7 @@ void PowerLayer<Dtype>::LayerSetUp(const vector<Blob<Dtype>*>& bottom,
   scale_ = this->layer_param_.power_param().scale();
   shift_ = this->layer_param_.power_param().shift();
   diff_scale_ = power_  * scale_;
+  this->helper_.Reshape(top[0]->shape());
 }
 
 // Compute y = (shift + scale * x)^power
@@ -46,10 +47,19 @@ void PowerLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
     const vector<Blob<Dtype>*>& bottom) {
   if (propagate_down[0]) {
     Dtype* bottom_diff = bottom[0]->mutable_cpu_diff();
+    Dtype* bottom_ddiff;
+    const Dtype* top_ddiff;
+    if (this->phase_ == TEST){
+      bottom_ddiff = bottom[0]->mutable_cpu_ddiff();
+      top_ddiff = top[0]->cpu_ddiff();
+    }
     const int count = bottom[0]->count();
     const Dtype* top_diff = top[0]->cpu_diff();
     if (diff_scale_ == Dtype(0) || power_ == Dtype(1)) {
       caffe_set(count, diff_scale_, bottom_diff);
+      if (this->phase_ == TEST) {
+        caffe_set(count, (Dtype) 0., bottom_ddiff); // d2y/dx**2 = 0
+      }
     } else {
       const Dtype* bottom_data = bottom[0]->cpu_data();
       // Compute dy/dx = scale * power * (shift + scale * x)^(power - 1)
@@ -63,6 +73,9 @@ void PowerLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
         if (shift_ != Dtype(0)) {
           caffe_add_scalar(count, diff_scale_ * shift_, bottom_diff);
         }
+        if (this->phase_ == TEST){
+          caffe_set(count, diff_scale_ * scale_, bottom_ddiff); // d2y/dx**2 = 2 * \alpha **2
+        }
       } else if (shift_ == Dtype(0)) {
         // Special case for y = (scale * x)^power
         //     -> dy/dx = scale * power * (scale * x)^(power - 1)
@@ -71,6 +84,10 @@ void PowerLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
         const Dtype* top_data = top[0]->cpu_data();
         caffe_div(count, top_data, bottom_data, bottom_diff);
         caffe_scal(count, power_, bottom_diff);
+        if (this->phase_ == TEST){
+          caffe_div(count, bottom_diff, bottom_data, bottom_ddiff); // d2y/dx2 = (power - 1)* dy/dx / x
+          caffe_scal(count, power_ - 1, bottom_ddiff);
+        }
       } else {
         caffe_copy(count, bottom_data, bottom_diff);
         if (scale_ != Dtype(1)) {
@@ -79,14 +96,27 @@ void PowerLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
         if (shift_ != Dtype(0)) {
           caffe_add_scalar(count, shift_, bottom_diff);
         }
+        if (this->phase_ == TEST){
+          caffe_copy(count, bottom_diff, bottom_ddiff); // alpha * x + beta
+        }
         const Dtype* top_data = top[0]->cpu_data();
         caffe_div<Dtype>(count, top_data, bottom_diff, bottom_diff);
         if (diff_scale_ != Dtype(1)) {
           caffe_scal(count, diff_scale_, bottom_diff);
         }
+        if (this->phase_ == TEST){
+          caffe_div<Dtype>(count, bottom_diff, bottom_ddiff, bottom_ddiff); // d2y/dx2 = alpha * (power - 1 ) * dy/dx / (alpha * x + beta) 
+          caffe_scal(count, diff_scale_ - scale_, bottom_ddiff);
+        }
       }
     }
     if (diff_scale_ != Dtype(0)) {
+      if (this->phase_ == TEST) {
+        caffe_mul(count, top_diff, bottom_ddiff, bottom_ddiff); // d2y/dx2 * dE/dy
+        caffe_powx(count, bottom_diff, (Dtype) 2, this->helper_.mutable_cpu_data()); // (dy/dx) **2
+        caffe_mul(count, top_ddiff, this->helper_.mutable_cpu_data(), this->helper_.mutable_cpu_data()); // d2E/dy2 * (dy/dx)**2 
+        caffe_add(count, bottom_ddiff, this->helper_.mutable_cpu_data(), bottom_ddiff); // d2E/dy2 * (dy/dx)**2 + dE/dy * d2y/dx2
+      }
       caffe_mul(count, top_diff, bottom_diff, bottom_diff);
     }
   }
