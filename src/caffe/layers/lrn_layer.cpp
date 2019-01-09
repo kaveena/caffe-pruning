@@ -63,6 +63,7 @@ void LRNLayer<Dtype>::LayerSetUp(const vector<Blob<Dtype>*>& bottom,
     product_layer_.reset(new EltwiseLayer<Dtype>(product_param));
     product_layer_->SetUp(product_bottom_vec_, top);
   }
+  this->helper_.Reshape(top[0]->shape());
 }
 
 template <typename Dtype>
@@ -243,6 +244,37 @@ void LRNLayer<Dtype>::WithinChannelBackward(
     square_layer_->Backward(square_top_vec_, propagate_down,
                             square_bottom_vec_);
     split_layer_->Backward(split_top_vec_, propagate_down, bottom);
+    // the ddiff from split layer contains
+    // nijk ** (-2 * beta )d2Edxijk 
+    //  + sum_u sum_v dE/dyi,j-u,k-v [ { 4 * (-beta ) (-beta - 1) xijk / n**2 } * xi,j-u,k-v ni,j-u,k-v ** (-beta - 2)
+    //                                   + { -2 * beta * alpha / n } * xi,j-u,k-v ni,j-u,k-v ** (-beta - 1) ]
+    //  + sum_u sum_v d2E/dy2i,j-u,k-v [ { 4 * beta **2 * alpha **2 xijk **2 / n**2} * xi,j-u,k-v ** 2 ni,j-u,k-v ** (-2beta -2)]
+
+    // we need to add 
+    // -4 * beta * alpha xijk nijk ** (-beta - 1) dE/dyijk
+    // -2 * beta * alpha xijk**2 nijk** ( -2beta - 1) d2E/dy2ijk
+    // nijk = ( k + alpha/n * sum_u sum_v xi,j-u,k-v **2 ) => use axpy on output of pool layer to get this
+    if (this->phase_ == TEST) {
+      int count = bottom[0]->count();
+      Dtype* helper_data_ = this->helper_.mutable_cpu_data();
+      Dtype* helper_data2_ = this->helper_.mutable_cpu_diff();
+      Dtype* helper_data3_ = this->helper_.mutable_cpu_ddiff();
+      
+      caffe_axpy(count, this->alpha_, pool_top_vec_[0]->cpu_data(), helper_data_);
+      caffe_add_scalar(count, this->k_, helper_data_); // nijk
+      caffe_powx(count, helper_data_, (Dtype)   - 1 - this->beta_, helper_data2_);
+      caffe_mul(count, bottom[0]->cpu_data(), helper_data2_, helper_data2_);
+      caffe_mul(count, top[0]->cpu_diff(), helper_data2_, helper_data2_);
+      caffe_scal(count, (Dtype) -4 * this->beta_ * this->alpha_ / this->size_, helper_data2_);
+      caffe_add(count, helper_data2_, bottom[0]->cpu_ddiff(), bottom[0]->mutable_cpu_ddiff());
+
+      caffe_powx(count, bottom[0]->cpu_data(), (Dtype) 2,  helper_data2_);   
+      caffe_powx(count, helper_data_, (Dtype) - 1 - 2*(this->beta_), helper_data3_);
+      caffe_mul(count, helper_data2_, helper_data3_, helper_data2_);
+      caffe_mul(count, top[0]->cpu_ddiff(), helper_data2_, helper_data2_);
+      caffe_scal(count, (Dtype) -2 * this->beta_ * this->alpha_ / this->size_, helper_data2_);
+      caffe_add(count, helper_data2_, bottom[0]->cpu_ddiff(), bottom[0]->mutable_cpu_ddiff());
+    }
   }
 }
 

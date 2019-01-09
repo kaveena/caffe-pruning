@@ -111,7 +111,7 @@ void LRNLayer<Dtype>::Backward_gpu(const vector<Blob<Dtype>*>& top,
     CrossChannelBackward_gpu(top, propagate_down, bottom);
     break;
   case LRNParameter_NormRegion_WITHIN_CHANNEL:
-    WithinChannelBackward(top, propagate_down, bottom);
+    WithinChannelBackward_gpu(top, propagate_down, bottom);
     break;
   default:
     LOG(FATAL) << "Unknown normalization region.";
@@ -188,6 +188,52 @@ void LRNLayer<Dtype>::CrossChannelBackward_gpu(
       size_, -beta_, Dtype(2. * alpha_ * beta_ / size_),
       bottom[0]->mutable_gpu_diff());
 }
+
+template <typename Dtype>
+void LRNLayer<Dtype>::WithinChannelBackward_gpu(
+    const vector<Blob<Dtype>*>& top, const vector<bool>& propagate_down,
+    const vector<Blob<Dtype>*>& bottom) {
+  if (propagate_down[0]) {
+    vector<bool> product_propagate_down(2, true);
+    product_layer_->Backward(top, product_propagate_down, product_bottom_vec_);
+    power_layer_->Backward(power_top_vec_, propagate_down, pool_top_vec_);
+    pool_layer_->Backward(pool_top_vec_, propagate_down, square_top_vec_);
+    square_layer_->Backward(square_top_vec_, propagate_down,
+                            square_bottom_vec_);
+    split_layer_->Backward(split_top_vec_, propagate_down, bottom);
+    // the ddiff from split layer contains
+    // nijk ** (-2 * beta )d2Edxijk 
+    //  + sum_u sum_v dE/dyi,j-u,k-v [ { 4 * (-beta ) (-beta - 1) xijk / n**2 } * xi,j-u,k-v ni,j-u,k-v ** (-beta - 2)
+    //                                   + { -2 * beta * alpha / n } * xi,j-u,k-v ni,j-u,k-v ** (-beta - 1) ]
+    //  + sum_u sum_v d2E/dy2i,j-u,k-v [ { 4 * beta **2 * alpha **2 xijk **2 / n**2} * xi,j-u,k-v ** 2 ni,j-u,k-v ** (-2beta -2)]
+
+    // we need to add 
+    // -4 * beta * alpha xijk nijk ** (-beta - 1) dE/dyijk
+    // -2 * beta * alpha xijk**2 nijk** ( -2beta - 1) d2E/dy2ijk
+    // nijk = ( k + alpha/n * sum_u sum_v xi,j-u,k-v **2 ) => use axpy on output of pool layer to get this
+    if (this->phase_ == TEST) {
+      int count = bottom[0]->count();
+      Dtype* helper_data_ = this->helper_.mutable_gpu_data();
+      Dtype* helper_data2_ = this->helper_.mutable_gpu_diff();
+      Dtype* helper_data3_ = this->helper_.mutable_gpu_ddiff();
+      
+      caffe_gpu_axpy(count, this->alpha_, pool_top_vec_[0]->gpu_data(), helper_data_);
+      caffe_gpu_add_scalar(count, this->k_, helper_data_); // nijk
+      caffe_gpu_powx(count, helper_data_, (Dtype)   - 1 - this->beta_, helper_data2_);
+      caffe_gpu_mul(count, bottom[0]->gpu_data(), helper_data2_, helper_data2_);
+      caffe_gpu_mul(count, top[0]->gpu_diff(), helper_data2_, helper_data2_);
+      caffe_gpu_scal(count, (Dtype) -4 * this->beta_ * this->alpha_ / this->size_, helper_data2_);
+      caffe_gpu_add(count, helper_data2_, bottom[0]->gpu_ddiff(), bottom[0]->mutable_gpu_ddiff());
+
+      caffe_gpu_powx(count, bottom[0]->gpu_data(), (Dtype) 2,  helper_data2_);   
+      caffe_gpu_powx(count, helper_data_, (Dtype) - 1 - 2*(this->beta_), helper_data3_);
+      caffe_gpu_mul(count, helper_data2_, helper_data3_, helper_data2_);
+      caffe_gpu_mul(count, top[0]->gpu_ddiff(), helper_data2_, helper_data2_);
+      caffe_gpu_scal(count, (Dtype) -2 * this->beta_ * this->alpha_ / this->size_, helper_data2_);
+      caffe_gpu_add(count, helper_data2_, bottom[0]->gpu_ddiff(), bottom[0]->mutable_gpu_ddiff());
+    }
+  }
+}
 template void LRNLayer<float>::CrossChannelBackward_gpu(
     const vector<Blob<float>*>& top, const vector<bool>& propagate_down,
     const vector<Blob<float>*>& bottom);
@@ -195,6 +241,12 @@ template void LRNLayer<double>::CrossChannelBackward_gpu(
     const vector<Blob<double>*>& top, const vector<bool>& propagate_down,
     const vector<Blob<double>*>& bottom);
 
+template void LRNLayer<float>::WithinChannelBackward_gpu(
+    const vector<Blob<float>*>& top, const vector<bool>& propagate_down,
+    const vector<Blob<float>*>& bottom);
+template void LRNLayer<double>::WithinChannelBackward_gpu(
+    const vector<Blob<double>*>& top, const vector<bool>& propagate_down,
+    const vector<Blob<double>*>& bottom);
 
 
 INSTANTIATE_LAYER_GPU_FUNCS(LRNLayer);
