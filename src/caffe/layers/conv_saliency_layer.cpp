@@ -93,6 +93,13 @@ void ConvolutionSaliencyLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& t
   const Dtype* weight = this->blobs_[0]->cpu_data();
   Dtype* weight_diff = this->blobs_[0]->mutable_cpu_diff();
   Dtype* weights_sqr = this->weights_sqr_.mutable_cpu_data();
+  Blob<Dtype>  weights_n_masked_;
+  Blob<Dtype> bias_n_masked_;
+  weights_n_masked_.Reshape({this->num_, this->blobs_[0]->shape()[0], this->blobs_[0]->shape()[1], this->blobs_[0]->shape()[2], this->blobs_[0]->shape()[3]});
+  if (this->bias_term_) {
+    bias_n_masked_.Reshape({this->num_, this->blobs_[1]->shape()[0]});
+  }
+  Dtype* full_weights_diff = weights_n_masked_.mutable_cpu_diff();
   if (this->mask_term_) {
     weight = this->weights_masked_.cpu_data();
   }
@@ -102,17 +109,35 @@ void ConvolutionSaliencyLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& t
     const Dtype* top_data = top[i]->cpu_data();
     const Dtype* bottom_data = bottom[i]->cpu_data();
     Dtype* bottom_diff = bottom[i]->mutable_cpu_diff();
+    Blob<Dtype> input_shaped_blob_;
     const Dtype* top_ddiff;
     Dtype* bottom_ddiff;
+    Dtype* input_sqr_;
+    Dtype* weight_ddiff;
+    Dtype* full_weights_ddiff;
     if (this->phase_ == TEST) {
+      input_shaped_blob_.Reshape(top[0]->shape());
       top_ddiff = top[i]->cpu_ddiff();
       bottom_ddiff = bottom[i]->mutable_cpu_ddiff();
+      weight_ddiff = this->blobs_[0]->mutable_cpu_ddiff();
+      full_weights_ddiff = weights_n_masked_.mutable_cpu_ddiff();
+      input_sqr_ = input_shaped_blob_.mutable_cpu_diff();
+      caffe_powx(bottom[i]->count(), bottom[i]->cpu_data(), (Dtype) 2, input_sqr_);
     }
     // Bias gradient, if necessary.
     if (this->bias_term_ && this->param_propagate_down_[1]) {
       Dtype* bias_diff = this->blobs_[1]->mutable_cpu_diff();
+      Dtype* full_bias_diff = bias_n_masked_.mutable_cpu_diff();
+      Dtype* bias_ddiff = this->blobs_[1]->mutable_cpu_ddiff();
+      Dtype* full_bias_ddiff = bias_n_masked_.mutable_cpu_ddiff();
       for (int n = 0; n < this->num_; ++n) {
-        this->backward_cpu_bias(bias_diff, top_diff + n * this->top_dim_);
+//        this->backward_cpu_bias(bias_diff, top_diff + n * this->top_dim_);
+        this->backward_cpu_bias_no_accum(full_bias_diff + n * this->blobs_[1]->count(), top_diff + n * this->top_dim_);
+        caffe_add(this->blobs_[1]->count(), full_bias_diff + n * this->blobs_[1]->count(), bias_diff, bias_diff);
+        if (this->phase_ == TEST) {
+          this->backward_cpu_bias_no_accum(full_bias_ddiff + n * this->blobs_[1]->count(), top_ddiff + n * this->top_dim_);
+          caffe_add(this->blobs_[1]->count(), full_bias_ddiff + n * this->blobs_[1]->count(), bias_ddiff, bias_ddiff);
+        }
       }
       if (this->mask_term_) {
         caffe_mul(this->blobs_[1]->count(), this->blobs_[this->mask_pos_+1]->cpu_data(), this->blobs_[1]->mutable_cpu_diff(), this->blobs_[1]->mutable_cpu_diff());
@@ -122,8 +147,16 @@ void ConvolutionSaliencyLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& t
       for (int n = 0; n < this->num_; ++n) {
         // gradient w.r.t. weight. Note that we will accumulate diffs.
         if (this->param_propagate_down_[0]) {
-          this->weight_cpu_gemm(bottom_data + n * this->bottom_dim_,
-              top_diff + n * this->top_dim_, weight_diff);
+//          this->weight_cpu_gemm(bottom_data + n * this->bottom_dim_,
+//              top_diff + n * this->top_dim_, weight_diff);
+          this->weight_cpu_gemm_no_accum(bottom_data + n * this->bottom_dim_,
+              top_diff + n * this->top_dim_, full_weights_diff + n * this->blobs_[0]->count());
+          caffe_add(this->blobs_[0]->count(), full_weights_diff + n * this->blobs_[0]->count(), weight_diff, weight_diff);
+          if (this->phase_ == TEST) {
+            this->weight_cpu_gemm_no_accum(input_sqr_ + n * this->bottom_dim_,
+                top_ddiff + n * this->top_dim_, full_weights_ddiff + n * this->blobs_[0]->count());
+            caffe_add(this->blobs_[0]->count(), full_weights_ddiff + n * this->blobs_[0]->count(), weight_ddiff, weight_ddiff);
+          }
           if (this->mask_term_) {
             // Don't update weights that are masked off
             caffe_mul(this->blobs_[0]->count(), this->blobs_[this->mask_pos_]->cpu_data(), weight_diff, weight_diff);

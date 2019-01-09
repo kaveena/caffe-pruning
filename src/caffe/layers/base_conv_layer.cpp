@@ -401,10 +401,33 @@ void BaseConvolutionLayer<Dtype>::weight_cpu_gemm(const Dtype* input,
 }
 
 template <typename Dtype>
+void BaseConvolutionLayer<Dtype>::weight_cpu_gemm_no_accum(const Dtype* input,
+    const Dtype* output, Dtype* weights) {
+  const Dtype* col_buff = input;
+  if (!is_1x1_) {
+    conv_im2col_cpu(input, col_buffer_.mutable_cpu_data());
+    col_buff = col_buffer_.cpu_data();
+  }
+  for (int g = 0; g < group_; ++g) {
+    caffe_cpu_gemm<Dtype>(CblasNoTrans, CblasTrans, conv_out_channels_ / group_,
+        kernel_dim_, conv_out_spatial_dim_,
+        (Dtype)1., output + output_offset_ * g, col_buff + col_offset_ * g,
+        (Dtype)0., weights + weight_offset_ * g);
+  }
+}
+
+template <typename Dtype>
 void BaseConvolutionLayer<Dtype>::backward_cpu_bias(Dtype* bias,
     const Dtype* input) {
   caffe_cpu_gemv<Dtype>(CblasNoTrans, num_output_, out_spatial_dim_, 1.,
       input, bias_multiplier_.cpu_data(), 1., bias);
+}
+
+template <typename Dtype>
+void BaseConvolutionLayer<Dtype>::backward_cpu_bias_no_accum(Dtype* bias,
+    const Dtype* input) {
+  caffe_cpu_gemv<Dtype>(CblasNoTrans, num_output_, out_spatial_dim_, 1.,
+      input, bias_multiplier_.cpu_data(), 0., bias);
 }
 
 #ifndef CPU_ONLY
@@ -470,10 +493,33 @@ void BaseConvolutionLayer<Dtype>::weight_gpu_gemm(const Dtype* input,
 }
 
 template <typename Dtype>
+void BaseConvolutionLayer<Dtype>::weight_gpu_gemm_no_accum(const Dtype* input,
+    const Dtype* output, Dtype* weights) {
+  const Dtype* col_buff = input;
+  if (!is_1x1_) {
+    conv_im2col_gpu(input, col_buffer_.mutable_gpu_data());
+    col_buff = col_buffer_.gpu_data();
+  }
+  for (int g = 0; g < group_; ++g) {
+    caffe_gpu_gemm<Dtype>(CblasNoTrans, CblasTrans, conv_out_channels_ / group_,
+        kernel_dim_, conv_out_spatial_dim_,
+        (Dtype)1., output + output_offset_ * g, col_buff + col_offset_ * g,
+        (Dtype)1., weights + weight_offset_ * g);
+  }
+}
+
+template <typename Dtype>
 void BaseConvolutionLayer<Dtype>::backward_gpu_bias(Dtype* bias,
     const Dtype* input) {
   caffe_gpu_gemv<Dtype>(CblasNoTrans, num_output_, out_spatial_dim_, 1.,
       input, bias_multiplier_.gpu_data(), 1., bias);
+}
+
+template <typename Dtype>
+void BaseConvolutionLayer<Dtype>::backward_gpu_bias_no_accum(Dtype* bias,
+    const Dtype* input) {
+  caffe_gpu_gemv<Dtype>(CblasNoTrans, num_output_, out_spatial_dim_, 1.,
+      input, bias_multiplier_.gpu_data(), 0., bias);
 }
 
 #endif  // !CPU_ONLY
