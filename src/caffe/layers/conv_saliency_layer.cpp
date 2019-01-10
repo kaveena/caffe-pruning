@@ -95,26 +95,50 @@ void ConvolutionSaliencyLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& t
   Dtype* weights_sqr = this->weights_sqr_.mutable_cpu_data();
   Blob<Dtype>  weights_n_masked_;
   Blob<Dtype> bias_n_masked_;
+  Blob<Dtype> input_shaped_blob_;
   weights_n_masked_.Reshape({this->num_, this->blobs_[0]->shape()[0], this->blobs_[0]->shape()[1], this->blobs_[0]->shape()[2], this->blobs_[0]->shape()[3]});
-  if (this->bias_term_) {
-    bias_n_masked_.Reshape({this->num_, this->blobs_[1]->shape()[0]});
-  }
   Dtype* full_weights_diff = weights_n_masked_.mutable_cpu_diff();
+  Dtype* weight_ddiff;
+  Dtype* full_weights_ddiff;
+  
+  const Dtype* bias;
+  Dtype* bias_diff;
+  Dtype* full_bias_diff;
+  Dtype* bias_ddiff;
+  Dtype* full_bias_ddiff;
+  
   if (this->mask_term_) {
     weight = this->weights_masked_.cpu_data();
   }
+  if (this->phase_ == TEST) {
+    weight_ddiff = this->blobs_[0]->mutable_cpu_diff();
+    full_weights_ddiff = weights_n_masked_.mutable_cpu_ddiff();
+  }
+
+  if (this->bias_term_) {
+    bias = this->blobs_[1]->cpu_data(); 
+    bias_n_masked_.Reshape({this->num_, this->blobs_[1]->shape()[0]});
+    bias_diff = this->blobs_[1]->mutable_cpu_diff();
+    full_bias_diff = bias_n_masked_.mutable_cpu_diff();
+    if (this->mask_term_) {
+      bias = this->bias_masked_.cpu_data();
+    }
+    if (this->phase_ == TEST) {
+      bias_ddiff = this->blobs_[1]->mutable_cpu_ddiff();
+      full_bias_ddiff = bias_n_masked_.mutable_cpu_ddiff();
+    }
+  }
+
   caffe_powx(this->blobs_[0]->count(), weight, (Dtype)2, weights_sqr);
+
   for (int i = 0; i < top.size(); ++i) {
     const Dtype* top_diff = top[i]->cpu_diff();
     const Dtype* top_data = top[i]->cpu_data();
     const Dtype* bottom_data = bottom[i]->cpu_data();
     Dtype* bottom_diff = bottom[i]->mutable_cpu_diff();
-    Blob<Dtype> input_shaped_blob_;
     const Dtype* top_ddiff;
     Dtype* bottom_ddiff;
     Dtype* input_sqr_;
-    Dtype* weight_ddiff;
-    Dtype* full_weights_ddiff;
     if (this->phase_ == TEST) {
       input_shaped_blob_.Reshape(top[0]->shape());
       top_ddiff = top[i]->cpu_ddiff();
@@ -126,12 +150,7 @@ void ConvolutionSaliencyLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& t
     }
     // Bias gradient, if necessary.
     if (this->bias_term_ && this->param_propagate_down_[1]) {
-      Dtype* bias_diff = this->blobs_[1]->mutable_cpu_diff();
-      Dtype* full_bias_diff = bias_n_masked_.mutable_cpu_diff();
-      Dtype* bias_ddiff = this->blobs_[1]->mutable_cpu_ddiff();
-      Dtype* full_bias_ddiff = bias_n_masked_.mutable_cpu_ddiff();
       for (int n = 0; n < this->num_; ++n) {
-//        this->backward_cpu_bias(bias_diff, top_diff + n * this->top_dim_);
         this->backward_cpu_bias_no_accum(full_bias_diff + n * this->blobs_[1]->count(), top_diff + n * this->top_dim_);
         caffe_add(this->blobs_[1]->count(), full_bias_diff + n * this->blobs_[1]->count(), bias_diff, bias_diff);
         if (this->phase_ == TEST) {
@@ -177,44 +196,60 @@ void ConvolutionSaliencyLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& t
     }
 
     if (this->phase_ == TEST) {
-      Dtype* channel_saliency_data = output_saliencies_channel_.mutable_cpu_data();    
-  
-      switch (this->layer_param_.convolution_saliency_param().saliency()) {
-        case (0): { // Fisher Information
-          compute_fisher_cpu(top_data, top_diff, channel_saliency_data);
-        } break;
+      // Compute Channel saliency
+      // MULTIPLE INPUTS NOT TREATED
+      if (this->layer_param_.convolution_saliency_param().input() == caffe::ConvolutionSaliencyParameter::WEIGHT) {
+        Dtype* channel_saliency_data = output_saliencies_channel_.mutable_cpu_data();    
+    
+        switch (this->layer_param_.convolution_saliency_param().saliency()) {
+          case (0): { // Fisher Information
+            compute_fisher_weights_cpu(&weights_n_masked_, channel_saliency_data);
+          } break;
 
-        case (1): { // Taylor Series
-          compute_taylor_cpu(top_data, top_diff, channel_saliency_data);
-        } break;
+          default: {
+          } break;
+        }
+      }
+      else {
+        Dtype* channel_saliency_data = output_saliencies_channel_.mutable_cpu_data();    
+    
+        switch (this->layer_param_.convolution_saliency_param().saliency()) {
+          case (0): { // Fisher Information
+            compute_fisher_cpu(top_data, top_diff, channel_saliency_data);
+          } break;
 
-        case (2): {
-          compute_hessian_diag_cpu(top_data, top_diff, top_ddiff, channel_saliency_data);
-        } break;
+          case (1): { // Taylor Series
+            compute_taylor_cpu(top_data, top_diff, channel_saliency_data);
+          } break;
 
-        case (3): {
-          compute_hessian_diag_approx2_cpu(top_data, top_diff, channel_saliency_data);
-        } break;
+          case (2): {
+            compute_hessian_diag_cpu(top_data, top_diff, top_ddiff, channel_saliency_data);
+          } break;
 
-        case (4): {
-          compute_taylor_2nd_cpu(top_data, top_diff, top_ddiff, channel_saliency_data);
-        } break;
+          case (3): {
+            compute_hessian_diag_approx2_cpu(top_data, top_diff, channel_saliency_data);
+          } break;
 
-        case (5): {
-          compute_taylor_2nd_approx2_cpu(top_data, top_diff, channel_saliency_data);
-        } break;
+          case (4): {
+            compute_taylor_2nd_cpu(top_data, top_diff, top_ddiff, channel_saliency_data);
+          } break;
 
-        case (6): {
-          compute_fisher_cpu(top_data, top_diff, channel_saliency_data);
-          compute_taylor_cpu(top_data, top_diff, channel_saliency_data + this->num_output_);
-          compute_hessian_diag_cpu(top_data, top_diff, top_ddiff, channel_saliency_data + (2*this->num_output_));
-          compute_hessian_diag_approx2_cpu(top_data, top_diff, channel_saliency_data + (3*this->num_output_));
-          compute_taylor_2nd_cpu(top_data, top_diff, top_ddiff, channel_saliency_data + (4*this->num_output_));
-          compute_taylor_2nd_approx2_cpu(top_data, top_diff, channel_saliency_data + (5*this->num_output_));
-        } break;
+          case (5): {
+            compute_taylor_2nd_approx2_cpu(top_data, top_diff, channel_saliency_data);
+          } break;
 
-        default: {
-        } break;
+          case (6): {
+            compute_fisher_cpu(top_data, top_diff, channel_saliency_data);
+            compute_taylor_cpu(top_data, top_diff, channel_saliency_data + this->num_output_);
+            compute_hessian_diag_cpu(top_data, top_diff, top_ddiff, channel_saliency_data + (2*this->num_output_));
+            compute_hessian_diag_approx2_cpu(top_data, top_diff, channel_saliency_data + (3*this->num_output_));
+            compute_taylor_2nd_cpu(top_data, top_diff, top_ddiff, channel_saliency_data + (4*this->num_output_));
+            compute_taylor_2nd_approx2_cpu(top_data, top_diff, channel_saliency_data + (5*this->num_output_));
+          } break;
+
+          default: {
+          } break;
+        }
       }
       if (this->layer_param_.convolution_saliency_param().accum()) {
         caffe_add(output_saliencies_channel_.count(), output_saliencies_channel_.mutable_cpu_data(), this->blobs_[this->saliency_pos_]->mutable_cpu_data(), this->blobs_[this->saliency_pos_]->mutable_cpu_data()); 
@@ -228,7 +263,7 @@ void ConvolutionSaliencyLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& t
 
 template <typename Dtype>
 void ConvolutionSaliencyLayer<Dtype>::compute_fisher_cpu(const Dtype *  act_data, const Dtype *  act_diff, Dtype * fisher_info) {
-  Dtype* output_saliency_data = output_saliencies_points_.mutable_cpu_data();    
+  Dtype* output_saliency_data = output_saliencies_points_.mutable_cpu_data(); 
   Dtype* filter_saliency_data = output_saliencies_filter_.mutable_cpu_data();    
   
   caffe_mul(this->output_saliencies_points_.count(), act_data, act_diff, output_saliency_data);
@@ -307,6 +342,31 @@ void ConvolutionSaliencyLayer<Dtype>::compute_taylor_2nd_approx2_cpu(const Dtype
   
   compute_norm_and_batch_avg_cpu(taylor_2nd);
   
+}
+
+template <typename Dtype>
+void ConvolutionSaliencyLayer<Dtype>::compute_fisher_weights_cpu(Blob<Dtype> * weights_n, Dtype * fisher_info) {
+  const Dtype* weights = this->blobs_[0]->cpu_data();
+  const Dtype* weights_n_diff = weights_n->cpu_diff();
+  Dtype* points_saliency_data = weights_n->mutable_cpu_data();
+  Dtype* filter_saliency_data = output_saliencies_filter_.mutable_cpu_data();    
+
+  if (this->mask_term_) {
+    weights = weights_masked_.mutable_cpu_data();
+  }
+
+  for (int n = 0; n<this->num_; n++) {
+    caffe_mul(this->blobs_[0]->count(), weights, weights_n_diff + n * this->blobs_[0]->count(), points_saliency_data + n * this->blobs_[0]->count());
+  }
+  caffe_scal(weights_n->count(), (Dtype) this->num_, points_saliency_data); // get unscaled diff back
+  
+  caffe_sum(weights_n->count(0,2), weights_n->count(2, 5), points_saliency_data, filter_saliency_data);
+  
+  caffe_powx(output_saliencies_filter_.count(), filter_saliency_data, (Dtype)2, filter_saliency_data);
+  
+  caffe_strided_sum(this->num_output_, this->num_, filter_saliency_data, fisher_info);
+  
+  caffe_scal(this->num_output_, 1/(Dtype)(2*(this->num_)), fisher_info);
 }
 
 template <typename Dtype>
