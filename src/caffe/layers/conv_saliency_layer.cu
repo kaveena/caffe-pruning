@@ -237,7 +237,7 @@ void ConvolutionSaliencyLayer<Dtype>::compute_taylor_gpu(const Dtype *  act_data
   caffe_gpu_mul(output_saliencies_points_.count(), act_data, act_diff, output_saliency_data);
   caffe_gpu_scal(output_saliencies_points_.count(), (Dtype)(-1 * this->num_), output_saliency_data);
   
-  compute_norm_and_batch_avg_gpu(taylor);
+  compute_norm_and_batch_avg_gpu(output_saliencies_points_.count(2,4), output_saliency_data, taylor);
   
 }
 
@@ -250,7 +250,7 @@ void ConvolutionSaliencyLayer<Dtype>::compute_hessian_diag_gpu(const Dtype *  ac
   
   caffe_gpu_scal(output_saliencies_points_.count(), 1/(Dtype)(2), output_saliency_data);
 
-  compute_norm_and_batch_avg_gpu(hessian_diag);
+  compute_norm_and_batch_avg_gpu(output_saliencies_points_.count(2,4), output_saliency_data, hessian_diag);
   
 }
 
@@ -263,7 +263,7 @@ void ConvolutionSaliencyLayer<Dtype>::compute_hessian_diag_approx2_gpu(const Dty
   caffe_gpu_scal(output_saliencies_points_.count(), (Dtype)(this->num_ * this->num_ / 2), output_saliency_data);
   
 
-  compute_norm_and_batch_avg_gpu(hessian_diag);
+  compute_norm_and_batch_avg_gpu(output_saliencies_points_.count(2,4), output_saliency_data, hessian_diag);
 
 }
 
@@ -277,7 +277,7 @@ void ConvolutionSaliencyLayer<Dtype>::compute_taylor_2nd_gpu(const Dtype *  act_
   caffe_gpu_mul(output_saliencies_points_.count(), output_saliency_data, act_data, output_saliency_data); //(a**2/2N * d2E/da2) - a/N*dE/da
   caffe_gpu_scal(output_saliencies_points_.count(), (Dtype)(this->num_), output_saliency_data);
   
-  compute_norm_and_batch_avg_gpu(taylor_2nd);
+  compute_norm_and_batch_avg_gpu(output_saliencies_points_.count(2,4), output_saliency_data, taylor_2nd);
 
 }
 
@@ -292,7 +292,7 @@ void ConvolutionSaliencyLayer<Dtype>::compute_taylor_2nd_approx2_gpu(const Dtype
   caffe_gpu_mul(output_saliencies_points_.count(), output_saliency_data, act_data, output_saliency_data); //(a**2/2N * (dE/da2)**2) - a/N*dE/da
   caffe_gpu_scal(output_saliencies_points_.count(), (Dtype)(this->num_), output_saliency_data);
   
-  compute_norm_and_batch_avg_gpu(taylor_2nd);
+  compute_norm_and_batch_avg_gpu(output_saliencies_points_.count(2,4), output_saliency_data, taylor_2nd);
   
 }
 
@@ -322,25 +322,24 @@ void ConvolutionSaliencyLayer<Dtype>::compute_fisher_weights_gpu(Blob<Dtype> * w
 }
 
 template <typename Dtype>
-void ConvolutionSaliencyLayer<Dtype>::compute_norm_and_batch_avg_gpu(Dtype * saliency_data) {
-
-  Dtype* output_saliency_data = this->output_saliencies_points_.mutable_gpu_data();    
+void ConvolutionSaliencyLayer<Dtype>::compute_norm_and_batch_avg_gpu(int count, Dtype * output_saliency_data, Dtype * saliency_data) {
+  
   Dtype* filter_saliency_data = this->output_saliencies_filter_.mutable_gpu_data();    
 
   switch (this->layer_param_.convolution_saliency_param().norm()) {
     case (caffe::ConvolutionSaliencyParameter::L1): {
-      caffe_gpu_abs(this->output_saliencies_points_.count(), output_saliency_data, output_saliency_data);
+      caffe_gpu_abs(this->num_ * this->num_output_ * count, output_saliency_data, output_saliency_data);
     } break;
     
     case (caffe::ConvolutionSaliencyParameter::L2): {
-      caffe_gpu_powx(this->output_saliencies_points_.count(), output_saliency_data, (Dtype) 2, output_saliency_data);
+      caffe_gpu_powx(this->num_ * this->num_output_ * count, output_saliency_data, (Dtype) 2, output_saliency_data);
     } break;
   
     default: {
     } break;
   }
   
-  caffe_gpu_sum(this->output_saliencies_points_.count(0, 2), this->output_saliencies_points_.count(2,4), output_saliency_data, filter_saliency_data); //sum hxw
+  caffe_gpu_sum(this->num_ * this->num_output_, count, output_saliency_data, filter_saliency_data); //sum hxw
   caffe_gpu_strided_sum(this->num_output_, this->num_, filter_saliency_data, saliency_data);
   caffe_gpu_scal(this->num_output_, 1 / (Dtype)(this->num_), saliency_data);
 
