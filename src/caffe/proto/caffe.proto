@@ -687,7 +687,8 @@ message ConvolutionSaliencyParameter {
     HESSIAN_DIAG_APPROX2 = 3;
     TAYLOR_2ND = 4;
     TAYLOR_2ND_APPROX2 = 5;
-    ALL = 6; //needs to correspond to number of enum values excluding ALL
+    WEIGHT_AVG = 6;
+    ALL = 7; //needs to correspond to number of enum values excluding ALL
   }
   enum NORM {
     NONE = 0;

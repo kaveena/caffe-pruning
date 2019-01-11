@@ -504,6 +504,7 @@ BOOST_PYTHON_MODULE(_caffe) {
     .value("HESSIAN_DIAG_APPROX2", ConvolutionSaliencyParameter::HESSIAN_DIAG_APPROX2)
     .value("TAYLOR_2ND", ConvolutionSaliencyParameter::TAYLOR_2ND)
     .value("TAYLOR_2ND_APPROX2", ConvolutionSaliencyParameter::TAYLOR_2ND_APPROX2)
+    .value("WEIGHT_AVG", ConvolutionSaliencyParameter::WEIGHT_AVG)
     .value("ALL", ConvolutionSaliencyParameter::ALL)
     ;
 

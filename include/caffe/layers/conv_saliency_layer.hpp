@@ -119,6 +119,10 @@ class ConvolutionSaliencyLayer : public BaseConvolutionLayer<Dtype> {
   void compute_taylor_2nd_weights_gpu(Blob<Dtype> * weights_n, Blob<Dtype> * bias_n, Dtype * fisher_info);
   void compute_taylor_2nd_approx2_weights_cpu(Blob<Dtype> * weights_n, Blob<Dtype> * bias_n, Dtype * fisher_info);
   void compute_taylor_2nd_approx2_weights_gpu(Blob<Dtype> * weights_n, Blob<Dtype> * bias_n, Dtype * fisher_info);
+  void compute_weight_cpu(const Dtype * act_data, Dtype * saliency_info);
+  void compute_weight_gpu(const Dtype * act_data, Dtype * saliency_info);
+  void compute_weight_weights_cpu(Blob<Dtype> * weights_n, Blob<Dtype> * bias_n, Dtype * saliency_info);
+  void compute_weight_weights_gpu(Blob<Dtype> * weights_n, Blob<Dtype> * bias_n, Dtype * saliency_info);
 
 };
 
