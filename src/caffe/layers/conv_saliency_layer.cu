@@ -153,6 +153,35 @@ void ConvolutionSaliencyLayer<Dtype>::Backward_gpu(const vector<Blob<Dtype>*>& t
             compute_fisher_weights_gpu(&weights_n_masked_, channel_saliency_data);
           } break;
 
+          case (1): { // Taylor Series
+            compute_taylor_weights_gpu(&weights_n_masked_, channel_saliency_data);
+          } break;
+
+          case (2): {
+            compute_hessian_diag_weights_gpu(&weights_n_masked_, channel_saliency_data);
+          } break;
+
+          case (3): {
+            compute_hessian_diag_approx2_weights_gpu(&weights_n_masked_, channel_saliency_data);
+          } break;
+
+          case (4): {
+            compute_taylor_2nd_weights_gpu(&weights_n_masked_, channel_saliency_data);
+          } break;
+
+          case (5): {
+            compute_taylor_2nd_approx2_weights_gpu(&weights_n_masked_, channel_saliency_data);
+          } break;
+
+          case (6): {
+            compute_fisher_weights_gpu(&weights_n_masked_, channel_saliency_data);
+            compute_taylor_weights_gpu(&weights_n_masked_, channel_saliency_data + this->num_output_);
+            compute_hessian_diag_weights_gpu(&weights_n_masked_, channel_saliency_data + (2*this->num_output_));
+            compute_hessian_diag_approx2_weights_gpu(&weights_n_masked_, channel_saliency_data + (3*this->num_output_));
+            compute_taylor_2nd_weights_gpu(&weights_n_masked_, channel_saliency_data + (4*this->num_output_));
+            compute_taylor_2nd_approx2_weights_gpu(&weights_n_masked_, channel_saliency_data + (5*this->num_output_));
+          } break;
+
           default: {
           } break;
         }
