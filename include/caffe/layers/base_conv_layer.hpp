@@ -88,8 +88,8 @@ class BaseConvolutionLayer : public Layer<Dtype> {
   int bottom_dim_;
   int top_dim_;
 
-  int mask_pos_;
-  int saliency_pos_;
+//  int mask_pos_;
+//  int saliency_pos_;
 
   int channel_axis_;
   int num_;

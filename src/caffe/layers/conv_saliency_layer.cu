@@ -145,10 +145,10 @@ void ConvolutionSaliencyLayer<Dtype>::Backward_gpu(const vector<Blob<Dtype>*>& t
     if (this->phase_ == TEST) {
       // Compute Channel saliency
       // MULTIPLE INPUTS NOT TREATED
-      if (this->layer_param_.convolution_saliency_param().input() == caffe::ConvolutionSaliencyParameter::WEIGHT) {
+      if (this->saliency_input_ == caffe::ConvolutionSaliencyParameter::WEIGHT) {
         Dtype* channel_saliency_data = output_saliencies_channel_.mutable_gpu_data();    
     
-        switch (this->layer_param_.convolution_saliency_param().saliency()) {
+        switch (this->saliency_) {
           case (0): { // Fisher Information
             compute_fisher_weights_gpu(&weights_n_masked_, channel_saliency_data);
           } break;
@@ -160,7 +160,7 @@ void ConvolutionSaliencyLayer<Dtype>::Backward_gpu(const vector<Blob<Dtype>*>& t
       else {
         Dtype* channel_saliency_data = output_saliencies_channel_.mutable_gpu_data();    
     
-        switch (this->layer_param_.convolution_saliency_param().saliency()) {
+        switch (this->saliency_) {
           case (0): { // Fisher Information
             compute_fisher_gpu(top_data, top_diff, channel_saliency_data);
           } break;
@@ -428,7 +428,7 @@ void ConvolutionSaliencyLayer<Dtype>::compute_norm_and_batch_avg_gpu(int count, 
 
   Dtype* filter_saliency_data = this->output_saliencies_filter_.mutable_gpu_data();    
 
-  switch (this->layer_param_.convolution_saliency_param().norm()) {
+  switch (this->saliency_norm_) {
     case (caffe::ConvolutionSaliencyParameter::L1): {
       caffe_gpu_abs(this->num_ * this->num_output_ * count, output_saliency_data, output_saliency_data);
     } break;

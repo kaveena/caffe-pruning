@@ -292,6 +292,13 @@ class Layer {
   }
 
 
+  // Add attributes to change saliency of conv layers in python hackily
+  ConvolutionSaliencyParameter::SALIENCY saliency_;
+  ConvolutionSaliencyParameter::NORM saliency_norm_;
+  ConvolutionSaliencyParameter::INPUT saliency_input_;
+  int saliency_pos_;
+  int mask_pos_;
+
  protected:
   /** The protobuf that stores the layer parameters */
   LayerParameter layer_param_;
