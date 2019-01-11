@@ -298,6 +298,7 @@ class Layer {
   ConvolutionSaliencyParameter::INPUT saliency_input_;
   int saliency_pos_;
   int mask_pos_;
+  bool saliency_bias_;
 
  protected:
   /** The protobuf that stores the layer parameters */
