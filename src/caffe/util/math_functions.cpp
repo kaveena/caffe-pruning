@@ -270,7 +270,7 @@ void caffe_strided_sum(const int N, const int num, const Dtype* a, Dtype* y) {
   for (int j = 0; j < N; j++) {
     y[j] = (Dtype) 0;
     for (int i = 0; i < num; i++) {
-      y[j] += a[i*num + j];
+      y[j] += a[i*N + j];
     }
   }
 }
