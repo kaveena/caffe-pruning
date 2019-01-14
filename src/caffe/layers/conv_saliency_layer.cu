@@ -626,6 +626,10 @@ void ConvolutionSaliencyLayer<Dtype>::compute_weight_weights_gpu(Blob<Dtype> * w
     } break;
   
     default: {
+      caffe_copy(this->blobs_[0]->count(), weights, points_saliency_data);
+      if (this->saliency_bias_ && this->bias_term_ && bias_saliency_data != NULL){
+        caffe_copy(this->blobs_[1]->count(), bias, bias_saliency_data);
+      }
     } break;
   }
 
