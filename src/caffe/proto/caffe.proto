@@ -649,10 +649,9 @@ message ConvolutionParameter {
 
 message ConvolutionMaskedParameter {
 
-  optional int32 axis = 1 [default = 0];
-  optional int32 num_axes = 2 [default = 3];
-  optional FillerParameter mask_filler = 3; // The filler for the weight
-  optional bool mask_term = 4 [default = false]; // whether to have mask terms
+  optional bool default_init = 1 [default = true]; // use default initialisation of ones for masks
+  optional FillerParameter mask_filler = 2; // The filler for the weight and bias
+  optional bool mask_term = 3 [default = false]; // whether to have mask terms
 
 }
 
