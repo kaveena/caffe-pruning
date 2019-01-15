@@ -299,6 +299,7 @@ class Layer {
   int saliency_pos_;
   int mask_pos_;
   bool saliency_bias_;
+  bool bias_term_;
 
  protected:
   /** The protobuf that stores the layer parameters */

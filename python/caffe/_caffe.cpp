@@ -491,6 +491,7 @@ BOOST_PYTHON_MODULE(_caffe) {
     .add_property("type", bp::make_function(&Layer<Dtype>::type))
     .add_property("saliency_pos_", &Layer<Dtype>::saliency_pos_)
     .add_property("mask_pos_", &Layer<Dtype>::mask_pos_)
+    .add_property("bias_term_", &Layer<Dtype>::bias_term_)
     .def_readwrite("saliency_", &Layer<Dtype>::saliency_)
     .def_readwrite("saliency_norm_", &Layer<Dtype>::saliency_norm_)
     .def_readwrite("saliency_input_", &Layer<Dtype>::saliency_input_)

@@ -98,7 +98,7 @@ class BaseConvolutionLayer : public Layer<Dtype> {
   int out_spatial_dim_;
   int weight_offset_;
   int num_output_;
-  bool bias_term_;
+//  bool bias_term_; //move to layer to facilitate interaction with pycaffe
   bool mask_term_;
   bool saliency_term_;
   bool is_1x1_;
