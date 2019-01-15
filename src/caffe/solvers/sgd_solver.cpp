@@ -35,6 +35,32 @@ Dtype SGDSolver<Dtype>::GetLearningRate() {
     CHECK_GE(this->param_.gamma(), 0);
     rate = this->param_.base_lr() *
         pow(this->param_.gamma(), this->current_step_);
+  } else if (lr_policy == "triangular") {
+    int itr = this->iter_ - this->param_.start_lr_policy();
+    if (itr > 0) {
+      CHECK_GT(this->param_.stepsize(), 0);
+      signed cycle = itr / (this->param_.stepsize() * 2);
+      float x = (float) (itr - (this->param_.stepsize() * (cycle * 2 + 1)));
+      x = x / this->param_.stepsize();
+      double lr_range = this->param_.max_lr() - this->param_.base_lr();
+      double adjustment = std::max(0.0, (1.0 - std::abs(x)));
+      rate = this->param_.base_lr() + (adjustment * lr_range);
+    } else {
+      rate = this->param_.base_lr();
+    }
+  } else if (lr_policy == "triangular2") {
+    signed itr = this->iter_ - this->param_.start_lr_policy();
+    if (itr > 0) {
+      CHECK_GT(this->param_.stepsize(), 0);
+      signed cycle = itr / (this->param_.stepsize() * 2);
+      float x = (float) (itr - (this->param_.stepsize() * (cycle * 2 + 1)));
+      x = x / this->param_.stepsize();
+      double lr_range = this->param_.max_lr() - this->param_.base_lr();
+      double adjustment = std::min(1.0, std::max(0.0, (1.0 - std::abs(x)) / (std::pow(2.0, (double) cycle))));
+      rate = this->param_.base_lr() + (adjustment * lr_range);
+    } else {
+      rate = this->param_.base_lr();
+    }
   } else if (lr_policy == "exp") {
     CHECK_GE(this->param_.gamma(), 0);
     rate = this->param_.base_lr() * pow(this->param_.gamma(), this->iter_);
