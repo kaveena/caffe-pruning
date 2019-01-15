@@ -87,7 +87,7 @@ void ConvolutionSaliencyLayer<Dtype>::Backward_gpu(const vector<Blob<Dtype>*>& t
     Dtype* bottom_ddiff;
     Dtype* input_sqr_;
     if (Caffe::derivative_compute()) {
-      input_shaped_blob_.Reshape(top[i]->shape());
+      input_shaped_blob_.Reshape(bottom[i]->shape());
       top_ddiff = top[i]->gpu_ddiff();
       bottom_ddiff = bottom[i]->mutable_gpu_ddiff();
       weight_ddiff = this->blobs_[0]->mutable_gpu_ddiff();
@@ -123,10 +123,6 @@ void ConvolutionSaliencyLayer<Dtype>::Backward_gpu(const vector<Blob<Dtype>*>& t
                 top_ddiff + n * this->top_dim_, full_weights_ddiff + n * this->blobs_[0]->count());
             caffe_gpu_add(this->blobs_[0]->count(), full_weights_ddiff + n * this->blobs_[0]->count(), weight_ddiff, weight_ddiff);
           }
-          if (this->mask_term_) {
-            // Don't update weights that are masked off
-            caffe_gpu_mul(this->blobs_[0]->count(), this->blobs_[this->mask_pos_]->gpu_data(), weight_diff, weight_diff);
-          }
         }
         // gradient w.r.t. bottom data, if necessary.
         if (propagate_down[i]) {
@@ -139,6 +135,10 @@ void ConvolutionSaliencyLayer<Dtype>::Backward_gpu(const vector<Blob<Dtype>*>& t
                 bottom_ddiff + n * this->bottom_dim_);
           }
         }
+      }
+      if (this->mask_term_) {
+        // Don't update weights that are masked off
+        caffe_gpu_mul(this->blobs_[0]->count(), this->blobs_[this->mask_pos_]->gpu_data(), weight_diff, weight_diff);
       }
     }
 
