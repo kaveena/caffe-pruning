@@ -33,7 +33,7 @@ void ConvolutionLayer<Dtype>::Backward_gpu(const vector<Blob<Dtype>*>& top,
     const Dtype* top_diff = top[i]->gpu_diff();
     const Dtype* top_ddiff;
     Dtype* bottom_ddiff;
-    if (this->phase_ == TEST) {
+    if (Caffe::derivative_compute()) {
       top_ddiff = top[i]->gpu_ddiff();
       bottom_ddiff = bottom[i]->mutable_gpu_ddiff();
     }
@@ -58,7 +58,7 @@ void ConvolutionLayer<Dtype>::Backward_gpu(const vector<Blob<Dtype>*>& top,
           this->backward_gpu_gemm(top_diff + n * this->top_dim_, weight,
               bottom_diff + n * this->bottom_dim_);
         }
-        if (this->phase_ == TEST) {
+        if (Caffe::derivative_compute()) {
           if (propagate_down[i]) {
             this->backward_gpu_gemm(top_ddiff + n * this->top_dim_, weights_sqr,
                 bottom_ddiff + n * this->bottom_dim_);

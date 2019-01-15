@@ -62,10 +62,12 @@ void DropoutLayer<Dtype>::Backward_gpu(const vector<Blob<Dtype>*>& top,
           count, top_diff, mask, uint_thres_, scale_, bottom_diff);
       CUDA_POST_KERNEL_CHECK;
     } else {
-      top_ddiff = top[0]->gpu_ddiff();
-      bottom_ddiff = bottom[0]->mutable_gpu_ddiff();
       caffe_copy(top[0]->count(), top_diff, bottom_diff);
-      caffe_copy(top[0]->count(), top_ddiff, bottom_ddiff);
+      if (Caffe::derivative_compute()){
+        top_ddiff = top[0]->gpu_ddiff();
+        bottom_ddiff = bottom[0]->mutable_gpu_ddiff();
+        caffe_copy(top[0]->count(), top_ddiff, bottom_ddiff);
+      }
     }
   }
 }

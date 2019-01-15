@@ -52,7 +52,7 @@ void ConvolutionLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
     const Dtype* top_ddiff;
     Dtype* bottom_ddiff;
     Dtype* bottom_diff = bottom[i]->mutable_cpu_diff();
-    if (this->phase_ == TEST) {
+    if (Caffe::derivative_compute()) {
       top_ddiff = top[i]->cpu_ddiff();
       bottom_ddiff = bottom[i]->mutable_cpu_ddiff();
     }
@@ -75,7 +75,7 @@ void ConvolutionLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
           this->backward_cpu_gemm(top_diff + n * this->top_dim_, weight,
               bottom_diff + n * this->bottom_dim_);
         }
-        if (this->phase_ == TEST) {
+        if (Caffe::derivative_compute()) {
           if (propagate_down[i]) {
             this->backward_cpu_gemm(top_ddiff + n * this->top_dim_, weights_sqr,
                 bottom_ddiff + n * this->bottom_dim_);

@@ -211,7 +211,7 @@ void LRNLayer<Dtype>::WithinChannelBackward_gpu(
     // -4 * beta * alpha xijk nijk ** (-beta - 1) dE/dyijk
     // -2 * beta * alpha xijk**2 nijk** ( -2beta - 1) d2E/dy2ijk
     // nijk = ( k + alpha/n * sum_u sum_v xi,j-u,k-v **2 ) => use axpy on output of pool layer to get this
-    if (this->phase_ == TEST) {
+    if (Caffe::derivative_compute()) {
       int count = bottom[0]->count();
       Dtype* helper_data_ = this->helper_.mutable_gpu_data();
       Dtype* helper_data2_ = this->helper_.mutable_gpu_diff();

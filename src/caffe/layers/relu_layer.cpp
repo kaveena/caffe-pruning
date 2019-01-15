@@ -28,7 +28,7 @@ void ReLULayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
     Dtype* bottom_diff = bottom[0]->mutable_cpu_diff();
     const Dtype* top_ddiff;
     Dtype* bottom_ddiff;
-    if (this->phase_ == TEST) {
+    if (Caffe::derivative_compute()) {
       top_ddiff = top[0]->cpu_ddiff();
       bottom_ddiff = bottom[0]->mutable_cpu_ddiff();
     }
@@ -38,7 +38,7 @@ void ReLULayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
       bottom_diff[i] = top_diff[i] * ((bottom_data[i] > 0)
           + negative_slope * (bottom_data[i] <= 0));
     }
-    if (this->phase_ == TEST) {
+    if (Caffe::derivative_compute()) {
       for (int i = 0; i < count; ++i) {
         bottom_ddiff[i] = top_ddiff[i] * ((bottom_data[i] > 0)
             + negative_slope * (bottom_data[i] <= 0));
