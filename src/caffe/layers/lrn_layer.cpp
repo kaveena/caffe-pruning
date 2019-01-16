@@ -185,6 +185,10 @@ void LRNLayer<Dtype>::CrossChannelBackward_cpu(
   const Dtype* top_data = top[0]->cpu_data();
   const Dtype* bottom_data = bottom[0]->cpu_data();
   const Dtype* scale_data = scale_.cpu_data();
+  
+  const Dtype* top_ddiff;
+  Dtype* bottom_ddiff;
+  
   Dtype* bottom_diff = bottom[0]->mutable_cpu_diff();
   Blob<Dtype> padded_ratio(1, channels_ + size_ - 1, height_, width_);
   Blob<Dtype> accum_ratio(1, 1, height_, width_);
@@ -228,6 +232,122 @@ void LRNLayer<Dtype>::CrossChannelBackward_cpu(
           accum_ratio_times_bottom, bottom_diff + top[0]->offset(n, c));
       caffe_axpy<Dtype>(height_ * width_, -1.,
           padded_ratio_data + padded_ratio.offset(0, c), accum_ratio_data);
+    }
+  }
+  if (Caffe::derivative_compute()) {
+    top_ddiff = top[0]->gpu_ddiff();
+    bottom_ddiff = bottom[0]->mutable_gpu_ddiff();
+    
+    Dtype scale1 = Dtype(4. * (beta_ + 1) * beta_ / (size_ * size_));
+    Dtype scale2 = Dtype(2. * alpha_ * beta_ / size_);
+    Dtype scale3 = (Dtype) pow(scale2, 2);
+    
+    Blob<Dtype> accum_ratio2(1, 1, height_, width_);
+    Dtype* padded_ratio2_data = padded_ratio.mutable_cpu_diff();
+    Dtype* padded_ratio3_data = padded_ratio.mutable_cpu_ddiff();
+    Dtype* accum_ratio2_data = accum_ratio.mutable_cpu_ddiff();
+    Dtype* accum_ratio2_times_bottom = accum_ratio2.mutable_cpu_data();
+    Dtype* accum_ratio3_data = accum_ratio2.mutable_cpu_diff();
+    Dtype* accum_ratio3_times_bottom = accum_ratio2.mutable_cpu_ddiff();
+    
+    //caffe_powx<Dtype>(scale_.count(), scale_data, -beta_, bottom_diff);
+    //caffe_mul<Dtype>(scale_.count(), top_diff, bottom_diff, bottom_diff);
+    int count = bottom[0]->count();
+    
+    Dtype* helper_data_ = this->helper_.mutable_cpu_data();
+    Dtype* helper_data2_ = this->helper_.mutable_cpu_diff();
+    
+    caffe_powx(count, scale_data, (Dtype)   - 2 * beta_, bottom_ddiff);
+    caffe_mul(count, top_ddiff, bottom_ddiff, bottom_ddiff);
+    
+    caffe_powx(count, scale_data, (Dtype)   - 1 - beta_, helper_data_);
+    caffe_mul(count, bottom_data, helper_data_, helper_data_);
+    caffe_mul(count, top_diff, helper_data_, helper_data_);
+    caffe_axpy(count, (Dtype) -2 * scale2, helper_data_, bottom_ddiff);
+
+    caffe_powx(count, bottom_data, (Dtype) 2,  helper_data_);   
+    caffe_powx(count, scale_data, (Dtype) - 1 - 2*beta_, helper_data2_);
+    caffe_mul(count, helper_data_, helper_data2_, helper_data_);
+    caffe_mul(count, top_ddiff, helper_data_, helper_data_);
+    caffe_axpy(count, (Dtype) - scale2, helper_data_, bottom_ddiff);
+
+    // go through individual data
+    int inverse_pre_pad = size_ - (size_ + 1) / 2;
+    for (int n = 0; n < num_; ++n) {
+      int block_offset = scale_.offset(n);
+      // first, y_i / s_i
+      caffe_div<Dtype>(channels_ * height_ * width_,
+          top_data + block_offset, scale_data + block_offset,
+          padded_ratio2_data + padded_ratio.offset(0, inverse_pre_pad));
+      // y_i / (s_i * s_i)
+      caffe_div<Dtype>(channels_ * height_ * width_,
+          padded_ratio2_data + padded_ratio.offset(0, inverse_pre_pad), scale_data + block_offset,
+          padded_ratio_data + padded_ratio.offset(0, inverse_pre_pad));
+      // (y_i / s_i)**2
+      caffe_powx(channels_ * height_ * width_,
+          padded_ratio2_data + padded_ratio.offset(0, inverse_pre_pad), (Dtype) 2,
+          padded_ratio3_data + padded_ratio.offset(0, inverse_pre_pad));
+      // diff_i * y_i / (s_i * s_i)
+      caffe_mul<Dtype>(channels_ * height_ * width_,
+          top_diff + block_offset, padded_ratio_data + padded_ratio.offset(0, inverse_pre_pad),
+          padded_ratio_data + padded_ratio.offset(0, inverse_pre_pad));
+      // diff_i * y_i / s_i
+      caffe_mul<Dtype>(channels_ * height_ * width_,
+          top_diff + block_offset, padded_ratio2_data + padded_ratio.offset(0, inverse_pre_pad),
+          padded_ratio2_data + padded_ratio.offset(0, inverse_pre_pad));
+      // ddiff_i * (y_i / s_i)**2
+      caffe_mul<Dtype>(channels_ * height_ * width_,
+          top_ddiff + block_offset, padded_ratio3_data + padded_ratio.offset(0, inverse_pre_pad),
+          padded_ratio3_data + padded_ratio.offset(0, inverse_pre_pad));
+      // Now, compute the accumulated ratios and the bottom diff
+      caffe_set(accum_ratio.count(), Dtype(0), accum_ratio_data);
+      for (int c = 0; c < size_ - 1; ++c) {
+        caffe_axpy<Dtype>(height_ * width_, 1.,
+            padded_ratio_data + padded_ratio.offset(0, c), accum_ratio_data);
+        caffe_axpy<Dtype>(height_ * width_, 1.,
+            padded_ratio2_data + padded_ratio.offset(0, c), accum_ratio2_data);
+        caffe_axpy<Dtype>(height_ * width_, 1.,
+            padded_ratio3_data + padded_ratio.offset(0, c), accum_ratio3_data);
+      }
+      for (int c = 0; c < channels_; ++c) {
+        caffe_axpy<Dtype>(height_ * width_, 1.,
+            padded_ratio_data + padded_ratio.offset(0, c + size_ - 1),
+            accum_ratio_data);
+        caffe_axpy<Dtype>(height_ * width_, 1.,
+            padded_ratio2_data + padded_ratio.offset(0, c + size_ - 1),
+            accum_ratio2_data);
+        caffe_axpy<Dtype>(height_ * width_, 1.,
+            padded_ratio3_data + padded_ratio.offset(0, c + size_ - 1),
+            accum_ratio3_data);
+        // compute bottom diff
+        caffe_powx<Dtype>(height_ * width_,
+            bottom_data + top[0]->offset(n, c),
+            (Dtype) 2, accum_ratio3_times_bottom);
+        caffe_mul<Dtype>(height_ * width_,
+            accum_ratio3_times_bottom,
+            accum_ratio_data, accum_ratio_times_bottom);
+        
+        caffe_mul<Dtype>(height_ * width_,
+            bottom_data + top[0]->offset(n, c),
+            accum_ratio2_data, accum_ratio2_times_bottom);
+        caffe_mul<Dtype>(height_ * width_,
+            accum_ratio3_times_bottom,
+            accum_ratio3_data, accum_ratio3_times_bottom);
+        
+        caffe_axpy<Dtype>(height_ * width_, scale1,
+            accum_ratio_times_bottom, bottom_ddiff + top[0]->offset(n, c));
+        caffe_axpy<Dtype>(height_ * width_, scale2,
+            accum_ratio2_times_bottom, bottom_ddiff + top[0]->offset(n, c));
+        caffe_axpy<Dtype>(height_ * width_, scale3,
+            accum_ratio3_times_bottom, bottom_ddiff + top[0]->offset(n, c));
+        
+        caffe_axpy<Dtype>(height_ * width_, -1.,
+            padded_ratio_data + padded_ratio.offset(0, c), accum_ratio_data);
+        caffe_axpy<Dtype>(height_ * width_, -1.,
+            padded_ratio2_data + padded_ratio.offset(0, c), accum_ratio2_data);
+        caffe_axpy<Dtype>(height_ * width_, -1.,
+            padded_ratio3_data + padded_ratio.offset(0, c), accum_ratio3_data);
+      }
     }
   }
 }
