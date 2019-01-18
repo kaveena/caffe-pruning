@@ -145,10 +145,17 @@ void BaseConvolutionLayer<Dtype>::LayerSetUp(const vector<Blob<Dtype>*>& bottom,
   vector<int> bias_shape(this->bias_term_, this->num_output_);
   this->mask_term_ = this->layer_param_.convolution_masked_param().mask_term();
   this->saliency_term_ = this->layer_param_.convolution_saliency_param().saliency_term();
+  if (std::string(this->type()) == "ConvolutionSaliency") {
+    this->mask_term_ = true;
+    this->saliency_term_ = true;
+  }
+  if (std::string(this->type()) == "ConvolutionMasked") {
+    this->mask_term_ = true;
+  }
   int saliency_shape_0_ = 0;
   if (this->saliency_term_) {
     if ( this->layer_param_.convolution_saliency_param().saliency() == caffe::ConvolutionSaliencyParameter::ALL  ){
-      saliency_shape_0_ = 2;
+      saliency_shape_0_ = (int) (caffe::ConvolutionSaliencyParameter::ALL);
     }
     else {
       saliency_shape_0_ = 1;
@@ -166,6 +173,10 @@ void BaseConvolutionLayer<Dtype>::LayerSetUp(const vector<Blob<Dtype>*>& bottom,
   if (this->mask_term_) {
     total_blobs++;
     this->saliency_pos_++;
+    if (this->bias_term_) {
+      total_blobs++;
+      this->saliency_pos_++;
+    }
   }
   if (this->saliency_term_) {
     total_blobs++;
@@ -188,16 +199,53 @@ void BaseConvolutionLayer<Dtype>::LayerSetUp(const vector<Blob<Dtype>*>& bottom,
     LOG(INFO) << "Skipping parameter initialization";
     if (this->mask_term_ && weight_shape != this->blobs_[this->mask_pos_]->shape()) {
       Blob<Dtype> mask_shaped_blob(weight_shape);
-      LOG(FATAL) << "Incorrect mask shape: expected shape "
+      LOG(INFO) << "Incorrect mask shape: expected shape "
           << mask_shaped_blob.shape_string() << "; instead, shape was "
           << this->blobs_[this->mask_pos_]->shape_string();
+      LOG(INFO) << "Mask Initialization";
+      this->blobs_[this->mask_pos_].reset(new Blob<Dtype>(weight_shape));
+      if (this->layer_param_.convolution_masked_param().default_init()) {
+        Blob<Dtype> * mask_blob = this->blobs_[this->mask_pos_].get();
+        for (int i=0; i<mask_blob->count(); ++i) {
+          mask_blob->mutable_cpu_data()[i] = (Dtype)1.0;
+        }
+      }
+      else {
+        shared_ptr<Filler<Dtype> > mask_filler(GetFiller<Dtype>(
+            this->layer_param_.convolution_masked_param().mask_filler()));
+        mask_filler->Fill(this->blobs_[this->mask_pos_].get());
+      }
     }
-    LOG(INFO) << "Skipping parameter initialization";
+    if (this->bias_term_ && this->mask_term_ && bias_shape != this->blobs_[this->mask_pos_+1]->shape()) {
+      Blob<Dtype> bias_mask_shaped_blob(bias_shape);
+      LOG(INFO) << "Incorrect bias mask shape: expected shape "
+          << bias_mask_shaped_blob.shape_string() << "; instead, shape was "
+          << this->blobs_[this->mask_pos_+1]->shape_string();
+      LOG(INFO) << "Mask Initialization";
+      this->blobs_[this->mask_pos_+1].reset(new Blob<Dtype>(bias_shape));
+      if (this->layer_param_.convolution_masked_param().default_init()) {
+        Blob<Dtype> * mask_blob = this->blobs_[this->mask_pos_+1].get();
+        for (int i=0; i<mask_blob->count(); ++i) {
+          mask_blob->mutable_cpu_data()[i] = (Dtype)1.0;
+        }
+      }
+      else {
+        shared_ptr<Filler<Dtype> > mask_filler(GetFiller<Dtype>(
+            this->layer_param_.convolution_masked_param().mask_filler()));
+        mask_filler->Fill(this->blobs_[this->mask_pos_+1].get());
+      }
+    }
     if (this->saliency_term_ && saliency_shape != this->blobs_[this->saliency_pos_]->shape()) {
       Blob<Dtype> saliency_shaped_blob(saliency_shape);
       LOG(FATAL) << "Incorrect saliency shape: expected shape "
           << saliency_shaped_blob.shape_string() << "; instead, shape was "
           << this->blobs_[this->saliency_pos_]->shape_string();
+      LOG(INFO) << "Saliency Initialization";
+      this->blobs_[this->saliency_pos_].reset(new Blob<Dtype>(saliency_shape));
+      Blob<Dtype> * saliency_blob = this->blobs_[this->saliency_pos_].get();
+      for (int i=0; i<saliency_blob->count(); ++i) {
+        saliency_blob->mutable_cpu_data()[i] = (Dtype)0.0;
+      }
     }
   } else {
       this->blobs_.resize(total_blobs);
@@ -218,9 +266,31 @@ void BaseConvolutionLayer<Dtype>::LayerSetUp(const vector<Blob<Dtype>*>& bottom,
     // If necessary, initialize and fill the mask.
     if (this->mask_term_) {
       this->blobs_[this->mask_pos_].reset(new Blob<Dtype>(weight_shape));
-      shared_ptr<Filler<Dtype> > mask_filler(GetFiller<Dtype>(
-          this->layer_param_.convolution_masked_param().mask_filler()));
-      mask_filler->Fill(this->blobs_[this->mask_pos_].get());
+      if (this->layer_param_.convolution_masked_param().default_init()) {
+        Blob<Dtype> * mask_blob = this->blobs_[this->mask_pos_].get();
+        for (int i=0; i<mask_blob->count(); ++i) {
+          mask_blob->mutable_cpu_data()[i] = (Dtype)1.0;
+        }
+      }
+      else {
+        shared_ptr<Filler<Dtype> > mask_filler(GetFiller<Dtype>(
+            this->layer_param_.convolution_masked_param().mask_filler()));
+        mask_filler->Fill(this->blobs_[this->mask_pos_].get());
+      }
+    }
+    if (this->bias_term_ && this->mask_term_) {
+      this->blobs_[this->mask_pos_ +1 ].reset(new Blob<Dtype>(bias_shape));
+      if (this->layer_param_.convolution_masked_param().default_init()) {
+        Blob<Dtype> * mask_blob = this->blobs_[this->mask_pos_+1].get();
+        for (int i=0; i<mask_blob->count(); ++i) {
+          mask_blob->mutable_cpu_data()[i] = (Dtype)1.0;
+        }
+      }
+      else {
+        shared_ptr<Filler<Dtype> > mask_filler(GetFiller<Dtype>(
+            this->layer_param_.convolution_masked_param().mask_filler()));
+        mask_filler->Fill(this->blobs_[this->mask_pos_+1].get());
+      }
     }
     if (this->saliency_term_) {
       this->blobs_[this->saliency_pos_].reset(new Blob<Dtype>(saliency_shape));
@@ -300,12 +370,13 @@ void BaseConvolutionLayer<Dtype>::Reshape(const vector<Blob<Dtype>*>& bottom,
   num_kernels_col2im_ = reverse_dimensions() ? top_dim_ : bottom_dim_;
   // Set up the all ones "bias multiplier" for adding biases by BLAS
   out_spatial_dim_ = top[0]->count(first_spatial_axis);
-  if (bias_term_) {
+  if (this->bias_term_) {
     vector<int> bias_multiplier_shape(1, out_spatial_dim_);
     bias_multiplier_.Reshape(bias_multiplier_shape);
     caffe_set(bias_multiplier_.count(), Dtype(1),
         bias_multiplier_.mutable_cpu_data());
   }
+  this->weights_sqr_.Reshape(this->blobs_[0]->shape());
 }
 
 template <typename Dtype>
@@ -369,10 +440,33 @@ void BaseConvolutionLayer<Dtype>::weight_cpu_gemm(const Dtype* input,
 }
 
 template <typename Dtype>
+void BaseConvolutionLayer<Dtype>::weight_cpu_gemm_no_accum(const Dtype* input,
+    const Dtype* output, Dtype* weights) {
+  const Dtype* col_buff = input;
+  if (!is_1x1_) {
+    conv_im2col_cpu(input, col_buffer_.mutable_cpu_data());
+    col_buff = col_buffer_.cpu_data();
+  }
+  for (int g = 0; g < group_; ++g) {
+    caffe_cpu_gemm<Dtype>(CblasNoTrans, CblasTrans, conv_out_channels_ / group_,
+        kernel_dim_, conv_out_spatial_dim_,
+        (Dtype)1., output + output_offset_ * g, col_buff + col_offset_ * g,
+        (Dtype)0., weights + weight_offset_ * g);
+  }
+}
+
+template <typename Dtype>
 void BaseConvolutionLayer<Dtype>::backward_cpu_bias(Dtype* bias,
     const Dtype* input) {
   caffe_cpu_gemv<Dtype>(CblasNoTrans, num_output_, out_spatial_dim_, 1.,
       input, bias_multiplier_.cpu_data(), 1., bias);
+}
+
+template <typename Dtype>
+void BaseConvolutionLayer<Dtype>::backward_cpu_bias_no_accum(Dtype* bias,
+    const Dtype* input) {
+  caffe_cpu_gemv<Dtype>(CblasNoTrans, num_output_, out_spatial_dim_, 1.,
+      input, bias_multiplier_.cpu_data(), 0., bias);
 }
 
 #ifndef CPU_ONLY
@@ -438,10 +532,33 @@ void BaseConvolutionLayer<Dtype>::weight_gpu_gemm(const Dtype* input,
 }
 
 template <typename Dtype>
+void BaseConvolutionLayer<Dtype>::weight_gpu_gemm_no_accum(const Dtype* input,
+    const Dtype* output, Dtype* weights) {
+  const Dtype* col_buff = input;
+  if (!is_1x1_) {
+    conv_im2col_gpu(input, col_buffer_.mutable_gpu_data());
+    col_buff = col_buffer_.gpu_data();
+  }
+  for (int g = 0; g < group_; ++g) {
+    caffe_gpu_gemm<Dtype>(CblasNoTrans, CblasTrans, conv_out_channels_ / group_,
+        kernel_dim_, conv_out_spatial_dim_,
+        (Dtype)1., output + output_offset_ * g, col_buff + col_offset_ * g,
+        (Dtype)1., weights + weight_offset_ * g);
+  }
+}
+
+template <typename Dtype>
 void BaseConvolutionLayer<Dtype>::backward_gpu_bias(Dtype* bias,
     const Dtype* input) {
   caffe_gpu_gemv<Dtype>(CblasNoTrans, num_output_, out_spatial_dim_, 1.,
       input, bias_multiplier_.gpu_data(), 1., bias);
+}
+
+template <typename Dtype>
+void BaseConvolutionLayer<Dtype>::backward_gpu_bias_no_accum(Dtype* bias,
+    const Dtype* input) {
+  caffe_gpu_gemv<Dtype>(CblasNoTrans, num_output_, out_spatial_dim_, 1.,
+      input, bias_multiplier_.gpu_data(), 0., bias);
 }
 
 #endif  // !CPU_ONLY

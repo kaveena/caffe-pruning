@@ -55,6 +55,8 @@ class LRNLayer : public Layer<Dtype> {
       const vector<bool>& propagate_down, const vector<Blob<Dtype>*>& bottom);
   virtual void WithinChannelBackward(const vector<Blob<Dtype>*>& top,
       const vector<bool>& propagate_down, const vector<Blob<Dtype>*>& bottom);
+  virtual void WithinChannelBackward_gpu(const vector<Blob<Dtype>*>& top,
+      const vector<bool>& propagate_down, const vector<Blob<Dtype>*>& bottom);
 
   int size_;
   int pre_pad_;
@@ -87,6 +89,9 @@ class LRNLayer : public Layer<Dtype> {
   shared_ptr<EltwiseLayer<Dtype> > product_layer_;
   Blob<Dtype> product_input_;
   vector<Blob<Dtype>*> product_bottom_vec_;
+  
+  // Helper blob to propagate ddiff
+  Blob<Dtype> helper_;
 };
 
 }  // namespace caffe

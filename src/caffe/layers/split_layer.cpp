@@ -36,6 +36,9 @@ void SplitLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
   if (!propagate_down[0]) { return; }
   if (top.size() == 1) {
     caffe_copy(count_, top[0]->cpu_diff(), bottom[0]->mutable_cpu_diff());
+    if (Caffe::derivative_compute()) {
+      caffe_copy(count_, top[0]->cpu_ddiff(), bottom[0]->mutable_cpu_ddiff());
+    }
     return;
   }
   caffe_add(count_, top[0]->cpu_diff(), top[1]->cpu_diff(),
@@ -45,6 +48,16 @@ void SplitLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
     const Dtype* top_diff = top[i]->cpu_diff();
     Dtype* bottom_diff = bottom[0]->mutable_cpu_diff();
     caffe_axpy(count_, Dtype(1.), top_diff, bottom_diff);
+  }
+  if (Caffe::derivative_compute()) {
+    caffe_add(count_, top[0]->cpu_ddiff(), top[1]->cpu_ddiff(),
+              bottom[0]->mutable_cpu_ddiff());
+    // Add remaining top blob diffs.
+    for (int i = 2; i < top.size(); ++i) {
+      const Dtype* top_ddiff = top[i]->cpu_ddiff();
+      Dtype* bottom_ddiff = bottom[0]->mutable_cpu_ddiff();
+      caffe_axpy(count_, Dtype(1.), top_ddiff, bottom_ddiff);
+    }
   }
 }
 

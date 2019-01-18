@@ -475,6 +475,8 @@ BOOST_PYTHON_MODULE(_caffe) {
     .add_property("data",     bp::make_function(&Blob<Dtype>::mutable_cpu_data,
           NdarrayCallPolicies()))
     .add_property("diff",     bp::make_function(&Blob<Dtype>::mutable_cpu_diff,
+          NdarrayCallPolicies()))
+    .add_property("ddiff",     bp::make_function(&Blob<Dtype>::mutable_cpu_ddiff,
           NdarrayCallPolicies()));
   BP_REGISTER_SHARED_PTR_TO_PYTHON(Blob<Dtype>);
 
@@ -482,10 +484,41 @@ BOOST_PYTHON_MODULE(_caffe) {
     boost::noncopyable>("Layer", bp::init<const LayerParameter&>())
     .add_property("blobs", bp::make_function(&Layer<Dtype>::blobs,
           bp::return_internal_reference<>()))
+    .add_property("layer_param", bp::make_function(&Layer<Dtype>::layer_param,
+          bp::return_internal_reference<>()))
     .def("setup", &Layer<Dtype>::LayerSetUp)
     .def("reshape", &Layer<Dtype>::Reshape)
-    .add_property("type", bp::make_function(&Layer<Dtype>::type));
+    .add_property("type", bp::make_function(&Layer<Dtype>::type))
+    .add_property("saliency_pos_", &Layer<Dtype>::saliency_pos_)
+    .add_property("mask_pos_", &Layer<Dtype>::mask_pos_)
+    .add_property("bias_term_", &Layer<Dtype>::bias_term_)
+    .def_readwrite("saliency_", &Layer<Dtype>::saliency_)
+    .def_readwrite("saliency_norm_", &Layer<Dtype>::saliency_norm_)
+    .def_readwrite("saliency_input_", &Layer<Dtype>::saliency_input_)
+    .def_readwrite("saliency_bias_", &Layer<Dtype>::saliency_bias_);
   BP_REGISTER_SHARED_PTR_TO_PYTHON(Layer<Dtype>);
+
+  bp::enum_<ConvolutionSaliencyParameter::SALIENCY>("SALIENCY")
+    .value("FISHER", ConvolutionSaliencyParameter::FISHER)
+    .value("TAYLOR", ConvolutionSaliencyParameter::TAYLOR)
+    .value("HESSIAN_DIAG", ConvolutionSaliencyParameter::HESSIAN_DIAG)
+    .value("HESSIAN_DIAG_APPROX2", ConvolutionSaliencyParameter::HESSIAN_DIAG_APPROX2)
+    .value("TAYLOR_2ND", ConvolutionSaliencyParameter::TAYLOR_2ND)
+    .value("TAYLOR_2ND_APPROX2", ConvolutionSaliencyParameter::TAYLOR_2ND_APPROX2)
+    .value("WEIGHT_AVG", ConvolutionSaliencyParameter::WEIGHT_AVG)
+    .value("ALL", ConvolutionSaliencyParameter::ALL)
+    ;
+
+  bp::enum_<ConvolutionSaliencyParameter::NORM>("SALIENCY_NORM")
+    .value("NONE", ConvolutionSaliencyParameter::NONE)
+    .value("L1", ConvolutionSaliencyParameter::L1)
+    .value("L2", ConvolutionSaliencyParameter::L2)
+    ;
+
+  bp::enum_<ConvolutionSaliencyParameter::INPUT>("SALIENCY_INPUT")
+    .value("ACTIVATION", ConvolutionSaliencyParameter::ACTIVATION)
+    .value("WEIGHT", ConvolutionSaliencyParameter::WEIGHT)
+    ;
 
   bp::class_<SolverParameter>("SolverParameter", bp::no_init)
     .add_property("max_iter", &SolverParameter::max_iter)
@@ -493,7 +526,6 @@ BOOST_PYTHON_MODULE(_caffe) {
     .add_property("layer_wise_reduce", &SolverParameter::layer_wise_reduce)
     .add_property("base_lr", &SolverParameter::base_lr,
            &SolverParameter::set_base_lr);
-  bp::class_<LayerParameter>("LayerParameter", bp::no_init);
 
   bp::class_<Solver<Dtype>, shared_ptr<Solver<Dtype> >, boost::noncopyable>(
     "Solver", bp::no_init)

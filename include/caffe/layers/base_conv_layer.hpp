@@ -39,7 +39,10 @@ class BaseConvolutionLayer : public Layer<Dtype> {
       Dtype* output);
   void weight_cpu_gemm(const Dtype* input, const Dtype* output, Dtype*
       weights);
+  void weight_cpu_gemm_no_accum(const Dtype* input, const Dtype* output, Dtype*
+      weights);
   void backward_cpu_bias(Dtype* bias, const Dtype* input);
+  void backward_cpu_bias_no_accum(Dtype* bias, const Dtype* input);
 
 #ifndef CPU_ONLY
   void forward_gpu_gemm(const Dtype* col_input, const Dtype* weights,
@@ -49,7 +52,10 @@ class BaseConvolutionLayer : public Layer<Dtype> {
       Dtype* col_output);
   void weight_gpu_gemm(const Dtype* col_input, const Dtype* output, Dtype*
       weights);
+  void weight_gpu_gemm_no_accum(const Dtype* col_input, const Dtype* output, Dtype*
+      weights);
   void backward_gpu_bias(Dtype* bias, const Dtype* input);
+  void backward_gpu_bias_no_accum(Dtype* bias, const Dtype* input);
 #endif
 
   /// @brief The spatial dimensions of the input.
@@ -82,8 +88,8 @@ class BaseConvolutionLayer : public Layer<Dtype> {
   int bottom_dim_;
   int top_dim_;
 
-  int mask_pos_;
-  int saliency_pos_;
+//  int mask_pos_;
+//  int saliency_pos_;
 
   int channel_axis_;
   int num_;
@@ -92,11 +98,14 @@ class BaseConvolutionLayer : public Layer<Dtype> {
   int out_spatial_dim_;
   int weight_offset_;
   int num_output_;
-  bool bias_term_;
+//  bool bias_term_; //move to layer to facilitate interaction with pycaffe
   bool mask_term_;
   bool saliency_term_;
   bool is_1x1_;
   bool force_nd_im2col_;
+
+  //Helper for computing ddiff
+  Blob<Dtype> weights_sqr_;
 
  private:
   // wrap im2col/col2im so we don't have to remember the (long) argument lists

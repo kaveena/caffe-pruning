@@ -71,6 +71,7 @@ class ConvolutionMaskedLayer : public BaseConvolutionLayer<Dtype> {
  protected:
   /// @brief The spatial dimensions of the weights_masked_.
   vector<int> weights_masked_shape_;
+  vector<int> bias_masked_shape_;
 
   virtual void Forward_cpu(const vector<Blob<Dtype>*>& bottom,
       const vector<Blob<Dtype>*>& top);
@@ -85,6 +86,7 @@ class ConvolutionMaskedLayer : public BaseConvolutionLayer<Dtype> {
 
  private:
   Blob<Dtype> weights_masked_;
+  Blob<Dtype> bias_masked_;
 };
 
 }  // namespace caffe

@@ -27,6 +27,16 @@ __global__ void ScaleBiasForward(const int n, const Dtype* in,
 }
 
 template <typename Dtype>
+__global__ void ScaleBackwardBackward(const int n, const Dtype* in,
+    const Dtype* scale, const int scale_dim, const int inner_dim,
+    Dtype* out) {
+  CUDA_KERNEL_LOOP(index, n) {
+    const int scale_index = (index / inner_dim) % scale_dim;
+    out[index] = in[index] * scale[scale_index] * scale[scale_index];
+  }
+}
+
+template <typename Dtype>
 void ScaleLayer<Dtype>::Forward_gpu(
     const vector<Blob<Dtype>*>& bottom, const vector<Blob<Dtype>*>& top) {
   const int count = top[0]->count();
@@ -124,9 +134,20 @@ void ScaleLayer<Dtype>::Backward_gpu(const vector<Blob<Dtype>*>& top,
     const Dtype* top_diff = top[0]->gpu_diff();
     const Dtype* scale_data = scale->gpu_data();
     Dtype* bottom_diff = bottom[0]->mutable_gpu_diff();
+    const Dtype* top_ddiff;
+    Dtype* bottom_ddiff;
+    if (Caffe::derivative_compute()) {
+      top_ddiff = top[0]->gpu_ddiff();
+      bottom_ddiff = bottom[0]->mutable_gpu_ddiff();
+    }
     ScaleForward<Dtype>  // NOLINT_NEXT_LINE(whitespace/operators)
         <<<CAFFE_GET_BLOCKS(count), CAFFE_CUDA_NUM_THREADS>>>(
         count, top_diff, scale_data, scale_dim_, inner_dim_, bottom_diff);
+    if (Caffe::derivative_compute()) {
+      ScaleBackwardBackward<Dtype>  // NOLINT_NEXT_LINE(whitespace/operators)
+          <<<CAFFE_GET_BLOCKS(count), CAFFE_CUDA_NUM_THREADS>>>(
+          count, top_ddiff, scale_data, scale_dim_, inner_dim_, bottom_ddiff);
+    }
   }
 }
 

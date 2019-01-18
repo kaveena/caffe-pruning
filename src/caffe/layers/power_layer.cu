@@ -35,10 +35,19 @@ void PowerLayer<Dtype>::Backward_gpu(const vector<Blob<Dtype>*>& top,
     const vector<Blob<Dtype>*>& bottom) {
   if (propagate_down[0]) {
     Dtype* bottom_diff = bottom[0]->mutable_gpu_diff();
+    Dtype* bottom_ddiff;
+    const Dtype* top_ddiff;
+    if (Caffe::derivative_compute()){
+      bottom_ddiff = bottom[0]->mutable_gpu_ddiff();
+      top_ddiff = top[0]->gpu_ddiff();
+    }
     const int count = bottom[0]->count();
     const Dtype* top_diff = top[0]->gpu_diff();
     if (diff_scale_ == Dtype(0) || power_ == Dtype(1)) {
       caffe_gpu_set(count, diff_scale_, bottom_diff);
+      if (Caffe::derivative_compute()) {
+        caffe_gpu_set(count, (Dtype) 0., bottom_ddiff); // d2y/dx**2 = 0
+      }
     } else {
       const Dtype* bottom_data = bottom[0]->gpu_data();
       // Compute dy/dx = scale * power * (shift + scale * x)^(power - 1)
@@ -52,6 +61,9 @@ void PowerLayer<Dtype>::Backward_gpu(const vector<Blob<Dtype>*>& top,
         if (shift_ != Dtype(0)) {
           caffe_gpu_add_scalar(count, diff_scale_ * shift_, bottom_diff);
         }
+        if (Caffe::derivative_compute()){
+          caffe_gpu_set(count, diff_scale_ * scale_, bottom_ddiff); // d2y/dx**2 = 2 * \alpha **2
+        }
       } else if (shift_ == Dtype(0)) {
         // Special case for y = (scale * x)^power
         //     -> dy/dx = scale * power * (scale * x)^(power - 1)
@@ -60,6 +72,10 @@ void PowerLayer<Dtype>::Backward_gpu(const vector<Blob<Dtype>*>& top,
         const Dtype* top_data = top[0]->gpu_data();
         caffe_gpu_div(count, top_data, bottom_data, bottom_diff);
         caffe_gpu_scal(count, power_, bottom_diff);
+        if (Caffe::derivative_compute()){
+          caffe_gpu_div(count, bottom_diff, bottom_data, bottom_ddiff); // d2y/dx2 = (power - 1)* dy/dx / x
+          caffe_gpu_scal(count, power_ - 1, bottom_ddiff);
+        }
       } else {
         caffe_copy(count, bottom_data, bottom_diff);
         if (scale_ != Dtype(1)) {
@@ -68,12 +84,25 @@ void PowerLayer<Dtype>::Backward_gpu(const vector<Blob<Dtype>*>& top,
         if (shift_ != Dtype(0)) {
           caffe_gpu_add_scalar(count, shift_, bottom_diff);
         }
+        if (Caffe::derivative_compute()){
+          caffe_copy(count, bottom_diff, bottom_ddiff); // alpha * x + beta
+        }
         const Dtype* top_data = top[0]->gpu_data();
         caffe_gpu_div<Dtype>(count, top_data, bottom_diff, bottom_diff);
         if (diff_scale_ != Dtype(1)) {
           caffe_gpu_scal(count, diff_scale_, bottom_diff);
         }
+        if (Caffe::derivative_compute()){
+          caffe_gpu_div<Dtype>(count, bottom_diff, bottom_ddiff, bottom_ddiff); // d2y/dx2 = alpha * (power - 1 ) * dy/dx / (alpha * x + beta) 
+          caffe_gpu_scal(count, diff_scale_ - scale_, bottom_ddiff);
+        }
       }
+    }
+    if (Caffe::derivative_compute()) {
+      caffe_gpu_mul(count, top_diff, bottom_ddiff, bottom_ddiff); // d2y/dx2 * dE/dy
+      caffe_gpu_powx(count, bottom_diff, (Dtype) 2, this->helper_.mutable_gpu_data()); // (dy/dx) **2
+      caffe_gpu_mul(count, top_ddiff, this->helper_.mutable_gpu_data(), this->helper_.mutable_gpu_data()); // d2E/dy2 * (dy/dx)**2 
+      caffe_gpu_add(count, bottom_ddiff, this->helper_.mutable_gpu_data(), bottom_ddiff); // d2E/dy2 * (dy/dx)**2 + dE/dy * d2y/dx2
     }
     caffe_gpu_mul(count, top_diff, bottom_diff, bottom_diff);
   }

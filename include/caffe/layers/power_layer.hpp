@@ -82,6 +82,8 @@ class PowerLayer : public NeuronLayer<Dtype> {
   Dtype shift_;
   /// @brief Result of @f$ \alpha \gamma @f$
   Dtype diff_scale_;
+
+  Blob<Dtype> helper_;
 };
 
 }  // namespace caffe

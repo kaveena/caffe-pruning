@@ -105,10 +105,18 @@ void EltwiseLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
   const int count = top[0]->count();
   const Dtype* top_data = top[0]->cpu_data();
   const Dtype* top_diff = top[0]->cpu_diff();
+  const Dtype* top_ddiff;
+  Dtype* bottom_ddiff;
+  if (Caffe::derivative_compute()) {
+    top_ddiff = top[0]->cpu_ddiff();
+  }
   for (int i = 0; i < bottom.size(); ++i) {
     if (propagate_down[i]) {
       const Dtype* bottom_data = bottom[i]->cpu_data();
       Dtype* bottom_diff = bottom[i]->mutable_cpu_diff();
+      if (Caffe::derivative_compute()) {
+        bottom_ddiff = bottom[i]->mutable_cpu_ddiff();
+      }
       switch (op_) {
       case EltwiseParameter_EltwiseOp_PROD:
         if (stable_prod_grad_) {
@@ -126,13 +134,25 @@ void EltwiseLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
         } else {
           caffe_div(count, top_data, bottom_data, bottom_diff);
         }
+        if (Caffe::derivative_compute()) {
+          caffe_powx(count, bottom_diff, (Dtype)2, bottom_ddiff); //dy/dx is in bottom_diff , put (dy/dx)**2 in bottom_ddiff
+        }
         caffe_mul(count, bottom_diff, top_diff, bottom_diff);
+        if (Caffe::derivative_compute()) {
+          caffe_mul(count, bottom_ddiff, top_ddiff, bottom_ddiff);
+        }
         break;
       case EltwiseParameter_EltwiseOp_SUM:
         if (coeffs_[i] == Dtype(1)) {
           caffe_copy(count, top_diff, bottom_diff);
+          if (Caffe::derivative_compute()) {
+            caffe_copy(count, top_ddiff, bottom_ddiff);
+          }
         } else {
           caffe_cpu_scale(count, coeffs_[i], top_diff, bottom_diff);
+          if (Caffe::derivative_compute()) {
+            caffe_cpu_scale(count, coeffs_[i]*coeffs_[i], top_ddiff, bottom_ddiff);
+          }
         }
         break;
       case EltwiseParameter_EltwiseOp_MAX:
@@ -141,8 +161,14 @@ void EltwiseLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
           Dtype gradient = 0;
           if (mask[index] == i) {
             gradient += top_diff[index];
+            if (Caffe::derivative_compute()) {
+              gradient += top_ddiff[index];
+            }
           }
           bottom_diff[index] = gradient;
+          if (Caffe::derivative_compute()) {
+            bottom_ddiff[index] = gradient;
+          }
         }
         break;
       default:

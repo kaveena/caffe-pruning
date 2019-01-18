@@ -63,12 +63,17 @@ class ConvolutionSaliencyLayer : public BaseConvolutionLayer<Dtype> {
    */
   explicit ConvolutionSaliencyLayer(const LayerParameter& param)
       : BaseConvolutionLayer<Dtype>(param) {}
-  const int max_saliency = 2;
   virtual void Reshape(const vector<Blob<Dtype>*>& bottom,
+      const vector<Blob<Dtype>*>& top);
+  virtual void LayerSetUp(const vector<Blob<Dtype>*>& bottom,
       const vector<Blob<Dtype>*>& top);
   virtual inline const char* type() const { return "ConvolutionSaliency"; }
 
  protected:
+  /// @brief The spatial dimensions of the weights_masked_.
+  vector<int> weights_masked_shape_;
+  vector<int> bias_masked_shape_;
+
   virtual void Forward_cpu(const vector<Blob<Dtype>*>& bottom,
       const vector<Blob<Dtype>*>& top);
   virtual void Forward_gpu(const vector<Blob<Dtype>*>& bottom,
@@ -81,6 +86,8 @@ class ConvolutionSaliencyLayer : public BaseConvolutionLayer<Dtype> {
   virtual void compute_output_shape();
 
  private:
+  Blob<Dtype> weights_masked_;
+  Blob<Dtype> bias_masked_;
   Blob<Dtype> output_saliencies_channel_;
   // Helpers for channel saliency if all is selected 
   Blob<Dtype> output_saliencies_points_;
@@ -90,6 +97,33 @@ class ConvolutionSaliencyLayer : public BaseConvolutionLayer<Dtype> {
   void compute_fisher_gpu(const Dtype * act_data, const Dtype * act_diff, Dtype * fisher_info);
   void compute_taylor_cpu(const Dtype * act_data, const Dtype * act_diff, Dtype * taylor);
   void compute_taylor_gpu(const Dtype * act_data, const Dtype * act_diff, Dtype * taylor);
+  void compute_hessian_diag_cpu(const Dtype * act_data, const Dtype * act_diff, const Dtype * act_ddiff, Dtype * hessian_diag);
+  void compute_hessian_diag_gpu(const Dtype * act_data, const Dtype * act_diff, const Dtype * act_ddiff, Dtype * hessian_diag);
+  void compute_hessian_diag_approx2_cpu(const Dtype * act_data, const Dtype * act_diff, Dtype * hessian_diag);
+  void compute_hessian_diag_approx2_gpu(const Dtype * act_data, const Dtype * act_diff, Dtype * hessian_diag);
+  void compute_taylor_2nd_cpu(const Dtype *  act_data, const Dtype * act_diff, const Dtype *  act_ddiff, Dtype * taylor_2nd);
+  void compute_taylor_2nd_gpu(const Dtype *  act_data, const Dtype * act_diff, const Dtype *  act_ddiff, Dtype * taylor_2nd);
+  void compute_taylor_2nd_approx2_cpu(const Dtype *  act_data, const Dtype * act_diff, Dtype * taylor_2nd);
+  void compute_taylor_2nd_approx2_gpu(const Dtype *  act_data, const Dtype * act_diff, Dtype * taylor_2nd);
+  void compute_norm_and_batch_avg_cpu(int count, Dtype * output_saliency_data, Dtype * saliency_data, Dtype * bias_saliency_data=NULL);
+  void compute_norm_and_batch_avg_gpu(int count, Dtype * output_saliency_data, Dtype * saliency_data, Dtype * bias_saliency_data=NULL);
+  void compute_fisher_weights_cpu(Blob<Dtype> * weights_n, Blob<Dtype> * bias_n, Dtype * fisher_info);
+  void compute_fisher_weights_gpu(Blob<Dtype> * weights_n, Blob<Dtype> * bias_n, Dtype * fisher_info);
+  void compute_taylor_weights_cpu(Blob<Dtype> * weights_n, Blob<Dtype> * bias_n, Dtype * fisher_info);
+  void compute_taylor_weights_gpu(Blob<Dtype> * weights_n, Blob<Dtype> * bias_n, Dtype * fisher_info);
+  void compute_hessian_diag_weights_cpu(Blob<Dtype> * weights_n, Blob<Dtype> * bias_n, Dtype * fisher_info);
+  void compute_hessian_diag_weights_gpu(Blob<Dtype> * weights_n, Blob<Dtype> * bias_n, Dtype * fisher_info);
+  void compute_hessian_diag_approx2_weights_cpu(Blob<Dtype> * weights_n, Blob<Dtype> * bias_n, Dtype * fisher_info);
+  void compute_hessian_diag_approx2_weights_gpu(Blob<Dtype> * weights_n, Blob<Dtype> * bias_n, Dtype * fisher_info);
+  void compute_taylor_2nd_weights_cpu(Blob<Dtype> * weights_n, Blob<Dtype> * bias_n, Dtype * fisher_info);
+  void compute_taylor_2nd_weights_gpu(Blob<Dtype> * weights_n, Blob<Dtype> * bias_n, Dtype * fisher_info);
+  void compute_taylor_2nd_approx2_weights_cpu(Blob<Dtype> * weights_n, Blob<Dtype> * bias_n, Dtype * fisher_info);
+  void compute_taylor_2nd_approx2_weights_gpu(Blob<Dtype> * weights_n, Blob<Dtype> * bias_n, Dtype * fisher_info);
+  void compute_weight_cpu(const Dtype * act_data, Dtype * saliency_info);
+  void compute_weight_gpu(const Dtype * act_data, Dtype * saliency_info);
+  void compute_weight_weights_cpu(Blob<Dtype> * weights_n, Blob<Dtype> * bias_n, Dtype * saliency_info);
+  void compute_weight_weights_gpu(Blob<Dtype> * weights_n, Blob<Dtype> * bias_n, Dtype * saliency_info);
+
 };
 
 }  // namespace caffe

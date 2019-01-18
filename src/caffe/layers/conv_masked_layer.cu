@@ -8,6 +8,18 @@ template <typename Dtype>
 void ConvolutionMaskedLayer<Dtype>::Forward_gpu(const vector<Blob<Dtype>*>& bottom,
       const vector<Blob<Dtype>*>& top) {
   const Dtype* weight = this->blobs_[0]->gpu_data();
+  const Dtype* bias;
+  const Dtype* mask = this->blobs_[this->mask_pos_]->gpu_data();
+  Dtype* weight_masked = this->weights_masked_.mutable_gpu_data();
+  caffe_gpu_mul(this->blobs_[0]->count(), mask, weight, weight_masked);
+  weight = this->weights_masked_.gpu_data();
+  if (this->bias_term_) {
+    bias = this->blobs_[1]->gpu_data();
+    const Dtype* bias_mask = this->blobs_[this->mask_pos_+1]->gpu_data();
+    Dtype* bias_masked = this->bias_masked_.mutable_gpu_data();
+    caffe_gpu_mul(this->blobs_[1]->count(), bias_mask, bias, bias_masked);
+    bias = this->bias_masked_.gpu_data();
+  }
   for (int i = 0; i < bottom.size(); ++i) {
     const Dtype* bottom_data = bottom[i]->gpu_data();
     Dtype* top_data = top[i]->mutable_gpu_data();
@@ -15,7 +27,6 @@ void ConvolutionMaskedLayer<Dtype>::Forward_gpu(const vector<Blob<Dtype>*>& bott
       this->forward_gpu_gemm(bottom_data + n * this->bottom_dim_, weight,
           top_data + n * this->top_dim_);
       if (this->bias_term_) {
-        const Dtype* bias = this->blobs_[1]->gpu_data();
         this->forward_gpu_bias(top_data + n * this->top_dim_, bias);
       }
     }
@@ -35,6 +46,7 @@ void ConvolutionMaskedLayer<Dtype>::Backward_gpu(const vector<Blob<Dtype>*>& top
       for (int n = 0; n < this->num_; ++n) {
         this->backward_gpu_bias(bias_diff, top_diff + n * this->top_dim_);
       }
+      caffe_gpu_mul(this->blobs_[1]->count(), this->blobs_[this->mask_pos_+1]->gpu_data(), this->blobs_[1]->mutable_gpu_diff(), this->blobs_[1]->mutable_gpu_diff());
     }
     if (this->param_propagate_down_[0] || propagate_down[i]) {
       const Dtype* bottom_data = bottom[i]->gpu_data();
@@ -44,6 +56,8 @@ void ConvolutionMaskedLayer<Dtype>::Backward_gpu(const vector<Blob<Dtype>*>& top
         if (this->param_propagate_down_[0]) {
           this->weight_gpu_gemm(bottom_data + n * this->bottom_dim_,
               top_diff + n * this->top_dim_, weight_diff);
+          // Don't update weights that are masked off
+          caffe_gpu_mul(this->blobs_[0]->count(), this->blobs_[this->mask_pos_]->gpu_data(), weight_diff, weight_diff);
         }
         // gradient w.r.t. bottom data, if necessary.
         if (propagate_down[i]) {

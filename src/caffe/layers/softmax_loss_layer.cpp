@@ -85,6 +85,7 @@ Dtype SoftmaxWithLossLayer<Dtype>::get_normalizer(
   return std::max(Dtype(1.0), normalizer);
 }
 
+
 template <typename Dtype>
 void SoftmaxWithLossLayer<Dtype>::Forward_cpu(
     const vector<Blob<Dtype>*>& bottom, const vector<Blob<Dtype>*>& top) {
@@ -123,8 +124,15 @@ void SoftmaxWithLossLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
   }
   if (propagate_down[0]) {
     Dtype* bottom_diff = bottom[0]->mutable_cpu_diff();
+    Dtype* bottom_ddiff;
+    if (Caffe::derivative_compute()) {
+      bottom_ddiff = bottom[0]->mutable_cpu_ddiff();
+    }
     const Dtype* prob_data = prob_.cpu_data();
     caffe_copy(prob_.count(), prob_data, bottom_diff);
+    if (Caffe::derivative_compute()) {
+      caffe_copy(prob_.count(), prob_data, bottom_ddiff);
+    }
     const Dtype* label = bottom[1]->cpu_data();
     int dim = prob_.count() / outer_num_;
     int count = 0;
@@ -141,7 +149,13 @@ void SoftmaxWithLossLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
         }
       }
     }
-    // Scale gradient
+    if (Caffe::derivative_compute()) {
+    // ddloss = p - p**2
+      caffe_powx(prob_.count(), bottom_ddiff, (Dtype)2, bottom_ddiff);
+      caffe_sub(prob_.count(), prob_data, bottom_ddiff, bottom_ddiff);
+    }
+    
+    // Scale gradients
     Dtype loss_weight = top[0]->cpu_diff()[0] /
                         get_normalizer(normalization_, count);
     caffe_scal(prob_.count(), loss_weight, bottom_diff);

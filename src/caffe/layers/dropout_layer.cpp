@@ -52,6 +52,8 @@ void DropoutLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
   if (propagate_down[0]) {
     const Dtype* top_diff = top[0]->cpu_diff();
     Dtype* bottom_diff = bottom[0]->mutable_cpu_diff();
+    const Dtype* top_ddiff;
+    Dtype* bottom_ddiff;
     if (this->phase_ == TRAIN) {
       const unsigned int* mask = rand_vec_.cpu_data();
       const int count = bottom[0]->count();
@@ -60,6 +62,11 @@ void DropoutLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
       }
     } else {
       caffe_copy(top[0]->count(), top_diff, bottom_diff);
+      if (Caffe::derivative_compute()){
+        top_ddiff = top[0]->cpu_ddiff();
+        bottom_ddiff = bottom[0]->mutable_cpu_ddiff();
+        caffe_copy(top[0]->count(), top_ddiff, bottom_ddiff);
+      }
     }
   }
 }

@@ -44,10 +44,18 @@ void ConvolutionLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
       const vector<bool>& propagate_down, const vector<Blob<Dtype>*>& bottom) {
   const Dtype* weight = this->blobs_[0]->cpu_data();
   Dtype* weight_diff = this->blobs_[0]->mutable_cpu_diff();
+  Dtype* weights_sqr = this->weights_sqr_.mutable_cpu_data();
+  caffe_powx(this->blobs_[0]->count(), weight, (Dtype)2, weights_sqr);
   for (int i = 0; i < top.size(); ++i) {
     const Dtype* top_diff = top[i]->cpu_diff();
     const Dtype* bottom_data = bottom[i]->cpu_data();
+    const Dtype* top_ddiff;
+    Dtype* bottom_ddiff;
     Dtype* bottom_diff = bottom[i]->mutable_cpu_diff();
+    if (Caffe::derivative_compute()) {
+      top_ddiff = top[i]->cpu_ddiff();
+      bottom_ddiff = bottom[i]->mutable_cpu_ddiff();
+    }
     // Bias gradient, if necessary.
     if (this->bias_term_ && this->param_propagate_down_[1]) {
       Dtype* bias_diff = this->blobs_[1]->mutable_cpu_diff();
@@ -66,6 +74,12 @@ void ConvolutionLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
         if (propagate_down[i]) {
           this->backward_cpu_gemm(top_diff + n * this->top_dim_, weight,
               bottom_diff + n * this->bottom_dim_);
+        }
+        if (Caffe::derivative_compute()) {
+          if (propagate_down[i]) {
+            this->backward_cpu_gemm(top_ddiff + n * this->top_dim_, weights_sqr,
+                bottom_ddiff + n * this->bottom_dim_);
+          }
         }
       }
     }

@@ -247,6 +247,13 @@ void PoolingLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
   }
   const Dtype* top_diff = top[0]->cpu_diff();
   Dtype* bottom_diff = bottom[0]->mutable_cpu_diff();
+  const Dtype* top_ddiff;
+  Dtype* bottom_ddiff;
+  if (Caffe::derivative_compute()) {
+    top_ddiff = top[0]->cpu_ddiff();
+    bottom_ddiff = bottom[0]->mutable_cpu_ddiff();
+    caffe_set(bottom[0]->count(), Dtype(0), bottom_ddiff);
+  }
   // Different pooling methods. We explicitly do the switch outside the for
   // loop to save time, although this results in more codes.
   caffe_set(bottom[0]->count(), Dtype(0), bottom_diff);
@@ -270,10 +277,17 @@ void PoolingLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
             const int bottom_index =
                 use_top_mask ? top_mask[index] : mask[index];
             bottom_diff[bottom_index] += top_diff[index];
+            if (Caffe::derivative_compute()) {
+              bottom_ddiff[bottom_index] += top_ddiff[index];
+            }
           }
         }
         bottom_diff += bottom[0]->offset(0, 1);
         top_diff += top[0]->offset(0, 1);
+        if (Caffe::derivative_compute()) {
+          bottom_ddiff += bottom[0]->offset(0, 1);
+          top_ddiff += top[0]->offset(0, 1);
+        }
         if (use_top_mask) {
           top_mask += top[0]->offset(0, 1);
         } else {
@@ -301,6 +315,10 @@ void PoolingLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
               for (int w = wstart; w < wend; ++w) {
                 bottom_diff[h * width_ + w] +=
                   top_diff[ph * pooled_width_ + pw] / pool_size;
+                if (Caffe::derivative_compute()) {
+                  bottom_ddiff[h * width_ + w] +=
+                    top_ddiff[ph * pooled_width_ + pw] / (pool_size*pool_size);
+                }
               }
             }
           }
@@ -308,6 +326,10 @@ void PoolingLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
         // offset
         bottom_diff += bottom[0]->offset(0, 1);
         top_diff += top[0]->offset(0, 1);
+        if (Caffe::derivative_compute()) {
+          bottom_ddiff += bottom[0]->offset(0, 1);
+          top_ddiff += top[0]->offset(0, 1);
+        }
       }
     }
     break;
