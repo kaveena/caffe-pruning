@@ -212,6 +212,10 @@ void ConvolutionSaliencyLayer<Dtype>::Backward_gpu(const vector<Blob<Dtype>*>& t
         } break;
 
         case (7): {
+          compute_weight_diff_weights_gpu(&weights_n_masked_, &bias_n_masked_, channel_saliency_data);
+        } break;
+
+        case (8): {
           compute_fisher_weights_gpu(&weights_n_masked_, &bias_n_masked_, channel_saliency_data);
           compute_taylor_weights_gpu(&weights_n_masked_, &bias_n_masked_, channel_saliency_data + this->num_output_);
           compute_hessian_diag_weights_gpu(&weights_n_masked_, &bias_n_masked_, channel_saliency_data + (2*this->num_output_));
@@ -219,6 +223,7 @@ void ConvolutionSaliencyLayer<Dtype>::Backward_gpu(const vector<Blob<Dtype>*>& t
           compute_taylor_2nd_weights_gpu(&weights_n_masked_, &bias_n_masked_, channel_saliency_data + (4*this->num_output_));
           compute_taylor_2nd_approx2_weights_gpu(&weights_n_masked_, &bias_n_masked_, channel_saliency_data + (5*this->num_output_));
           compute_weight_weights_gpu(&weights_n_masked_, &bias_n_masked_, channel_saliency_data + (5*this->num_output_));
+          compute_weight_diff_weights_gpu(&weights_n_masked_, &bias_n_masked_, channel_saliency_data + (6*this->num_output_));
         } break;
 
         default: {
@@ -258,6 +263,10 @@ void ConvolutionSaliencyLayer<Dtype>::Backward_gpu(const vector<Blob<Dtype>*>& t
         } break;
 
         case (7): {
+          compute_weight_diff_gpu(top_diff, channel_saliency_data);
+        } break;
+
+        case (8): {
           compute_fisher_gpu(top_data, top_diff, channel_saliency_data);
           compute_taylor_gpu(top_data, top_diff, channel_saliency_data + this->num_output_);
           compute_hessian_diag_gpu(top_data, top_diff, top_ddiff, channel_saliency_data + (2*this->num_output_));
@@ -265,6 +274,7 @@ void ConvolutionSaliencyLayer<Dtype>::Backward_gpu(const vector<Blob<Dtype>*>& t
           compute_taylor_2nd_gpu(top_data, top_diff, top_ddiff, channel_saliency_data + (4*this->num_output_));
           compute_taylor_2nd_approx2_gpu(top_data, top_diff, channel_saliency_data + (5*this->num_output_));
           compute_weight_gpu(top_data, channel_saliency_data + (6*this->num_output_));
+          compute_weight_diff_gpu(top_diff, channel_saliency_data + (7*this->num_output_));
         } break;
 
         default: {
@@ -366,6 +376,16 @@ void ConvolutionSaliencyLayer<Dtype>::compute_weight_gpu(const Dtype *  act_data
   Dtype* output_saliency_data = output_saliencies_points_.mutable_gpu_data();    
   
   caffe_copy(output_saliencies_points_.count(), act_data, output_saliency_data);
+
+  compute_norm_and_batch_avg_gpu(output_saliencies_points_.count(2,4), output_saliency_data, saliency_info);
+}
+
+template <typename Dtype>
+void ConvolutionSaliencyLayer<Dtype>::compute_weight_diff_gpu(const Dtype *  act_diff, Dtype * saliency_info) {
+  Dtype* output_saliency_data = output_saliencies_points_.mutable_gpu_data();    
+  
+  caffe_copy(output_saliencies_points_.count(), act_diff, output_saliency_data);
+  caffe_gpu_scal(output_saliencies_points_.count(), (Dtype) this->num_, output_saliency_data);
 
   compute_norm_and_batch_avg_gpu(output_saliencies_points_.count(2,4), output_saliency_data, saliency_info);
 }
@@ -670,6 +690,27 @@ void ConvolutionSaliencyLayer<Dtype>::compute_weight_weights_gpu(Blob<Dtype> * w
   if (this->saliency_bias_ && this->bias_term_ && bias_saliency_data != NULL){
     caffe_gpu_add(this->num_output_, bias_saliency_data, saliency_info, saliency_info);
   }
+}
+
+template <typename Dtype>
+void ConvolutionSaliencyLayer<Dtype>::compute_weight_diff_weights_gpu(Blob<Dtype> * weights_n, Blob<Dtype> * bias_n, Dtype * saliency_info) {
+  const Dtype* weights_n_diff = weights_n->gpu_diff();
+  Dtype* points_saliency_data = weights_n->mutable_gpu_data();
+  
+  const Dtype* bias_n_diff;
+  Dtype* bias_saliency_data;
+ 
+  caffe_copy(weights_n->count(), weights_n_diff, points_saliency_data);
+  caffe_gpu_scal(weights_n->count(), (Dtype) this->num_, points_saliency_data);
+
+  if (this->saliency_bias_ && this->bias_term_) {
+    bias_n_diff = bias_n->gpu_diff();
+    bias_saliency_data = bias_n->mutable_gpu_data();
+    caffe_copy(bias_n->count(), bias_n_diff, bias_saliency_data);
+    caffe_gpu_scal(bias_n->count(), (Dtype) this->num_, bias_saliency_data);
+  }
+  
+  compute_norm_and_batch_avg_gpu(weights_n->count(2, 5), points_saliency_data, saliency_info, bias_saliency_data);
 }
 
 template <typename Dtype>
