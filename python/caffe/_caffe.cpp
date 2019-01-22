@@ -506,6 +506,7 @@ BOOST_PYTHON_MODULE(_caffe) {
     .value("TAYLOR_2ND", ConvolutionSaliencyParameter::TAYLOR_2ND)
     .value("TAYLOR_2ND_APPROX2", ConvolutionSaliencyParameter::TAYLOR_2ND_APPROX2)
     .value("WEIGHT_AVG", ConvolutionSaliencyParameter::WEIGHT_AVG)
+    .value("DIFF_AVG", ConvolutionSaliencyParameter::DIFF_AVG)
     .value("ALL", ConvolutionSaliencyParameter::ALL)
     ;
 

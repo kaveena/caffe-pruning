@@ -937,11 +937,19 @@ void Net<Dtype>::ClearParamDiffs() {
     case Caffe::CPU:
       caffe_set(blob->count(), static_cast<Dtype>(0),
                 blob->mutable_cpu_diff());
+      if (Caffe::derivative_compute()) {
+        caffe_set(blob->count(), static_cast<Dtype>(0),
+                  blob->mutable_cpu_ddiff());
+      }
       break;
     case Caffe::GPU:
 #ifndef CPU_ONLY
       caffe_gpu_set(blob->count(), static_cast<Dtype>(0),
                     blob->mutable_gpu_diff());
+      if (Caffe::derivative_compute()) {
+        caffe_gpu_set(blob->count(), static_cast<Dtype>(0),
+                      blob->mutable_gpu_ddiff());
+      }
 #else
       NO_GPU;
 #endif

@@ -690,7 +690,8 @@ message ConvolutionSaliencyParameter {
     TAYLOR_2ND = 4;
     TAYLOR_2ND_APPROX2 = 5;
     WEIGHT_AVG = 6;
-    ALL = 7; //needs to correspond to number of enum values excluding ALL
+    DIFF_AVG = 7;
+    ALL = 8; //needs to correspond to number of enum values excluding ALL
   }
   enum NORM {
     NONE = 0;

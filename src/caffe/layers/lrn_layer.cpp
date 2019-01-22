@@ -235,8 +235,8 @@ void LRNLayer<Dtype>::CrossChannelBackward_cpu(
     }
   }
   if (Caffe::derivative_compute()) {
-    top_ddiff = top[0]->gpu_ddiff();
-    bottom_ddiff = bottom[0]->mutable_gpu_ddiff();
+    top_ddiff = top[0]->cpu_ddiff();
+    bottom_ddiff = bottom[0]->mutable_cpu_ddiff();
     
     Dtype scale1 = Dtype(4. * (beta_ + 1) * beta_ / (size_ * size_));
     Dtype scale2 = Dtype(2. * alpha_ * beta_ / size_);
@@ -402,6 +402,7 @@ void LRNLayer<Dtype>::WithinChannelBackward(
 STUB_GPU(LRNLayer);
 STUB_GPU_FORWARD(LRNLayer, CrossChannelForward);
 STUB_GPU_BACKWARD(LRNLayer, CrossChannelBackward);
+STUB_GPU_BACKWARD(LRNLayer, WithinChannelBackward);
 #endif
 
 INSTANTIATE_CLASS(LRNLayer);
