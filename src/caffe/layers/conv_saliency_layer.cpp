@@ -385,6 +385,7 @@ void ConvolutionSaliencyLayer<Dtype>::compute_hessian_diag_cpu(const Dtype *  ac
   caffe_scal(this->output_saliencies_points_.count(), 1/(Dtype)(2), output_saliency_data);
 
   compute_norm_and_batch_avg_cpu(output_saliencies_points_.count(2,4), output_saliency_data, hessian_diag);
+  
 }
 
 template <typename Dtype>
@@ -804,6 +805,53 @@ void ConvolutionSaliencyLayer<Dtype>::compute_norm_and_batch_avg_cpu(int count, 
 }
 
 #ifdef CPU_ONLY
+template <typename Dtype>
+void ConvolutionSaliencyLayer<Dtype>::compute_fisher_gpu(const Dtype *  act_data, const Dtype *  act_diff, Dtype * fisher_info) { NO_GPU; }
+
+template <typename Dtype>
+void ConvolutionSaliencyLayer<Dtype>::compute_taylor_gpu(const Dtype *  act_data, const Dtype *  act_diff, Dtype * taylor) { NO_GPU; }
+
+template <typename Dtype>
+void ConvolutionSaliencyLayer<Dtype>::compute_hessian_diag_gpu(const Dtype *  act_data, const Dtype * act_diff, const Dtype *  act_ddiff, Dtype * hessian_diag) { NO_GPU; }
+
+template <typename Dtype>
+void ConvolutionSaliencyLayer<Dtype>::compute_hessian_diag_approx2_gpu(const Dtype *  act_data, const Dtype *  act_diff, Dtype * hessian_diag) { NO_GPU; }
+
+template <typename Dtype>
+void ConvolutionSaliencyLayer<Dtype>::compute_taylor_2nd_gpu(const Dtype *  act_data, const Dtype * act_diff, const Dtype *  act_ddiff, Dtype * taylor_2nd) { NO_GPU; }
+
+template <typename Dtype>
+void ConvolutionSaliencyLayer<Dtype>::compute_taylor_2nd_approx2_gpu(const Dtype *  act_data, const Dtype * act_diff, Dtype * taylor_2nd) { NO_GPU; }
+
+template <typename Dtype>
+void ConvolutionSaliencyLayer<Dtype>::compute_weight_diff_gpu(const Dtype *  act_diff, Dtype * saliency_info) { NO_GPU; }
+
+template <typename Dtype>
+void ConvolutionSaliencyLayer<Dtype>::compute_fisher_weights_gpu(Blob<Dtype> * weights_n, Blob<Dtype> * bias_n, Dtype * fisher_info) { NO_GPU; }
+
+template <typename Dtype>
+void ConvolutionSaliencyLayer<Dtype>::compute_taylor_weights_gpu(Blob<Dtype> * weights_n, Blob<Dtype> * bias_n, Dtype * taylor) { NO_GPU; }
+
+template <typename Dtype>
+void ConvolutionSaliencyLayer<Dtype>::compute_hessian_diag_weights_gpu(Blob<Dtype> * weights_n, Blob<Dtype> * bias_n, Dtype * hessian_diag) { NO_GPU; }
+
+template <typename Dtype>
+void ConvolutionSaliencyLayer<Dtype>::compute_hessian_diag_approx2_weights_gpu(Blob<Dtype> * weights_n, Blob<Dtype> * bias_n, Dtype * hessian_diag) { NO_GPU; }
+
+template <typename Dtype>
+void ConvolutionSaliencyLayer<Dtype>::compute_taylor_2nd_weights_gpu(Blob<Dtype> * weights_n, Blob<Dtype> * bias_n, Dtype * taylor_2nd) { NO_GPU; }
+
+template <typename Dtype>
+void ConvolutionSaliencyLayer<Dtype>::compute_taylor_2nd_approx2_weights_gpu(Blob<Dtype> * weights_n, Blob<Dtype> * bias_n, Dtype * taylor_2nd) { NO_GPU; }
+
+template <typename Dtype>
+void ConvolutionSaliencyLayer<Dtype>::compute_weight_weights_gpu(Blob<Dtype> * weights_n, Blob<Dtype> * bias_n, Dtype * saliency_info) { NO_GPU; }
+
+template <typename Dtype>
+void ConvolutionSaliencyLayer<Dtype>::compute_weight_diff_weights_gpu(Blob<Dtype> * weights_n, Blob<Dtype> * bias_n, Dtype * saliency_info) { NO_GPU; }
+
+template <typename Dtype>
+void ConvolutionSaliencyLayer<Dtype>::compute_norm_and_batch_avg_gpu(int count, Dtype * output_saliency_data, Dtype * saliency_data, Dtype * bias_saliency_data) { NO_GPU; }
 STUB_GPU(ConvolutionSaliencyLayer);
 #endif
 
