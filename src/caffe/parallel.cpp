@@ -359,6 +359,8 @@ void NCCL<Dtype>::Run(const vector<int>& gpus, const char* restore) {
   for (int i = 1; i < gpus.size(); ++i) {
     workers[i]->StopInternalThread();
   }
+  // Hangs without it when running tests or multi-gpu training.
+  barrier.wait();
 }
 
 INSTANTIATE_CLASS(Params);
