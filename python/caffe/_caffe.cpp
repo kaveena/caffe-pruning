@@ -496,6 +496,8 @@ BOOST_PYTHON_MODULE(_caffe) {
     .def_readwrite("saliency_norm_", &Layer<Dtype>::saliency_norm_)
     .def_readwrite("saliency_input_", &Layer<Dtype>::saliency_input_)
     .def_readwrite("saliency_bias_", &Layer<Dtype>::saliency_bias_);
+    .def_readwrite("saliency_output_channel_compute_", &Layer<Dtype>::output_channel_saliency_compute_);
+    .def_readwrite("saliency_input_channel_compute_", &Layer<Dtype>::input_channel_saliency_compute_);
   BP_REGISTER_SHARED_PTR_TO_PYTHON(Layer<Dtype>);
 
   bp::enum_<ConvolutionSaliencyParameter::SALIENCY>("SALIENCY")

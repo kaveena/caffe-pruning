@@ -296,6 +296,8 @@ class Layer {
   ConvolutionSaliencyParameter::SALIENCY saliency_;
   ConvolutionSaliencyParameter::NORM saliency_norm_;
   ConvolutionSaliencyParameter::INPUT saliency_input_;
+  bool output_channel_saliency_compute_;
+  bool input_channel_saliency_compute_;
   int saliency_pos_;
   int mask_pos_;
   bool saliency_bias_;

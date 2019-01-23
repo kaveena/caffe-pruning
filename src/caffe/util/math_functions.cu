@@ -530,6 +530,29 @@ void caffe_gpu_strided_sum<double>(const int N, const int num, const double* a, 
       N, num, a, y);
 }
 
+template <typename Dtype>
+__global__ void transpose_kernel(const int N, const int M, const int C, const Dtype* a, Dtype* y) {
+  CUDA_KERNEL_LOOP(i, N) {
+    for (int j = 0; j < M; j++) {
+      for (int k = 0; k < C; k ++) {
+        y[(C*M*i) + (C*k)  + (j)] = a[(M*C*i) + (M*j) + (k)];
+      }
+    }
+  }
+}
+template <>
+void transpose_kernel(const int N, const int M, const int C, const float* a, float* y) {
+  // NOLINT_NEXT_LINE(whitespace/operators)
+  transpose_kernel<float><<<CAFFE_GET_BLOCKS(N), CAFFE_CUDA_NUM_THREADS>>>(
+      N, M, C, a, y);
+}
+template <>
+void transpose_kernel(const int N, const int M, const int C, const double* a, double* y) {
+  // NOLINT_NEXT_LINE(whitespace/operators)
+  transpose_kernel<double><<<CAFFE_GET_BLOCKS(N), CAFFE_CUDA_NUM_THREADS>>>(
+      N, M, C, a, y);
+}
+
 
 DEFINE_AND_INSTANTIATE_GPU_UNARY_FUNC(sign, y[index] = (Dtype(0) < x[index])
                                       - (x[index] < Dtype(0)));

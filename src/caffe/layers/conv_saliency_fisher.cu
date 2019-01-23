@@ -17,9 +17,9 @@ void ConvolutionSaliencyLayer<Dtype>::compute_fisher_gpu(const Dtype *  act_data
   
   caffe_gpu_powx(output_saliencies_filter_.count(), filter_saliency_data, (Dtype)2, filter_saliency_data);
 
-  caffe_gpu_strided_sum(this->num_output_, this->num_, filter_saliency_data, fisher_info);
+  caffe_gpu_strided_sum(this->conv_out_channels_, this->num_, filter_saliency_data, fisher_info);
   
-  caffe_gpu_scal(this->num_output_, 1/(Dtype)(2*(this->num_)), fisher_info);
+  caffe_gpu_scal(this->conv_out_channels_, 1/(Dtype)(2*(this->num_)), fisher_info);
 }
 
 template <typename Dtype>
@@ -61,9 +61,9 @@ void ConvolutionSaliencyLayer<Dtype>::compute_fisher_weights_gpu(Blob<Dtype> * w
   
   caffe_gpu_powx(output_saliencies_filter_.count(), filter_saliency_data, (Dtype)2, filter_saliency_data);
   
-  caffe_gpu_strided_sum(this->num_output_, this->num_, filter_saliency_data, fisher_info);
+  caffe_gpu_strided_sum(this->conv_out_channels_, this->num_, filter_saliency_data, fisher_info);
   
-  caffe_gpu_scal(this->num_output_, 1/(Dtype)(2*(this->num_)), fisher_info);
+  caffe_gpu_scal(this->conv_out_channels_, 1/(Dtype)(2*(this->num_)), fisher_info);
 }
 
 template void ConvolutionSaliencyLayer<float>::compute_fisher_gpu(const float *  act_data, const float *  act_diff, float * fisher_info);

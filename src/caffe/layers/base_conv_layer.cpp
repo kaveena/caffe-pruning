@@ -161,7 +161,8 @@ void BaseConvolutionLayer<Dtype>::LayerSetUp(const vector<Blob<Dtype>*>& bottom,
       saliency_shape_0_ = 1;
     }
   }
-  vector<int> saliency_shape = {saliency_shape_0_, this->conv_out_channels_};
+  vector<int> saliency_out_shape = {saliency_shape_0_, this->conv_out_channels_};
+  vector<int> saliency_in_shape = {saliency_shape_0_, this->conv_in_channels_};
   int total_blobs = 1;
   this->mask_pos_ = 1;
   this->saliency_pos_ = 1;
@@ -179,6 +180,7 @@ void BaseConvolutionLayer<Dtype>::LayerSetUp(const vector<Blob<Dtype>*>& bottom,
     }
   }
   if (this->saliency_term_) {
+    total_blobs++;
     total_blobs++;
   }
   if (this->blobs_.size() > 0) {
@@ -235,16 +237,28 @@ void BaseConvolutionLayer<Dtype>::LayerSetUp(const vector<Blob<Dtype>*>& bottom,
         mask_filler->Fill(this->blobs_[this->mask_pos_+1].get());
       }
     }
-    if (this->saliency_term_ && saliency_shape != this->blobs_[this->saliency_pos_]->shape()) {
-      Blob<Dtype> saliency_shaped_blob(saliency_shape);
-      LOG(FATAL) << "Incorrect saliency shape: expected shape "
-          << saliency_shaped_blob.shape_string() << "; instead, shape was "
+    if (this->saliency_term_ && saliency_out_shape != this->blobs_[this->saliency_pos_]->shape()) {
+      Blob<Dtype> saliency_out_shaped_blob(saliency_out_shape);
+      LOG(FATAL) << "Incorrect saliency out shape: expected shape "
+          << saliency_out_shaped_blob.shape_string() << "; instead, shape was "
           << this->blobs_[this->saliency_pos_]->shape_string();
       LOG(INFO) << "Saliency Initialization";
       this->blobs_[this->saliency_pos_].reset(new Blob<Dtype>(saliency_shape));
-      Blob<Dtype> * saliency_blob = this->blobs_[this->saliency_pos_].get();
-      for (int i=0; i<saliency_blob->count(); ++i) {
-        saliency_blob->mutable_cpu_data()[i] = (Dtype)0.0;
+      Blob<Dtype> * saliency_out_blob = this->blobs_[this->saliency_pos_].get();
+      for (int i=0; i<saliency_out_blob->count(); ++i) {
+        saliency_out_blob->mutable_cpu_data()[i] = (Dtype)0.0;
+      }
+    }
+    if (this->saliency_term_ && saliency_in_shape != this->blobs_[this->saliency_pos_+1]->shape()) {
+      Blob<Dtype> saliency_in_shaped_blob(saliency_in_shape);
+      LOG(FATAL) << "Incorrect saliency in shape: expected shape "
+          << saliency_in_shaped_blob.shape_string() << "; instead, shape was "
+          << this->blobs_[this->saliency_pos_+1]->shape_string();
+      LOG(INFO) << "Saliency Initialization";
+      this->blobs_[this->saliency_pos_+1].reset(new Blob<Dtype>(saliency_in_shape));
+      Blob<Dtype> * saliency_in_blob = this->blobs_[this->saliency_pos_+1].get();
+      for (int i=0; i<saliency_in_blob->count(); ++i) {
+        saliency_in_blob->mutable_cpu_data()[i] = (Dtype)0.0;
       }
     }
   } else {
@@ -293,10 +307,15 @@ void BaseConvolutionLayer<Dtype>::LayerSetUp(const vector<Blob<Dtype>*>& bottom,
       }
     }
     if (this->saliency_term_) {
-      this->blobs_[this->saliency_pos_].reset(new Blob<Dtype>(saliency_shape));
-      Blob<Dtype> * saliency_blob = this->blobs_[this->saliency_pos_].get();
-      for (int i=0; i<saliency_blob->count(); ++i) {
-        saliency_blob->mutable_cpu_data()[i] = (Dtype)0.0;
+      this->blobs_[this->saliency_pos_].reset(new Blob<Dtype>(saliency_out_shape));
+      Blob<Dtype> * saliency_out_blob = this->blobs_[this->saliency_pos_].get();
+      for (int i=0; i<saliency_out_blob->count(); ++i) {
+        saliency_out_blob->mutable_cpu_data()[i] = (Dtype)0.0;
+      }
+      this->blobs_[this->saliency_pos_+1].reset(new Blob<Dtype>(saliency_in_shape));
+      Blob<Dtype> * saliency_in_blob = this->blobs_[this->saliency_pos_+1].get();
+      for (int i=0; i<saliency_in_blob->count(); ++i) {
+        saliency_in_blob->mutable_cpu_data()[i] = (Dtype)0.0;
       }
   }
   this->kernel_dim_ = this->blobs_[0]->count(1);
