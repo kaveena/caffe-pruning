@@ -56,7 +56,7 @@ void ConvolutionSaliencyLayer<Dtype>::compute_fisher_weights_cpu(Blob<Dtype> * w
       caffe_mul(this->blobs_[1]->count(), bias, bias_n_diff + n * this->blobs_[1]->count(), bias_saliency_data + n * this->blobs_[1]->count());
     }
     caffe_scal(bias_n->count(), (Dtype) this->num_, bias_saliency_data); // get unscaled diff back
-    caffe_add(weights_n->count(0,2), points_saliency_data, bias_saliency_data, points_saliency_data);
+    caffe_add(weights_n->count(0,2), filter_saliency_data, bias_saliency_data, filter_saliency_data);
   }
   
   caffe_powx(output_saliencies_filter_.count(), filter_saliency_data, (Dtype)2, filter_saliency_data);
