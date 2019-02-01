@@ -145,13 +145,6 @@ void BaseConvolutionLayer<Dtype>::LayerSetUp(const vector<Blob<Dtype>*>& bottom,
   vector<int> bias_shape(this->bias_term_, this->num_output_);
   this->mask_term_ = this->layer_param_.convolution_masked_param().mask_term();
   this->saliency_term_ = this->layer_param_.convolution_saliency_param().saliency_term();
-  if (std::string(this->type()) == "ConvolutionSaliency") {
-    this->mask_term_ = true;
-    this->saliency_term_ = true;
-  }
-  if (std::string(this->type()) == "ConvolutionMasked") {
-    this->mask_term_ = true;
-  }
   int saliency_shape_0_ = 0;
   if (this->saliency_term_) {
     if ( this->layer_param_.convolution_saliency_param().saliency() == caffe::ConvolutionSaliencyParameter::ALL  ){
