@@ -243,7 +243,7 @@ void BaseConvolutionLayer<Dtype>::LayerSetUp(const vector<Blob<Dtype>*>& bottom,
           << saliency_out_shaped_blob.shape_string() << "; instead, shape was "
           << this->blobs_[this->saliency_pos_]->shape_string();
       LOG(INFO) << "Saliency Initialization";
-      this->blobs_[this->saliency_pos_].reset(new Blob<Dtype>(saliency_shape));
+      this->blobs_[this->saliency_pos_].reset(new Blob<Dtype>(saliency_out_shape));
       Blob<Dtype> * saliency_out_blob = this->blobs_[this->saliency_pos_].get();
       for (int i=0; i<saliency_out_blob->count(); ++i) {
         saliency_out_blob->mutable_cpu_data()[i] = (Dtype)0.0;

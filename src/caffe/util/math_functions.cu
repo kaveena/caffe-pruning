@@ -531,26 +531,28 @@ void caffe_gpu_strided_sum<double>(const int N, const int num, const double* a, 
 }
 
 template <typename Dtype>
-__global__ void transpose_kernel(const int N, const int M, const int C, const Dtype* a, Dtype* y) {
-  CUDA_KERNEL_LOOP(i, N) {
-    for (int j = 0; j < M; j++) {
-      for (int k = 0; k < C; k ++) {
-        y[(C*M*i) + (C*k)  + (j)] = a[(M*C*i) + (M*j) + (k)];
+__global__ void transpose_kernel(const int N, const int M, const int C, Dtype* y) {
+  CUDA_KERNEL_LOOP(n, N) {
+    for (int m = 0; m < M; m++) {
+      for (int c = 0; c < C; c++) {
+        Dtype temp = y[(C*M*n) + (C*m)  + (c)];
+        y[(C*M*n) + (C*m)  + (c)] = y[(M*C*n) + (M*c) + (m)];
+        y[(M*C*n) + (M*c) + (m)] = temp;
       }
     }
   }
 }
 template <>
-void transpose_kernel(const int N, const int M, const int C, const float* a, float* y) {
+void caffe_gpu_transpose<float>(const int N, const int M, const int C, float* y) {
   // NOLINT_NEXT_LINE(whitespace/operators)
   transpose_kernel<float><<<CAFFE_GET_BLOCKS(N), CAFFE_CUDA_NUM_THREADS>>>(
-      N, M, C, a, y);
+      N, M, C, y);
 }
 template <>
-void transpose_kernel(const int N, const int M, const int C, const double* a, double* y) {
+void caffe_gpu_transpose<double>(const int N, const int M, const int C, double* y) {
   // NOLINT_NEXT_LINE(whitespace/operators)
   transpose_kernel<double><<<CAFFE_GET_BLOCKS(N), CAFFE_CUDA_NUM_THREADS>>>(
-      N, M, C, a, y);
+      N, M, C, y);
 }
 
 

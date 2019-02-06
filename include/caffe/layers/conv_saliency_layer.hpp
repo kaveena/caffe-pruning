@@ -97,8 +97,8 @@ class ConvolutionSaliencyLayer : public BaseConvolutionLayer<Dtype> {
   Blob<Dtype> input_saliencies_points_;
   Blob<Dtype> input_saliencies_filter_;
   
-  void compute_fisher_cpu(const Dtype * act_data, const Dtype * act_diff, Dtype * fisher_info);
-  void compute_fisher_gpu(const Dtype * act_data, const Dtype * act_diff, Dtype * fisher_info);
+  void compute_fisher_cpu(const Dtype *  act_data, const Dtype *  act_diff, const Dtype * input_data, const Dtype * input_diff,  Dtype * fisher_info_out, Dtype * fisher_info_in);
+  void compute_fisher_gpu(const Dtype *  act_data, const Dtype *  act_diff, const Dtype * input_data, const Dtype * input_diff,  Dtype * fisher_info_out, Dtype * fisher_info_in);
   void compute_taylor_cpu(const Dtype * act_data, const Dtype * act_diff, Dtype * taylor);
   void compute_taylor_gpu(const Dtype * act_data, const Dtype * act_diff, Dtype * taylor);
   void compute_hessian_diag_cpu(const Dtype * act_data, const Dtype * act_diff, const Dtype * act_ddiff, Dtype * hessian_diag);
@@ -111,8 +111,8 @@ class ConvolutionSaliencyLayer : public BaseConvolutionLayer<Dtype> {
   void compute_taylor_2nd_approx2_gpu(const Dtype *  act_data, const Dtype * act_diff, Dtype * taylor_2nd);
   void compute_norm_and_batch_avg_cpu(int count, Dtype * output_saliency_data, Dtype * saliency_data, Dtype * bias_saliency_data=NULL);
   void compute_norm_and_batch_avg_gpu(int count, Dtype * output_saliency_data, Dtype * saliency_data, Dtype * bias_saliency_data=NULL);
-  void compute_fisher_weights_cpu(Blob<Dtype> * weights_n, Blob<Dtype> * bias_n, Dtype * fisher_info);
-  void compute_fisher_weights_gpu(Blob<Dtype> * weights_n, Blob<Dtype> * bias_n, Dtype * fisher_info);
+  void compute_fisher_weights_cpu(Blob<Dtype> * weights_n, Blob<Dtype> * bias_n, Dtype * fisher_info_out, Dtype * fisher_info_in);
+  void compute_fisher_weights_gpu(Blob<Dtype> * weights_n, Blob<Dtype> * bias_n, Dtype * fisher_info_out, Dtype * fisher_info_in);
   void compute_taylor_weights_cpu(Blob<Dtype> * weights_n, Blob<Dtype> * bias_n, Dtype * fisher_info);
   void compute_taylor_weights_gpu(Blob<Dtype> * weights_n, Blob<Dtype> * bias_n, Dtype * fisher_info);
   void compute_hessian_diag_weights_cpu(Blob<Dtype> * weights_n, Blob<Dtype> * bias_n, Dtype * fisher_info);

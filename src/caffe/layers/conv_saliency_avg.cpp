@@ -56,9 +56,9 @@ void ConvolutionSaliencyLayer<Dtype>::compute_weight_avg_weights_cpu(Blob<Dtype>
       }
     } break;
   }
-  caffe_sum(this->conv_out_channels_, this->blobs_[0]->count(1,4), points_saliency_data, saliency_info); //sum hxw
+  caffe_sum(this->num_output_, this->blobs_[0]->count(1,4), points_saliency_data, saliency_info); //sum hxw
   if (this->saliency_bias_ && this->bias_term_ && bias_saliency_data != NULL){
-    caffe_add(this->conv_out_channels_, bias_saliency_data, saliency_info, saliency_info);
+    caffe_add(this->num_output_, bias_saliency_data, saliency_info, saliency_info);
   }
 }
 
