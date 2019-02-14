@@ -6,6 +6,22 @@
 namespace caffe {
 
 template <typename Dtype>
+__global__ void ReduceNMCKK(const int N, const int M, const int C, const int K, const Dtype * a, Dtype * y) {
+  int i = blockIdx.x * blockDim.x + threadIdx.x;
+  if (i < N*C) {
+    int n = i / C;
+    int c = i % C;
+    Dtype accum = (Dtype) 0;
+    for (int m = 0; m < M; m++) {
+      for (int k = 0; k < K; k++) {
+        accum += a[(n*M*C*K) + (m*C*K) + (c*K) + k];
+      }
+    }
+    y[i] = accum;
+  } 
+}
+
+template <typename Dtype>
 void ConvolutionSaliencyLayer<Dtype>::compute_fisher_gpu(const Dtype *  act_data, const Dtype *  act_diff, const Dtype * input_data, const Dtype * input_diff,  Dtype * fisher_info_out, Dtype * fisher_info_in) {
   if (this->output_channel_saliency_compute_) {
     Dtype* output_saliency_data = output_saliencies_points_.mutable_gpu_data(); 
@@ -79,8 +95,10 @@ void ConvolutionSaliencyLayer<Dtype>::compute_fisher_weights_gpu(Blob<Dtype> * w
 
   if (this->input_channel_saliency_compute_) {
     filter_in_saliency_data = input_saliencies_filter_.mutable_gpu_data();    
-    caffe_gpu_sum(weights_n->count(0,3), weights_n->count(3, 5), points_saliency_data, points_saliency_data);
-    caffe_gpu_strided_sum_inner(this->num_, this->num_output_, this->channels_, points_saliency_data, filter_in_saliency_data);
+    const int kernel_size = this->blobs_[0]->count(2,4);
+    // NOLINT_NEXT_LINE(whitespace/operators)
+    ReduceNMCKK<Dtype><<<(this->num_ * this->channels_),CAFFE_CUDA_NUM_THREADS>>>(this->num_, this->num_output_, this->channels_, kernel_size, points_saliency_data, filter_in_saliency_data);
+    CUDA_POST_KERNEL_CHECK;
     caffe_gpu_powx(input_saliencies_filter_.count(), filter_in_saliency_data, (Dtype)2, filter_in_saliency_data);
     caffe_gpu_strided_sum(this->channels_, this->num_, filter_in_saliency_data, fisher_info_in);
     caffe_gpu_scal(this->channels_, 1/(Dtype)(2*(this->num_)), fisher_info_in);
