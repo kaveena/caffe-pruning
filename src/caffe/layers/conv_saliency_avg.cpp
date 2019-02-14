@@ -11,7 +11,7 @@ void ConvolutionSaliencyLayer<Dtype>::compute_weight_avg_cpu(const Dtype *  act_
   
   caffe_copy(output_saliencies_points_.count(), act_data, output_saliency_data);
 
-  compute_norm_and_batch_avg_cpu(output_saliencies_points_.count(2,4), output_saliency_data, saliency_info);
+  compute_norm_and_batch_avg_cpu(output_saliency_data, NULL, saliency_info, NULL);
 }
 
 template <typename Dtype>
@@ -69,7 +69,7 @@ void ConvolutionSaliencyLayer<Dtype>::compute_diff_avg_cpu(const Dtype *  act_di
   caffe_copy(output_saliencies_points_.count(), act_diff, output_saliency_data);
   caffe_scal(output_saliencies_points_.count(), (Dtype) this->num_, output_saliency_data);
 
-  compute_norm_and_batch_avg_cpu(output_saliencies_points_.count(2,4), output_saliency_data, saliency_info);
+  compute_norm_and_batch_avg_cpu(output_saliency_data, NULL, saliency_info, NULL);
 }
 
 template <typename Dtype>
@@ -90,7 +90,7 @@ void ConvolutionSaliencyLayer<Dtype>::compute_diff_avg_weights_cpu(Blob<Dtype> *
     caffe_scal(bias_n->count(), (Dtype) this->num_, bias_saliency_data);
   }
   
-  compute_norm_and_batch_avg_cpu(weights_n->count(2, 5), points_saliency_data, saliency_info, bias_saliency_data);
+  compute_norm_and_batch_avg_weights_cpu(points_saliency_data, bias_saliency_data, saliency_info, NULL);
 }
 
 template void ConvolutionSaliencyLayer<float>::compute_weight_avg_cpu(const float *  act_data, float * saliency_info);

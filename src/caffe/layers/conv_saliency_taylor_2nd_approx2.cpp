@@ -16,7 +16,7 @@ void ConvolutionSaliencyLayer<Dtype>::compute_taylor_2nd_approx2_cpu(const Dtype
   caffe_mul(output_saliencies_points_.count(), output_saliency_data, act_data, output_saliency_data); //(a**2/2N * (dE/da2)**2) - a/N*dE/da
   caffe_scal(output_saliencies_points_.count(), (Dtype)(this->num_), output_saliency_data);
   
-  compute_norm_and_batch_avg_cpu(output_saliencies_points_.count(2,4), output_saliency_data, taylor_2nd);
+  compute_norm_and_batch_avg_cpu(output_saliency_data, NULL, taylor_2nd, NULL);
   
 }
 
@@ -65,7 +65,7 @@ void ConvolutionSaliencyLayer<Dtype>::compute_taylor_2nd_approx2_weights_cpu(Blo
     caffe_scal(bias_n->count(), (Dtype)(this->num_), bias_saliency_data);
   }
   
-  compute_norm_and_batch_avg_cpu(weights_n->count(2, 5), points_saliency_data, taylor_2nd, bias_saliency_data);
+  compute_norm_and_batch_avg_weights_cpu(points_saliency_data, bias_saliency_data, taylor_2nd, NULL);
 }
 
 template void ConvolutionSaliencyLayer<float>::compute_taylor_2nd_approx2_cpu(const float *  act_data, const float * act_diff, float * taylor_2nd);

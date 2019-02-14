@@ -14,7 +14,7 @@ void ConvolutionSaliencyLayer<Dtype>::compute_hessian_diag_approx2_cpu(const Dty
   caffe_scal(this->output_saliencies_points_.count(), (Dtype)(this->num_ * this->num_ / 2), output_saliency_data);
   
 
-  compute_norm_and_batch_avg_cpu(output_saliencies_points_.count(2,4), output_saliency_data, hessian_diag);
+  compute_norm_and_batch_avg_cpu(output_saliency_data, NULL, hessian_diag, NULL);
 
 }
 
@@ -53,7 +53,7 @@ void ConvolutionSaliencyLayer<Dtype>::compute_hessian_diag_approx2_weights_cpu(B
     caffe_scal(bias_n->count(), (Dtype)(this->num_ * this->num_ / 2), bias_saliency_data);
   }
   
-  compute_norm_and_batch_avg_cpu(weights_n->count(2, 5), points_saliency_data, hessian_diag, bias_saliency_data);
+  compute_norm_and_batch_avg_weights_cpu(points_saliency_data, bias_saliency_data, hessian_diag, NULL);
 }
 
 template void ConvolutionSaliencyLayer<float>::compute_hessian_diag_approx2_cpu(const float *  act_data, const float *  act_diff, float * hessian_diag);
