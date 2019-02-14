@@ -6,20 +6,30 @@
 namespace caffe {
 
 template <typename Dtype>
-void ConvolutionSaliencyLayer<Dtype>::compute_hessian_diag_approx2_cpu(const Dtype *  act_data, const Dtype *  act_diff, Dtype * hessian_diag) {
-  Dtype* output_saliency_data = output_saliencies_points_.mutable_cpu_data();    
+void ConvolutionSaliencyLayer<Dtype>::compute_hessian_diag_approx2_cpu(const Dtype * act_data, const Dtype * act_diff, const Dtype * input_data, const Dtype * input_diff, Dtype * hessian_diag_out, Dtype * hessian_diag_in) {
+  Dtype* output_saliency_data = NULL;    
+  Dtype* input_saliency_data = NULL; 
   
-  caffe_mul(this->output_saliencies_points_.count(), act_data, act_diff, output_saliency_data);
-  caffe_powx(this->output_saliencies_points_.count(), output_saliency_data, (Dtype)2, output_saliency_data);
-  caffe_scal(this->output_saliencies_points_.count(), (Dtype)(this->num_ * this->num_ / 2), output_saliency_data);
+  if (this->output_channel_saliency_compute_) {
+    output_saliency_data = output_saliencies_points_.mutable_cpu_data();    
+    caffe_mul(output_saliencies_points_.count(), act_data, act_diff, output_saliency_data);
+    caffe_powx(output_saliencies_points_.count(), output_saliency_data, (Dtype)2, output_saliency_data);
+    caffe_scal(output_saliencies_points_.count(), (Dtype)(this->num_ * this->num_ / 2), output_saliency_data);
+  }
   
+  if (this->input_channel_saliency_compute_) {
+    input_saliency_data = input_saliencies_points_.mutable_cpu_data(); 
+    caffe_mul(input_saliencies_points_.count(), input_data, input_diff, input_saliency_data);
+    caffe_powx(input_saliencies_points_.count(), input_saliency_data, (Dtype)2, input_saliency_data);
+    caffe_scal(input_saliencies_points_.count(), (Dtype)(this->num_ * this->num_ / 2), input_saliency_data);
+  }
 
-  compute_norm_and_batch_avg_cpu(output_saliency_data, NULL, hessian_diag, NULL);
+  compute_norm_and_batch_avg_cpu(output_saliency_data, input_saliency_data, hessian_diag_out, hessian_diag_in);
 
 }
 
 template <typename Dtype>
-void ConvolutionSaliencyLayer<Dtype>::compute_hessian_diag_approx2_weights_cpu(Blob<Dtype> * weights_n, Blob<Dtype> * bias_n, Dtype * hessian_diag) {
+void ConvolutionSaliencyLayer<Dtype>::compute_hessian_diag_approx2_weights_cpu(Blob<Dtype> * weights_n, Blob<Dtype> * bias_n, Dtype * hessian_diag_out, Dtype * hessian_diag_in) {
   const Dtype* weights = this->blobs_[0]->cpu_data();
   const Dtype* weights_n_diff = weights_n->cpu_diff();
   Dtype* points_saliency_data = weights_n->mutable_cpu_data();
@@ -37,8 +47,8 @@ void ConvolutionSaliencyLayer<Dtype>::compute_hessian_diag_approx2_weights_cpu(B
   }
   caffe_powx(weights_n->count(), points_saliency_data, (Dtype) 2, points_saliency_data);
 
-  caffe_scal(weights_n->count(), (Dtype)(this->num_ * this->num_ / 2), points_saliency_data);
-  
+  caffe_scal(weights_n->count(), (Dtype)(this->num_ * this->num_ * 0.5), points_saliency_data);
+
   if (this->saliency_bias_ && this->bias_term_) {
     bias = this->blobs_[1]->cpu_data();
     bias_n_diff = bias_n->cpu_diff();
@@ -50,15 +60,14 @@ void ConvolutionSaliencyLayer<Dtype>::compute_hessian_diag_approx2_weights_cpu(B
       caffe_mul(this->blobs_[1]->count(), bias, bias_n_diff + n * this->blobs_[1]->count(), bias_saliency_data + n * this->blobs_[1]->count());
     }
     caffe_powx(bias_n->count(), bias_saliency_data, (Dtype) 2, bias_saliency_data);
-    caffe_scal(bias_n->count(), (Dtype)(this->num_ * this->num_ / 2), bias_saliency_data);
+    caffe_scal(bias_n->count(), (Dtype)(this->num_ * this->num_ * 0.5), bias_saliency_data);
   }
-  
-  compute_norm_and_batch_avg_weights_cpu(points_saliency_data, bias_saliency_data, hessian_diag, NULL);
+  compute_norm_and_batch_avg_weights_cpu(points_saliency_data, bias_saliency_data, hessian_diag_out, hessian_diag_in);
 }
 
-template void ConvolutionSaliencyLayer<float>::compute_hessian_diag_approx2_cpu(const float *  act_data, const float *  act_diff, float * hessian_diag);
-template void ConvolutionSaliencyLayer<double>::compute_hessian_diag_approx2_cpu(const double *  act_data, const double *  act_diff, double * hessian_diag);
+template void ConvolutionSaliencyLayer<float>::compute_hessian_diag_approx2_cpu(const float * act_data, const float * act_diff, const float * input_data, const float * input_diff, float * hessian_diag_out, float * hessian_diag_in);
+template void ConvolutionSaliencyLayer<double>::compute_hessian_diag_approx2_cpu(const double * act_data, const double * act_diff, const double * input_data, const double * input_diff, double * hessian_diag_out, double * hessian_diag_in);
 
-template void ConvolutionSaliencyLayer<float>::compute_hessian_diag_approx2_weights_cpu(Blob<float> * weights_n, Blob<float> * bias_n, float * hessian_diag);
-template void ConvolutionSaliencyLayer<double>::compute_hessian_diag_approx2_weights_cpu(Blob<double> * weights_n, Blob<double> * bias_n, double * hessian_diag);
+template void ConvolutionSaliencyLayer<float>::compute_hessian_diag_approx2_weights_cpu(Blob<float> * weights_n, Blob<float> * bias_n, float * hessian_diag_out, float * hessian_diag_in);
+template void ConvolutionSaliencyLayer<double>::compute_hessian_diag_approx2_weights_cpu(Blob<double> * weights_n, Blob<double> * bias_n, double * hessian_diag_out, double * hessian_diag_in);
 }  // namespace caffe
