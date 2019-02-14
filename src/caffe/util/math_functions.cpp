@@ -256,10 +256,11 @@ void caffe_sqrt<double>(const int n, const double* a, double* y) {
 template <typename Dtype>
 void caffe_sum(const int N, const int num, const Dtype* a, Dtype* y) {
   for (int j = 0; j < N; j++) {
-    y[j] = (Dtype) 0;
+    Dtype accum = (Dtype) 0;
     for (int i = 0; i < num; i++) {
-      y[j] += a[j*num + i];
+      accum += a[j*num + i];
     }
+    y[j] = accum;
   }
 }
 template void caffe_sum<float>(const int N, const int num, const float* a, float* y);
@@ -268,29 +269,30 @@ template void caffe_sum<double>(const int N, const int num, const double* a, dou
 template <typename Dtype>
 void caffe_strided_sum(const int N, const int num, const Dtype* a, Dtype* y) {
   for (int j = 0; j < N; j++) {
-    y[j] = (Dtype) 0;
+    Dtype accum = (Dtype) 0;
     for (int i = 0; i < num; i++) {
-      y[j] += a[i*N + j];
+      accum += a[i*N + j];
     }
+    y[j] = accum;
   }
 }
 template void caffe_strided_sum<float>(const int N, const int num, const float* a, float* y);
 template void caffe_strided_sum<double>(const int N, const int num, const double* a, double* y);
 
 template <typename Dtype>
-void caffe_transpose(const int N, const int M, const int C, Dtype* y) {
+void caffe_strided_sum_inner(const int N, const int M, const int C, const Dtype* a, Dtype * y) {
   for (int n = 0; n < N; n++) {
-    for (int m = 0; m < M; m++) {
-      for (int c = 0; c < C; c++) {
-        Dtype temp = y[(C*M*n) + (C*m)  + (c)];
-        y[(C*M*n) + (C*m)  + (c)] = y[(M*C*n) + (M*c) + (m)];
-        y[(M*C*n) + (M*c) + (m)] = temp;
+    for (int c = 0; c < C; c++) {
+      Dtype accum = (Dtype) 0;
+      for (int m = 0; m < M; m++) {
+        accum += a[n*M*C + m*C + c];
       }
+      y[n*C + c] = accum;
     }
   }
 }
-template void caffe_transpose<float>(const int N, const int M, const int C, float* y);
-template void caffe_transpose<double>(const int N, const int M, const int C, double* y);
+template void caffe_strided_sum_inner<float>(const int N, const int M, const int C, const float * a, float* y);
+template void caffe_strided_sum_inner<double>(const int N, const int M, const int C, const double * a, double* y);
  
 template <>
 void caffe_exp<float>(const int n, const float* a, float* y) {

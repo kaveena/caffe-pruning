@@ -482,22 +482,26 @@ void caffe_gpu_sqrt<double>(const int N, const double* a, double* y) {
 
 template <typename Dtype>
 __global__ void sum_kernel(const int n, const int num, const Dtype* a, Dtype* y) {
-  CUDA_KERNEL_LOOP(index, n) {
+  int index = blockIdx.x * blockDim.x + threadIdx.x;
+  if (index<n) {
     Dtype accum = (Dtype) 0.0;
     for (int i=0; i<num; i++) {
       accum += a[(index*num) + i];
     }
+    __syncthreads();
     y[index] = accum;
   }
 }
 
 template <typename Dtype>
 __global__ void strided_sum_kernel(const int n, const int num, const Dtype* a, Dtype* y) {
-  CUDA_KERNEL_LOOP(index, n) {
+  int index = blockIdx.x * blockDim.x + threadIdx.x;
+  if (index<n) {
     Dtype accum = (Dtype) 0.0;
     for (int i=0; i<num; i++) {
       accum += a[index + (i*n)];
     }
+    __syncthreads();
     y[index] = accum;
   }
 }
@@ -531,28 +535,30 @@ void caffe_gpu_strided_sum<double>(const int N, const int num, const double* a, 
 }
 
 template <typename Dtype>
-__global__ void transpose_kernel(const int N, const int M, const int C, Dtype* y) {
-  CUDA_KERNEL_LOOP(n, N) {
+__global__ void strided_sum_inner(const int N, const int M, const int C, const Dtype* a, Dtype* y) {
+  int i = blockIdx.x * blockDim.x + threadIdx.x;
+  if (i < N*C) {
+    int n = i / C;
+    int c = i % C;
+    Dtype accum = (Dtype) 0;
     for (int m = 0; m < M; m++) {
-      for (int c = 0; c < C; c++) {
-        Dtype temp = y[(C*M*n) + (C*m)  + (c)];
-        y[(C*M*n) + (C*m)  + (c)] = y[(M*C*n) + (M*c) + (m)];
-        y[(M*C*n) + (M*c) + (m)] = temp;
-      }
+      accum += a[n*M*C + m*C + c];
     }
+    __syncthreads();
+    y[i] = accum;
   }
 }
 template <>
-void caffe_gpu_transpose<float>(const int N, const int M, const int C, float* y) {
+void caffe_gpu_strided_sum_inner<float>(const int N, const int M, const int C, const float* a, float* y) {
   // NOLINT_NEXT_LINE(whitespace/operators)
-  transpose_kernel<float><<<CAFFE_GET_BLOCKS(N), CAFFE_CUDA_NUM_THREADS>>>(
-      N, M, C, y);
+  strided_sum_inner<float><<<CAFFE_GET_BLOCKS(N*C), CAFFE_CUDA_NUM_THREADS>>>(
+      N, M, C, a, y);
 }
 template <>
-void caffe_gpu_transpose<double>(const int N, const int M, const int C, double* y) {
+void caffe_gpu_strided_sum_inner<double>(const int N, const int M, const int C, const double* a, double* y) {
   // NOLINT_NEXT_LINE(whitespace/operators)
-  transpose_kernel<double><<<CAFFE_GET_BLOCKS(N), CAFFE_CUDA_NUM_THREADS>>>(
-      N, M, C, y);
+  strided_sum_inner<double><<<CAFFE_GET_BLOCKS(N*C), CAFFE_CUDA_NUM_THREADS>>>(
+      N, M, C, a, y);
 }
 
 
