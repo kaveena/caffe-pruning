@@ -488,7 +488,6 @@ __global__ void sum_kernel(const int n, const int num, const Dtype* a, Dtype* y)
     for (int i=0; i<num; i++) {
       accum += a[(index*num) + i];
     }
-    __syncthreads();
     y[index] = accum;
   }
 }
@@ -501,7 +500,6 @@ __global__ void strided_sum_kernel(const int n, const int num, const Dtype* a, D
     for (int i=0; i<num; i++) {
       accum += a[index + (i*n)];
     }
-    __syncthreads();
     y[index] = accum;
   }
 }
