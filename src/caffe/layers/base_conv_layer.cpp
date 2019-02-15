@@ -161,8 +161,8 @@ void BaseConvolutionLayer<Dtype>::LayerSetUp(const vector<Blob<Dtype>*>& bottom,
       saliency_shape_0_ = 1;
     }
   }
-  vector<int> saliency_out_shape = {saliency_shape_0_, this->conv_out_channels_};
-  vector<int> saliency_in_shape = {saliency_shape_0_, this->conv_in_channels_};
+  vector<int> saliency_out_shape = {saliency_shape_0_, this->num_output_};
+  vector<int> saliency_in_shape = {saliency_shape_0_, this->channels_ / this->group_};
   int total_blobs = 1;
   this->mask_pos_ = 1;
   this->saliency_pos_ = 1;

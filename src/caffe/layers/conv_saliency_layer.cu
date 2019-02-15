@@ -354,7 +354,7 @@ void ConvolutionSaliencyLayer<Dtype>::compute_norm_and_batch_avg_gpu(Dtype * out
       } break;
     }
     caffe_gpu_sum(this->num_ * this->channels_, count, input_saliency_data, filter_in_saliency_data); //sum hxw
-    caffe_gpu_strided_sum(this->channels_, this->num_, filter_in_saliency_data, input_channel_saliency);
+    caffe_gpu_strided_sum(this->channels_ / this->group_, this->num_ * this->group_, filter_in_saliency_data, input_channel_saliency);
     caffe_gpu_scal(this->channels_, 1 / (Dtype)(this->num_), input_channel_saliency);
   }
 }
@@ -365,19 +365,25 @@ void ConvolutionSaliencyLayer<Dtype>::compute_norm_and_batch_avg_weights_gpu(Dty
   Dtype* filter_out_saliency_data;
   
   int kernel_size = this->blobs_[0]->count(2,4);
+  int weights_count = this->blobs_[0]->count();
+  int bias_count;
+  
+  if (this->bias_term_) {
+    bias_count = this->blobs_[1]->count();
+  }
 
   switch (this->saliency_norm_) {
     case (caffe::ConvolutionSaliencyParameter::L1): {
-      caffe_gpu_abs(this->num_ * this->num_output_ * this->channels_ * kernel_size, weight_saliency_data, weight_saliency_data);
+      caffe_gpu_abs(this->num_ * weights_count, weight_saliency_data, weight_saliency_data);
       if (this->saliency_bias_ && this->bias_term_ && bias_saliency_data != NULL){
-        caffe_gpu_abs(this->num_ * this->num_output_, bias_saliency_data, bias_saliency_data);
+        caffe_gpu_abs(this->num_ * bias_count, bias_saliency_data, bias_saliency_data);
      }
     } break;
   
     case (caffe::ConvolutionSaliencyParameter::L2): {
-      caffe_gpu_powx(this->num_ * this->num_output_ * this->channels_ * kernel_size, weight_saliency_data, (Dtype) 2, weight_saliency_data);
+      caffe_gpu_powx(this->num_ * weights_count, weight_saliency_data, (Dtype) 2, weight_saliency_data);
       if (this->saliency_bias_ && this->bias_term_ && bias_saliency_data != NULL){
-        caffe_gpu_powx(this->num_ * this->num_output_, bias_saliency_data, (Dtype) 2, bias_saliency_data);
+        caffe_gpu_powx(this->num_ * bias_count, bias_saliency_data, (Dtype) 2, bias_saliency_data);
       }
     } break;
 
@@ -387,17 +393,17 @@ void ConvolutionSaliencyLayer<Dtype>::compute_norm_and_batch_avg_weights_gpu(Dty
   
   if (this->output_channel_saliency_compute_) {
     filter_out_saliency_data = output_saliencies_filter_.mutable_gpu_data();    
-    caffe_gpu_sum(this->num_ * this->num_output_, this->channels_ * kernel_size, weight_saliency_data, filter_out_saliency_data);
+    caffe_gpu_sum(this->num_ * this->num_output_, this->channels_ * kernel_size / this->group_, weight_saliency_data, filter_out_saliency_data);
     if (this->saliency_bias_ && this->bias_term_ && bias_saliency_data != NULL){
-      caffe_gpu_add(this->num_ * this->num_output_, bias_saliency_data, filter_out_saliency_data, filter_out_saliency_data);
+      caffe_gpu_add(this->num_ *bias_count, bias_saliency_data, filter_out_saliency_data, filter_out_saliency_data);
     }
     caffe_gpu_strided_sum(this->num_output_, this->num_, filter_out_saliency_data, output_channel_saliency);
     caffe_gpu_scal(this->num_output_, 1 / (Dtype)(this->num_), output_channel_saliency);
   }
   if (this->input_channel_saliency_compute_) {
-    caffe_gpu_strided_sum(this->channels_ * kernel_size, this->num_ * this->num_output_, weight_saliency_data, weight_saliency_data);
-    caffe_gpu_sum(this->channels_, kernel_size, weight_saliency_data, input_channel_saliency);
-    caffe_gpu_scal(this->channels_, 1 / (Dtype)(this->num_), input_channel_saliency);
+    caffe_gpu_strided_sum(this->channels_ * kernel_size / this->group_, this->num_ * this->num_output_, weight_saliency_data, weight_saliency_data);
+    caffe_gpu_sum(this->channels_ / this->group_, kernel_size, weight_saliency_data, input_channel_saliency);
+    caffe_gpu_scal(this->channels_ / this->group_, 1 / (Dtype)(this->num_), input_channel_saliency);
   }
 }
 
