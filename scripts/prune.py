@@ -91,8 +91,6 @@ def update_mask(net, pruned_channel, convolution_list, channels, prune=True, fin
     conv_module.blobs[conv_module.mask_pos_+1].data[idx_channel] = 0
 
 if __name__=='__main__':
-  start = time.time()
-
   args = parser().parse_args()
 
   if args.solver is None:
@@ -129,6 +127,7 @@ if __name__=='__main__':
   for layer in convolution_list:
     total_channels += named_modules[layer].blobs[0].num
     channels.append(named_modules[layer].blobs[0].num)
+
   channels = np.array(channels)
   channels = np.cumsum(channels)
 
@@ -145,93 +144,94 @@ if __name__=='__main__':
     saliency_solver.net.save(args.output_weights)
 
     for j in range(total_channels):
-    if args.method in _caffe_saliencies_:
-      for layer in convolution_list:
-        named_modules[layer].blobs[named_modules[layer].saliency_pos_].data.fill(0) # reset saliency
+      if args.method in _caffe_saliencies_:
+        for layer in convolution_list:
+          named_modules[layer].blobs[named_modules[layer].saliency_pos_].data.fill(0) # reset saliency
 
-    pruning_signal = np.array([])
+      pruning_signal = np.array([])
 
-    # compute initial saliencies
-    evalset_size = args.eval_size;
-    for iter in range(evalset_size):
-      if args.method == 'random':
-        break
-      net.forward()
-      net.backward()
-      if (args.method == 'WEIGHT_AVG') and (args.saliency_input == 'WEIGHT'):
-        break   #no need to do multiple passes of the network
+      # compute initial saliencies
+      evalset_size = args.eval_size;
+      for iter in range(evalset_size):
+        if args.method == 'random':
+          break
+        net.forward()
+        net.backward()
+        if (args.method == 'WEIGHT_AVG') and (args.saliency_input == 'WEIGHT'):
+          break   #no need to do multiple passes of the network
 
-      if (args.method == 'apoz'):
-        pruning_signal_partial = np.array([])
-        if (args.saliency_input == 'ACTIVATION'):
-          for layer in convolution_list:
-            caffe_layer = net.blobs[layer]
-            n = caffe_layer.num
-            m = caffe_layer.channels
-            h = caffe_layer.height
-            w = caffe_layer.width
-            c = named_modules[layer].blobs[0].data.shape[1]
-            k = named_modules[layer].blobs[0].data.shape[2]
-            saliency_data = (net.blobs[layer].data > 0.0).sum(axis=(0,2,3)) / float( n * h * w)
+        if (args.method == 'apoz'):
+          pruning_signal_partial = np.array([])
+          if (args.saliency_input == 'ACTIVATION'):
+            for layer in convolution_list:
+              caffe_layer = net.blobs[layer]
+              n = caffe_layer.num
+              m = caffe_layer.channels
+              h = caffe_layer.height
+              w = caffe_layer.width
+              c = named_modules[layer].blobs[0].data.shape[1]
+              k = named_modules[layer].blobs[0].data.shape[2]
+              saliency_data = (net.blobs[layer].data > 0.0).sum(axis=(0,2,3)) / float( n * h * w)
 
-            if args.normalization == 'l0' :
-              saliency_normalised = l0_normalisation(saliency_data, n, m, h , w, c , k, args.saliency_input)
-            if args.normalization == 'l1' :
-              saliency_normalised = l1_normalisation(saliency_data, n, m, h , w, c , k, args.saliency_input)
-            if args.normalization == 'l2' :
-              saliency_normalised = l2_normalisation(saliency_data, n, m, h , w, c , k, args.saliency_input)
-            if args.normalization == 'no' :
-              saliency_normalised = no_normalisation(saliency_data, n, m, h , w, c , k, args.saliency_input)
+              if args.normalization == 'l0' :
+                saliency_normalised = l0_normalisation(saliency_data, n, m, h , w, c , k, args.saliency_input)
+              if args.normalization == 'l1' :
+                saliency_normalised = l1_normalisation(saliency_data, n, m, h , w, c , k, args.saliency_input)
+              if args.normalization == 'l2' :
+                saliency_normalised = l2_normalisation(saliency_data, n, m, h , w, c , k, args.saliency_input)
+              if args.normalization == 'no' :
+                saliency_normalised = no_normalisation(saliency_data, n, m, h , w, c , k, args.saliency_input)
 
-            pruning_signal_partial = np.hstack([pruning_signal_partial, saliency_normalised])
-          if iter == 0:
-            pruning_signal = pruning_signal_partial.data
+              pruning_signal_partial = np.hstack([pruning_signal_partial, saliency_normalised])
+            if iter == 0:
+              pruning_signal = pruning_signal_partial.data
+            else:
+              pruning_signal += pruning_signal_partial
+
           else:
-            pruning_signal += pruning_signal_partial
+            print('Not implemented')
+            exit(1)
 
-        else:
-          print('Not implemented')
-          exit(1)
+      if (args.method != 'WEIGHT_AVG') or (args.saliency_input != 'WEIGHT'):
+        pruning_signal /= float(evalset_size) # get approximate change in loss using taylor expansions
 
-    if (args.method != 'WEIGHT_AVG') or (args.saliency_input != 'WEIGHT'):
-      pruning_signal /= float(evalset_size) # get approximate change in loss using taylor expansions
+      if args.method in _caffe_saliencies_:
+        for layer in convolution_list:
+          saliency_data = named_modules[layer].blobs[named_modules[layer].saliency_pos_].data[0]
+          caffe_layer = net.blobs[layer]
+          n = caffe_layer.num
+          m = caffe_layer.channels
+          h = caffe_layer.height
+          w = caffe_layer.width
+          c = named_modules[layer].blobs[0].data.shape[1]
+          k = named_modules[layer].blobs[0].data.shape[2]
 
-    if args.method in _caffe_saliencies_:
-      for layer in convolution_list:
-        saliency_data = named_modules[layer].blobs[named_modules[layer].saliency_pos_].data[0]
-        caffe_layer = net.blobs[layer]
-        n = caffe_layer.num
-        m = caffe_layer.channels
-        h = caffe_layer.height
-        w = caffe_layer.width
-        c = named_modules[layer].blobs[0].data.shape[1]
-        k = named_modules[layer].blobs[0].data.shape[2]
+          if args.normalization == 'l0' :
+            saliency_normalised = l0_normalisation(saliency_data, n, m, h , w, c , k, args.saliency_input)
+          if args.normalization == 'l1' :
+            saliency_normalised = l1_normalisation(saliency_data, n, m, h , w, c , k, args.saliency_input)
+          if args.normalization == 'l2' :
+            saliency_normalised = l2_normalisation(saliency_data, n, m, h , w, c , k, args.saliency_input)
+          if args.normalization == 'no' :
+            saliency_normalised = no_normalisation(saliency_data, n, m, h , w, c , k, args.saliency_input)
 
-        if args.normalization == 'l0' :
-          saliency_normalised = l0_normalisation(saliency_data, n, m, h , w, c , k, args.saliency_input)
-        if args.normalization == 'l1' :
-          saliency_normalised = l1_normalisation(saliency_data, n, m, h , w, c , k, args.saliency_input)
-        if args.normalization == 'l2' :
-          saliency_normalised = l2_normalisation(saliency_data, n, m, h , w, c , k, args.saliency_input)
-        if args.normalization == 'no' :
-          saliency_normalised = no_normalisation(saliency_data, n, m, h , w, c , k, args.saliency_input)
+          pruning_signal = np.hstack([pruning_signal, saliency_normalised])
 
-        pruning_signal = np.hstack([pruning_signal, saliency_normalised])
+      if args.method == 'random':
+        pruning_signal = np.zeros(total_channels)
+        pruning_signal[random.sample(active_channel, 1)] = -1
 
-    if args.method == 'random':
-      pruning_signal = np.zeros(total_channels)
-      pruning_signal[random.sample(active_channel, 1)] = -1
+      prune_channel_idx = np.argmin(pruning_signal[active_channel])
+      prune_channel = active_channel[prune_channel_idx]
+      update_mask(net, prune_channel, convolution_list, channels, final=True)
 
-    prune_channel_idx = np.argmin(pruning_signal[active_channel])
-    prune_channel = active_channel[prune_channel_idx]
-    update_mask(net, prune_channel, convolution_list, channels, final=True)
+      if args.retrain:
+        saliency_solver.step(args.train_size)
 
-    if args.retrain:
-      saliency_solver.step(args.train_size)
+      if args.verbose:
+        print(args.normalisation, args.method, 'Removed Channel: ', prune_channel, '  ||  Test Accuracy: ', test_acc)
 
-    if args.verbose:
-      print(args.normalisation, args.method, 'Removed Channel: ', prune_channel, '  ||  Test Accuracy: ', test_acc)
-
-    active_channel.remove(prune_channel)
+      active_channel.remove(prune_channel)
+      test_acc, ce_loss = test(saliency_solver, args.test_size, args.acc_layer, args.loss_layer)
 
   exit(0)
