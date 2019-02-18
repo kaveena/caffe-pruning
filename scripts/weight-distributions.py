@@ -126,7 +126,7 @@ if __name__=='__main__':
 
     # Plot for comparison
     plt.figure(figsize=(12,8))
-    ax = data.plot(kind='hist', bins=50, normed=True, alpha=0.5)
+    ax = data.plot(kind='hist', bins=50, density=True, alpha=0.5)
     # Save plot limits
     dataYLim = ax.get_ylim()
 
@@ -146,7 +146,7 @@ if __name__=='__main__':
     # Display
     plt.figure(figsize=(12,8))
     ax = pdf.plot(lw=2, label='PDF', legend=True)
-    data.plot(kind='hist', bins=50, normed=True, alpha=0.5, label='Data', legend=True, ax=ax)
+    data.plot(kind='hist', bins=50, density=True, alpha=0.5, label='Data', legend=True, ax=ax)
 
     param_names = (best_dist.shapes + ', loc, scale').split(', ') if best_dist.shapes else ['loc', 'scale']
     param_str = ', '.join(['{}={:0.2f}'.format(k,v) for k,v in zip(param_names, best_fit_params)])
