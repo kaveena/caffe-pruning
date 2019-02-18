@@ -5,7 +5,7 @@ import warnings
 import numpy as np
 import pandas as pd
 import scipy.stats as st
-import argparse 
+import argparse
 import caffe
 import matplotlib
 import matplotlib.pyplot as plt
@@ -126,7 +126,7 @@ if __name__=='__main__':
 
     # Plot for comparison
     plt.figure(figsize=(12,8))
-    ax = data.plot(kind='hist', bins=50, normed=True, alpha=0.5, color=plt.rcParams['axes.color_cycle'][1])
+    ax = data.plot(kind='hist', bins=50, normed=True, alpha=0.5)
     # Save plot limits
     dataYLim = ax.get_ylim()
 
