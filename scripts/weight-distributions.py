@@ -12,6 +12,14 @@ import matplotlib.pyplot as plt
 matplotlib.rcParams['figure.figsize'] = (16.0, 12.0)
 matplotlib.style.use('ggplot')
 
+def parser():
+    parser = argparse.ArgumentParser(description='Caffe Weight Analysis Script')
+    parser.add_argument('--model', action='store', default=None,
+            help='model prototxt to use')
+    parser.add_argument('--weights', action='store', default=None,
+            help='weights to analyze')
+    return parser
+
 # Create models from data
 def best_fit_distribution(data, bins=200, ax=None):
     """Model data by finding best fit distribution to data"""
@@ -97,49 +105,52 @@ def make_pdf(dist, params, size=10000):
 
     return pdf
 
-# Load the Caffe model
-net = caffe.Net(args.prototxt, caffe.TEST)
-net.copy_from(args.weights)
+if __name__=='__main__':
+  args = parser().parse_args()
 
-named_modules = net.layer_dict
-convolution_list = list(filter(lambda x: 'Convolution' in named_modules[x].type, named_modules.keys()))
+  # Load the Caffe model
+  net = caffe.Net(args.model, caffe.TEST)
+  net.copy_from(args.weights)
 
-for layer in convolution_list:
-  caffe_layer = net.blobs[layer]
-  m = caffe_layer.channels
-  c = named_modules[layer].blobs[0].data.shape[1]
-  k = named_modules[layer].blobs[0].data.shape[2]
+  named_modules = net.layer_dict
+  convolution_list = list(filter(lambda x: 'Convolution' in named_modules[x].type, named_modules.keys()))
 
-  data = pd.Series(named_modules[layer].blobs[0])
+  for layer in convolution_list:
+    caffe_layer = net.blobs[layer]
+    m = caffe_layer.channels
+    c = named_modules[layer].blobs[0].data.shape[1]
+    k = named_modules[layer].blobs[0].data.shape[2]
 
-  # Plot for comparison
-  plt.figure(figsize=(12,8))
-  ax = data.plot(kind='hist', bins=50, normed=True, alpha=0.5, color=plt.rcParams['axes.color_cycle'][1])
-  # Save plot limits
-  dataYLim = ax.get_ylim()
+    data = pd.Series(named_modules[layer].blobs[0])
 
-  # Find best fit distribution
-  best_fit_name, best_fit_params = best_fit_distribution(data, 200, ax)
-  best_dist = getattr(st, best_fit_name)
+    # Plot for comparison
+    plt.figure(figsize=(12,8))
+    ax = data.plot(kind='hist', bins=50, normed=True, alpha=0.5, color=plt.rcParams['axes.color_cycle'][1])
+    # Save plot limits
+    dataYLim = ax.get_ylim()
 
-  # Update plots
-  ax.set_ylim(dataYLim)
-  ax.set_title(u'Layer ' + layer)
-  ax.set_xlabel(u'Weight Magnitude')
-  ax.set_ylabel('Frequency')
+    # Find best fit distribution
+    best_fit_name, best_fit_params = best_fit_distribution(data, 200, ax)
+    best_dist = getattr(st, best_fit_name)
 
-  # Make PDF with best params
-  pdf = make_pdf(best_dist, best_fit_params)
+    # Update plots
+    ax.set_ylim(dataYLim)
+    ax.set_title(u'Layer ' + layer)
+    ax.set_xlabel(u'Weight Magnitude')
+    ax.set_ylabel('Frequency')
 
-  # Display
-  plt.figure(figsize=(12,8))
-  ax = pdf.plot(lw=2, label='PDF', legend=True)
-  data.plot(kind='hist', bins=50, normed=True, alpha=0.5, label='Data', legend=True, ax=ax)
+    # Make PDF with best params
+    pdf = make_pdf(best_dist, best_fit_params)
 
-  param_names = (best_dist.shapes + ', loc, scale').split(', ') if best_dist.shapes else ['loc', 'scale']
-  param_str = ', '.join(['{}={:0.2f}'.format(k,v) for k,v in zip(param_names, best_fit_params)])
-  dist_str = '{}({})'.format(best_fit_name, param_str)
+    # Display
+    plt.figure(figsize=(12,8))
+    ax = pdf.plot(lw=2, label='PDF', legend=True)
+    data.plot(kind='hist', bins=50, normed=True, alpha=0.5, label='Data', legend=True, ax=ax)
 
-  ax.set_title('Layer ' + layer + ' with best fit distribution \n' + dist_str)
-  ax.set_xlabel('Weight Magnitude')
-  ax.set_ylabel('Frequency')
+    param_names = (best_dist.shapes + ', loc, scale').split(', ') if best_dist.shapes else ['loc', 'scale']
+    param_str = ', '.join(['{}={:0.2f}'.format(k,v) for k,v in zip(param_names, best_fit_params)])
+    dist_str = '{}({})'.format(best_fit_name, param_str)
+
+    ax.set_title('Layer ' + layer + ' with best fit distribution \n' + dist_str)
+    ax.set_xlabel('Weight Magnitude')
+    ax.set_ylabel('Frequency')
