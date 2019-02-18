@@ -122,7 +122,7 @@ if __name__=='__main__':
     c = named_modules[layer].blobs[0].data.shape[1]
     k = named_modules[layer].blobs[0].data.shape[2]
 
-    data = pd.Series(named_modules[layer].blobs[0].data)
+    data = pd.Series(named_modules[layer].blobs[0].data.flatten())
 
     # Plot for comparison
     plt.figure(figsize=(12,8))
