@@ -80,12 +80,12 @@ void ConvolutionSaliencyLayer<Dtype>::compute_fisher_weights_cpu(Blob<Dtype> * w
 
   if (this->input_channel_saliency_compute_) {
     filter_in_saliency_data = input_saliencies_filter_.mutable_cpu_data();    
-    caffe_sum(weights_n->count(0,3), weights_n->count(3, 5), points_saliency_data, points_saliency_data);
-    caffe_strided_sum_inner(this->num_, this->num_output_, this->channels_, points_saliency_data, filter_in_saliency_data);
-    caffe_powx(input_saliencies_filter_.count(), filter_in_saliency_data, (Dtype)2, filter_in_saliency_data);
-    caffe_strided_sum(this->channels_, this->num_, filter_in_saliency_data, filter_in_saliency_data);
-    caffe_strided_sum(this->channels_ / this->group_, this->group_, filter_in_saliency_data, fisher_info_in);
-    caffe_scal(this->channels_, 1/(Dtype)(2*(this->num_)), fisher_info_in);
+    const int kernel_size = this->blobs_[0]->count(2,4);
+    caffe_sum(this->num_ * this->num_output_ * this->channels_ / this->group_, kernel_size, points_saliency_data, points_saliency_data);
+    caffe_strided_sum_inner(this->num_, this->num_output_, this->channels_ / this->group_, points_saliency_data, filter_in_saliency_data);
+    caffe_powx(this->num_ * this->channels_ / this->group_, filter_in_saliency_data, (Dtype)2, filter_in_saliency_data);
+    caffe_strided_sum(this->channels_ / this->group_, this->num_, filter_in_saliency_data, fisher_info_in);
+    caffe_scal(this->channels_ / this->group_, 1/(Dtype)(2*(this->num_)), fisher_info_in);
   }
 }
 

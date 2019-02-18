@@ -27,6 +27,14 @@ void ConvolutionSaliencyLayer<Dtype>::compute_weight_avg_weights_gpu(Blob<Dtype>
   
   const Dtype* bias;
   Dtype* bias_saliency_data;
+  
+  int kernel_size = this->blobs_[0]->count(2,4);
+  int weights_count = this->blobs_[0]->count();
+  int bias_count;
+  
+  if (this->bias_term_) {
+    bias_count = this->blobs_[1]->count();
+  }
 
   if (this->mask_term_) {
     weights = weights_masked_.gpu_data();
@@ -42,23 +50,23 @@ void ConvolutionSaliencyLayer<Dtype>::compute_weight_avg_weights_gpu(Blob<Dtype>
   
   switch (this->saliency_norm_) {
     case (caffe::ConvolutionSaliencyParameter::L1): {
-      caffe_gpu_abs(this->blobs_[0]->count(), weights, points_saliency_data);
+      caffe_gpu_abs(weights_count, weights, points_saliency_data);
       if (this->saliency_bias_ && this->bias_term_ && bias_saliency_data != NULL){
-        caffe_gpu_abs(this->blobs_[1]->count(), bias, bias_saliency_data);
+        caffe_gpu_abs(bias_count, bias, bias_saliency_data);
       }
     } break;
     
     case (caffe::ConvolutionSaliencyParameter::L2): {
-      caffe_gpu_powx(this->blobs_[0]->count(), weights, (Dtype) 2, points_saliency_data);
+      caffe_gpu_powx(weights_count, weights, (Dtype) 2, points_saliency_data);
       if (this->saliency_bias_ && this->bias_term_ && bias_saliency_data != NULL){
-        caffe_gpu_powx(this->blobs_[1]->count(), bias, (Dtype) 2, bias_saliency_data);
+        caffe_gpu_powx(bias_count, bias, (Dtype) 2, bias_saliency_data);
       }
     } break;
   
     default: {
-      caffe_copy(this->blobs_[0]->count(), weights, points_saliency_data);
+      caffe_copy(weights_count, weights, points_saliency_data);
       if (this->saliency_bias_ && this->bias_term_ && bias_saliency_data != NULL){
-        caffe_copy(this->blobs_[1]->count(), bias, bias_saliency_data);
+        caffe_copy(bias_count, bias, bias_saliency_data);
       }
     } break;
   }
@@ -70,8 +78,8 @@ void ConvolutionSaliencyLayer<Dtype>::compute_weight_avg_weights_gpu(Blob<Dtype>
     }
   }
   if (this->input_channel_saliency_compute_) {
-    caffe_gpu_sum(this->num_output_ * this->channels_, this->blobs_[0]->count(2,4), points_saliency_data, points_saliency_data);
-    caffe_gpu_strided_sum(this->channels_, this->num_output_, points_saliency_data, saliency_info_in);
+    caffe_gpu_strided_sum(this->channels_ * kernel_size / this->group_, this->num_output_, points_saliency_data, points_saliency_data);
+    caffe_gpu_sum(this->channels_ / this->group_, kernel_size, points_saliency_data, saliency_info_in);
   }
 }
 

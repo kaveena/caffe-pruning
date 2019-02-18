@@ -54,7 +54,7 @@ void ConvolutionSaliencyLayer<Dtype>::compute_taylor_weights_gpu(Blob<Dtype> * w
     }
     caffe_gpu_scal(bias_n->count(), (Dtype) (-1 * this->num_), bias_saliency_data); // get unscaled diff back
   }
-  
+
   compute_norm_and_batch_avg_weights_gpu(points_saliency_data, bias_saliency_data, taylor_out, taylor_in);
   
 }
