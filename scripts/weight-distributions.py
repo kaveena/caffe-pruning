@@ -1,5 +1,5 @@
 # modified from https://stackoverflow.com/a/37616966
-%matplotlib inline
+#matplotlib inline
 
 import warnings
 import numpy as np
