@@ -19,6 +19,17 @@ triNNity-caffe includes:
 
 ## Building Caffe
 
+The Caffe build process uses CMake. The build is an out-of-tree build,
+so don't run CMake in the Caffe source directory (the directory where this
+file is located).
+
+Instead, make a temporary directory anywhere *outside* of this directory,
+and say `cmake <options> /path/to/source/directory`. CMake will generate
+the build for you in that temporary directory, and then you can just say
+`make` to build Caffe there.
+
+### Build Options
+
 There are many CMake options to be aware of when building Caffe for different
 uses. Here is a summary of the most important build options. You can control
 any of these on the command line when invoking CMake by saying
