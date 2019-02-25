@@ -1,5 +1,12 @@
 ## General
 
+# CMake is now the supported build method
+Makefile*
+
+# Make sure not to accidentally commit in-tree build files
+CMakeFiles/
+*cmake_install*
+
 # Compiled Object files
 *.slo
 *.lo
