@@ -194,6 +194,9 @@ void BatchNormLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
     }
     return;
   }
+  if (Caffe::derivative_compute()) {
+    LOG(FATAL) << "Second order derivative propagation not implemented for batch norm layer during TRAIN phase";
+  }
   const Dtype* top_data = x_norm_.cpu_data();
   int num = bottom[0]->shape()[0];
   int spatial_dim = bottom[0]->count()/(bottom[0]->shape(0)*channels_);
