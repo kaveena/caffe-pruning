@@ -192,6 +192,9 @@ void BatchNormLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
       caffe_div(temp_.count(), top_ddiff, temp_.cpu_data(), bottom_ddiff);
       caffe_div(temp_.count(), bottom_ddiff, temp_.cpu_data(), bottom_ddiff);
     }
+    else {
+      LOG(FATAL) << "Second order derivative propagation for Batch Norm not implemented for train phase";
+    }
     return;
   }
   const Dtype* top_data = x_norm_.cpu_data();
