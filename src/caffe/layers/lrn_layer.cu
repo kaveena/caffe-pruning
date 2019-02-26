@@ -183,7 +183,7 @@ __global__ void LRNComputeDdiff(const int nthreads,
     const Dtype* const top_diff, const Dtype* const top_ddiff,
     const int num, const int channels, const int height,
     const int width, const int size, const Dtype negative_beta,
-    const Dtype ratio1, const Dtype ratio2, const Dtype ratio3,
+    const Dtype scale1, const Dtype scale2, const Dtype scale3,
     Dtype* const bottom_ddiff) {
   CUDA_KERNEL_LOOP(index, nthreads) {
     // find out the local offset
@@ -221,38 +221,37 @@ __global__ void LRNComputeDdiff(const int nthreads,
           (scale_off[head * step]);
       accum_ratio3 += top_ddiff_off[head * step] * pow(top_off[head * step] / scale_off[head * step], 2);
       if (head - size >= 0) {
-        accum_ratio1 -= top_diff_off[head * step] * top_off[head * step] /
-            (scale_off[head * step] * scale_off[head * step]);
-        accum_ratio2 -= top_diff_off[head * step] * top_off[head * step] /
-            (scale_off[head * step]);
-        accum_ratio3 -= top_ddiff_off[head * step] * pow(top_off[head * step] / scale_off[head * step], 2);
+        accum_ratio1 -= top_diff_off[(head - size) * step] * top_off[(head - size) * step] /
+            (scale_off[(head - size) * step] * scale_off[(head - size) * step]);
+        accum_ratio2 -= top_diff_off[(head - size) * step] * top_off[(head - size) * step] /
+            (scale_off[(head - size) * step]);
+        accum_ratio3 -= top_ddiff_off[(head - size) * step] * pow(top_off[(head - size) * step] / scale_off[(head - size) * step], 2);
       }
       bottom_ddiff_off[(head - post_pad) * step] =
-        - (2 * ratio2 * top_data[(head - post_pad) * step] * top_diff[(head - post_pad) * step] / scale_off[(head - post_pad) * step])
-        + (pow(scale_off[(head - post_pad) * step], 2*negative_beta) * top_ddiff[(head - post_pad) * step])
-        - (ratio2 * top_data[(head - post_pad) * step] * top_data[(head - post_pad) * step] * top_ddiff[(head - post_pad) * step] / scale_off[(head - post_pad) * step])
-        + (bottom_off[(head - post_pad) * step] * bottom_off[(head - post_pad) * step] * ratio1 * accum_ratio1)
-        - (bottom_off[(head - post_pad) * step] * ratio2 * accum_ratio2)
-        + (bottom_off[(head - post_pad) * step] * bottom_off[(head - post_pad) * step] * ratio3 * accum_ratio3);
-        
+        (pow(scale_off[(head - post_pad) * step], 2*negative_beta) * top_ddiff[(head - post_pad) * step])
+        - (2 * scale2 * top_data[(head - post_pad) * step] * top_data[(head - post_pad) * step] * top_ddiff[(head - post_pad) * step] / scale_off[(head - post_pad) * step])
+        - (2 * scale2 * top_data[(head - post_pad) * step] * top_diff[(head - post_pad) * step] / scale_off[(head - post_pad) * step])
+        + (scale1 * bottom_off[(head - post_pad) * step] * bottom_off[(head - post_pad) * step] * accum_ratio1)
+        - (scale2 * accum_ratio2)
+        + (scale3 * bottom_off[(head - post_pad) * step] * bottom_off[(head - post_pad) * step] * accum_ratio3);
       ++head;
     }
     // subtract only
     while (head < channels + post_pad) {
       if (head - size >= 0) {
-        accum_ratio1 -= top_diff_off[head * step] * top_off[head * step] /
-            (scale_off[head * step] * scale_off[head * step]);
-        accum_ratio2 -= top_diff_off[head * step] * top_off[head * step] /
-            (scale_off[head * step]);
-        accum_ratio3 -= top_ddiff_off[head * step] * pow(top_off[head * step] / scale_off[head * step], 2);
+        accum_ratio1 -= top_diff_off[(head - size) * step] * top_off[(head - size) * step] /
+            (scale_off[(head - size) * step] * scale_off[(head - size) * step]);
+        accum_ratio2 -= top_diff_off[(head - size) * step] * top_off[(head - size) * step] /
+            (scale_off[(head - size) * step]);
+        accum_ratio3 -= top_ddiff_off[(head - size) * step] * pow(top_off[(head - size) * step] / scale_off[(head - size) * step], 2);
       }
       bottom_ddiff_off[(head - post_pad) * step] =
-        - (2 * ratio2 * top_data[(head - post_pad) * step] * top_diff[(head - post_pad) * step] / scale_off[(head - post_pad) * step])
-        + (pow(scale_off[(head - post_pad) * step], 2*negative_beta) * top_ddiff[(head - post_pad) * step])
-        - (ratio2 * top_data[(head - post_pad) * step] * top_data[(head - post_pad) * step] * top_ddiff[(head - post_pad) * step] / scale_off[(head - post_pad) * step])
-        + (bottom_off[(head - post_pad) * step] * bottom_off[(head - post_pad) * step] * ratio1 * accum_ratio1)
-        - (bottom_off[(head - post_pad) * step] * ratio2 * accum_ratio2)
-        + (bottom_off[(head - post_pad) * step] * bottom_off[(head - post_pad) * step] * ratio3 * accum_ratio3);
+        (pow(scale_off[(head - post_pad) * step], 2*negative_beta) * top_ddiff[(head - post_pad) * step])
+        - (2 * scale2 * top_data[(head - post_pad) * step] * top_data[(head - post_pad) * step] * top_ddiff[(head - post_pad) * step] / scale_off[(head - post_pad) * step])
+        - (2 * scale2 * top_data[(head - post_pad) * step] * top_diff[(head - post_pad) * step] / scale_off[(head - post_pad) * step])
+        + (scale1 * bottom_off[(head - post_pad) * step] * bottom_off[(head - post_pad) * step] * accum_ratio1)
+        - (scale2 * accum_ratio2)
+        + (scale3 * bottom_off[(head - post_pad) * step] * bottom_off[(head - post_pad) * step] * accum_ratio3);
       ++head;
     }
   }
@@ -283,9 +282,9 @@ void LRNLayer<Dtype>::CrossChannelBackward_gpu(
     top_ddiff = top[0]->gpu_ddiff();
     bottom_data = bottom[0]->gpu_data();
     bottom_ddiff = bottom[0]->mutable_gpu_ddiff();
-    Dtype scale1 = Dtype(4. * (beta_ + 1) * beta_ / (size_ * size_));
+    Dtype scale1 = Dtype(4. * (beta_ + 1) * beta_ * alpha_ * alpha_/ (size_ * size_));
     Dtype scale2 = Dtype(2. * alpha_ * beta_ / size_);
-    Dtype scale3 = (Dtype) pow(scale2, 2);
+    Dtype scale3 = (Dtype) scale2 * scale2;
 
     LRNComputeDdiff<<<CAFFE_GET_BLOCKS(n_threads), CAFFE_CUDA_NUM_THREADS>>>(
         n_threads, bottom_data, top_data,
@@ -314,8 +313,8 @@ void LRNLayer<Dtype>::WithinChannelBackward_gpu(
     //  + sum_u sum_v d2E/dy2i,j-u,k-v [ { 4 * beta **2 * alpha **2 xijk **2 / n**2} * xi,j-u,k-v ** 2 ni,j-u,k-v ** (-2beta -2)]
 
     // we need to add 
-    // -4 * beta * alpha xijk nijk ** (-beta - 1) dE/dyijk
-    // -2 * beta * alpha xijk**2 nijk** ( -2beta - 1) d2E/dy2ijk
+    // -4 * beta * alpha / n  yijk nijk ** (- 1) dE/dyijk
+    // -4 * beta * alpha / n yijk**2 nijk** (- 1) d2E/dy2ijk
     // nijk = ( k + alpha/n * sum_u sum_v xi,j-u,k-v **2 ) => use axpy on output of pool layer to get this
     if (Caffe::derivative_compute()) {
       int count = bottom[0]->count();
@@ -325,17 +324,15 @@ void LRNLayer<Dtype>::WithinChannelBackward_gpu(
       
       caffe_gpu_axpy(count, this->alpha_, pool_top_vec_[0]->gpu_data(), helper_data_);
       caffe_gpu_add_scalar(count, this->k_, helper_data_); // nijk
-      caffe_gpu_powx(count, helper_data_, (Dtype)   - 1 - this->beta_, helper_data2_);
-      caffe_gpu_mul(count, bottom[0]->gpu_data(), helper_data2_, helper_data2_);
-      caffe_gpu_mul(count, top[0]->gpu_diff(), helper_data2_, helper_data2_);
-      caffe_gpu_scal(count, (Dtype) -4 * this->beta_ * this->alpha_ / this->size_, helper_data2_);
+      caffe_gpu_div(count, top[0]->gpu_data(), helper_data_, helper_data2_); // yijk / nijk 
+      caffe_gpu_mul(count, top[0]->gpu_diff(), helper_data2_, helper_data2_); // yijk / nijk dE/dyijk
+      caffe_gpu_scal(count, (Dtype) -4 * this->beta_ * this->alpha_ / this->size_, helper_data2_); //-4 * beta * alpha / n *  yijk / nijk dE/dyijk
       caffe_gpu_add(count, helper_data2_, bottom[0]->gpu_ddiff(), bottom[0]->mutable_gpu_ddiff());
 
-      caffe_gpu_powx(count, bottom[0]->gpu_data(), (Dtype) 2,  helper_data2_);   
-      caffe_gpu_powx(count, helper_data_, (Dtype) - 1 - 2*(this->beta_), helper_data3_);
-      caffe_gpu_mul(count, helper_data2_, helper_data3_, helper_data2_);
-      caffe_gpu_mul(count, top[0]->gpu_ddiff(), helper_data2_, helper_data2_);
-      caffe_gpu_scal(count, (Dtype) -2 * this->beta_ * this->alpha_ / this->size_, helper_data2_);
+      caffe_gpu_div(count, top[0]->gpu_data(), helper_data_, helper_data2_); // yijk / nijk 
+      caffe_gpu_mul(count, top[0]->gpu_data(), helper_data2_, helper_data2_); // yijk**2 / nijk
+      caffe_gpu_mul(count, top[0]->gpu_ddiff(), helper_data2_, helper_data2_); // yijk**2 / nijk d2E/dy2ijk
+      caffe_gpu_scal(count, (Dtype) -4 * this->beta_ * this->alpha_ / this->size_, helper_data2_); //-4 * beta * alpha / n *  yijk**2 / nijk d2E/dy2ijk
       caffe_gpu_add(count, helper_data2_, bottom[0]->gpu_ddiff(), bottom[0]->mutable_gpu_ddiff());
     }
   }
