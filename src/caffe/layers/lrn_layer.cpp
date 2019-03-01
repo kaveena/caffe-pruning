@@ -63,7 +63,9 @@ void LRNLayer<Dtype>::LayerSetUp(const vector<Blob<Dtype>*>& bottom,
     product_layer_.reset(new EltwiseLayer<Dtype>(product_param));
     product_layer_->SetUp(product_bottom_vec_, top);
   }
-  this->helper_.Reshape(top[0]->shape());
+  if (Caffe::derivative_compute()) {
+    this->helper_.Reshape(top[0]->shape());
+  }
 }
 
 template <typename Dtype>
@@ -79,6 +81,9 @@ void LRNLayer<Dtype>::Reshape(const vector<Blob<Dtype>*>& bottom,
   case LRNParameter_NormRegion_ACROSS_CHANNELS:
     top[0]->Reshape(num_, channels_, height_, width_);
     scale_.Reshape(num_, channels_, height_, width_);
+    if (Caffe::derivative_compute()) {
+      helper_.Reshape(num_, channels_, height_, width_);
+    }
     break;
   case LRNParameter_NormRegion_WITHIN_CHANNEL:
     split_layer_->Reshape(bottom, split_top_vec_);
@@ -238,9 +243,9 @@ void LRNLayer<Dtype>::CrossChannelBackward_cpu(
     top_ddiff = top[0]->cpu_ddiff();
     bottom_ddiff = bottom[0]->mutable_cpu_ddiff();
     
-    Dtype scale1 = Dtype(4. * (beta_ + 1) * beta_ / (size_ * size_));
+    Dtype scale1 = Dtype(4. * (beta_ + 1) * beta_ * alpha_ * alpha_ / (size_ * size_));
     Dtype scale2 = Dtype(2. * alpha_ * beta_ / size_);
-    Dtype scale3 = (Dtype) pow(scale2, 2);
+    Dtype scale3 = (Dtype) scale2 * scale2;
     
     Blob<Dtype> accum_ratio2(1, 1, height_, width_);
     Dtype* padded_ratio2_data = padded_ratio.mutable_cpu_diff();
@@ -250,26 +255,22 @@ void LRNLayer<Dtype>::CrossChannelBackward_cpu(
     Dtype* accum_ratio3_data = accum_ratio2.mutable_cpu_diff();
     Dtype* accum_ratio3_times_bottom = accum_ratio2.mutable_cpu_ddiff();
     
-    //caffe_powx<Dtype>(scale_.count(), scale_data, -beta_, bottom_diff);
-    //caffe_mul<Dtype>(scale_.count(), top_diff, bottom_diff, bottom_diff);
     int count = bottom[0]->count();
     
     Dtype* helper_data_ = this->helper_.mutable_cpu_data();
     Dtype* helper_data2_ = this->helper_.mutable_cpu_diff();
     
     caffe_powx(count, scale_data, (Dtype)   - 2 * beta_, bottom_ddiff);
-    caffe_mul(count, top_ddiff, bottom_ddiff, bottom_ddiff);
+    caffe_mul(count, top_ddiff, bottom_ddiff, bottom_ddiff); // nijk ** -2*beta * d2E/dy2ijk
     
-    caffe_powx(count, scale_data, (Dtype)   - 1 - beta_, helper_data_);
-    caffe_mul(count, bottom_data, helper_data_, helper_data_);
-    caffe_mul(count, top_diff, helper_data_, helper_data_);
-    caffe_axpy(count, (Dtype) -2 * scale2, helper_data_, bottom_ddiff);
+    caffe_div(count, top_data, scale_data, helper_data_); // yijk / nijk
+    caffe_mul(count, top_diff, helper_data_, helper_data_); // yijk / nijk * dE/dyijk
+    caffe_axpy(count, (Dtype) -2 * scale2, helper_data_, bottom_ddiff); // nijk ** -2*beta * d2E/dy2ijk +  -2 * scale2 yijk / nijk * dE/dyijk
 
-    caffe_powx(count, bottom_data, (Dtype) 2,  helper_data_);   
-    caffe_powx(count, scale_data, (Dtype) - 1 - 2*beta_, helper_data2_);
-    caffe_mul(count, helper_data_, helper_data2_, helper_data_);
-    caffe_mul(count, top_ddiff, helper_data_, helper_data_);
-    caffe_axpy(count, (Dtype) - scale2, helper_data_, bottom_ddiff);
+    caffe_powx(count, top_data, (Dtype) 2,  helper_data_); 
+    caffe_div(count, helper_data_, scale_data, helper_data_); // yijk ** 2 / nijk
+    caffe_mul(count, top_ddiff, helper_data_, helper_data_); //yijk **2 / nijk d2E/dy2ijk
+    caffe_axpy(count, (Dtype) -2 * scale2, helper_data_, bottom_ddiff); // nijk ** -2*beta * d2E/dy2ijk +  -2 * scale2 yijk / nijk * dE/dyijk + -2 * scale2 yijk**2 / nijk d2E/dy2ijk
 
     // go through individual data
     int inverse_pre_pad = size_ - (size_ + 1) / 2;
@@ -301,6 +302,8 @@ void LRNLayer<Dtype>::CrossChannelBackward_cpu(
           padded_ratio3_data + padded_ratio.offset(0, inverse_pre_pad));
       // Now, compute the accumulated ratios and the bottom diff
       caffe_set(accum_ratio.count(), Dtype(0), accum_ratio_data);
+      caffe_set(accum_ratio.count(), Dtype(0), accum_ratio2_data);
+      caffe_set(accum_ratio.count(), Dtype(0), accum_ratio3_data);
       for (int c = 0; c < size_ - 1; ++c) {
         caffe_axpy<Dtype>(height_ * width_, 1.,
             padded_ratio_data + padded_ratio.offset(0, c), accum_ratio_data);
@@ -322,22 +325,19 @@ void LRNLayer<Dtype>::CrossChannelBackward_cpu(
         // compute bottom diff
         caffe_powx<Dtype>(height_ * width_,
             bottom_data + top[0]->offset(n, c),
-            (Dtype) 2, accum_ratio3_times_bottom);
-        caffe_mul<Dtype>(height_ * width_,
+            (Dtype) 2, accum_ratio3_times_bottom); // xijk **2 
+        caffe_mul<Dtype>(height_ * width_, 
             accum_ratio3_times_bottom,
             accum_ratio_data, accum_ratio_times_bottom);
         
-        caffe_mul<Dtype>(height_ * width_,
-            bottom_data + top[0]->offset(n, c),
-            accum_ratio2_data, accum_ratio2_times_bottom);
         caffe_mul<Dtype>(height_ * width_,
             accum_ratio3_times_bottom,
             accum_ratio3_data, accum_ratio3_times_bottom);
         
         caffe_axpy<Dtype>(height_ * width_, scale1,
             accum_ratio_times_bottom, bottom_ddiff + top[0]->offset(n, c));
-        caffe_axpy<Dtype>(height_ * width_, scale2,
-            accum_ratio2_times_bottom, bottom_ddiff + top[0]->offset(n, c));
+        caffe_axpy<Dtype>(height_ * width_, - scale2,
+            accum_ratio2_data, bottom_ddiff + top[0]->offset(n, c));
         caffe_axpy<Dtype>(height_ * width_, scale3,
             accum_ratio3_times_bottom, bottom_ddiff + top[0]->offset(n, c));
         
@@ -371,28 +371,25 @@ void LRNLayer<Dtype>::WithinChannelBackward(
     //  + sum_u sum_v d2E/dy2i,j-u,k-v [ { 4 * beta **2 * alpha **2 xijk **2 / n**2} * xi,j-u,k-v ** 2 ni,j-u,k-v ** (-2beta -2)]
 
     // we need to add 
-    // -4 * beta * alpha xijk nijk ** (-beta - 1) dE/dyijk
-    // -2 * beta * alpha xijk**2 nijk** ( -2beta - 1) d2E/dy2ijk
+    // -4 * beta * alpha / n  yijk nijk ** (- 1) dE/dyijk
+    // -4 * beta * alpha / n yijk**2 nijk** (- 1) d2E/dy2ijk
     // nijk = ( k + alpha/n * sum_u sum_v xi,j-u,k-v **2 ) => use axpy on output of pool layer to get this
     if (Caffe::derivative_compute()) {
       int count = bottom[0]->count();
       Dtype* helper_data_ = this->helper_.mutable_cpu_data();
       Dtype* helper_data2_ = this->helper_.mutable_cpu_diff();
-      Dtype* helper_data3_ = this->helper_.mutable_cpu_ddiff();
       
       caffe_axpy(count, this->alpha_, pool_top_vec_[0]->cpu_data(), helper_data_);
       caffe_add_scalar(count, this->k_, helper_data_); // nijk
-      caffe_powx(count, helper_data_, (Dtype)   - 1 - this->beta_, helper_data2_);
-      caffe_mul(count, bottom[0]->cpu_data(), helper_data2_, helper_data2_);
-      caffe_mul(count, top[0]->cpu_diff(), helper_data2_, helper_data2_);
-      caffe_scal(count, (Dtype) -4 * this->beta_ * this->alpha_ / this->size_, helper_data2_);
+      caffe_div(count, top[0]->cpu_data(), helper_data_, helper_data2_); // yijk / nijk 
+      caffe_mul(count, top[0]->cpu_diff(), helper_data2_, helper_data2_); // yijk / nijk dE/dyijk
+      caffe_scal(count, (Dtype) -4 * this->beta_ * this->alpha_ / this->size_, helper_data2_); //-4 * beta * alpha / n *  yijk / nijk dE/dyijk
       caffe_add(count, helper_data2_, bottom[0]->cpu_ddiff(), bottom[0]->mutable_cpu_ddiff());
 
-      caffe_powx(count, bottom[0]->cpu_data(), (Dtype) 2,  helper_data2_);   
-      caffe_powx(count, helper_data_, (Dtype) - 1 - 2*(this->beta_), helper_data3_);
-      caffe_mul(count, helper_data2_, helper_data3_, helper_data2_);
-      caffe_mul(count, top[0]->cpu_ddiff(), helper_data2_, helper_data2_);
-      caffe_scal(count, (Dtype) -2 * this->beta_ * this->alpha_ / this->size_, helper_data2_);
+      caffe_div(count, top[0]->cpu_data(), helper_data_, helper_data2_); // yijk / nijk 
+      caffe_mul(count, top[0]->cpu_data(), helper_data2_, helper_data2_); // yijk**2 / nijk
+      caffe_mul(count, top[0]->cpu_ddiff(), helper_data2_, helper_data2_); // yijk**2 / nijk d2E/dy2ijk
+      caffe_scal(count, (Dtype) -4 * this->beta_ * this->alpha_ / this->size_, helper_data2_); //-4 * beta * alpha / n *  yijk**2 / nijk d2E/dy2ijk
       caffe_add(count, helper_data2_, bottom[0]->cpu_ddiff(), bottom[0]->mutable_cpu_ddiff());
     }
   }
