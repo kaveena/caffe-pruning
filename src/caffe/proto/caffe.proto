@@ -662,12 +662,12 @@ message ConvolutionSaliencyParameter {
   enum SALIENCY {
     FISHER = 0;
     TAYLOR = 1;
-    HESSIAN_DIAG = 2;
-    HESSIAN_DIAG_APPROX2 = 3;
-    TAYLOR_2ND = 4;
-    TAYLOR_2ND_APPROX2 = 5;
-    WEIGHT_AVG = 6;
-    DIFF_AVG = 7;
+    HESSIAN_DIAG_LM = 2;
+    HESSIAN_DIAG_GN = 3;
+    TAYLOR_2ND_LM = 4;
+    TAYLOR_2ND_GN = 5;
+    AVERAGE_INPUT = 6;
+    AVERAGE_GRADIENT = 7;
     ALL = 8; //needs to correspond to number of enum values excluding ALL
   }
   enum NORM {
@@ -679,8 +679,9 @@ message ConvolutionSaliencyParameter {
     ACTIVATION = 0;
     WEIGHT = 1;
   }
+
   // what saliency measure to use for the activations
-  required SALIENCY saliency = 1 [default = WEIGHT_AVG];
+  required SALIENCY saliency = 1 [default = AVERAGE_INPUT];
   optional bool saliency_term = 2 [default = false]; // whether to have saliency terms
   optional bool accum = 3 [default = true]; // whether to accumulate saliency over different batches
   optional NORM norm = 4 [default = NONE];

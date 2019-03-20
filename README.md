@@ -17,6 +17,60 @@ triNNity-caffe includes:
 - Pruning (Sparsification), both pointwise and channel pruning
 - General quality-of-life fixes and performance improvements
 
+## Saliency Computation
+
+When pruning, it is important to know the relative importance, or
+*saliency* of each of the items being pruned. triNNity-caffe extends
+layers with weights with a new saliency parameter, which can be used to
+control how the saliency is computed. Saliency is stored in a Blob,
+just like weights and biases. The dimensions of the saliency Blob are
+exactly the same as the weight Blob for the layer.
+
+The parameters used to control saliency computation are `saliency`,
+`saliency_term`, `accum`, `norm`, and `input`.
+
+```
+layer {
+  name: "conv2"
+  type: "Convolution"
+  bottom: "norm1"
+  top: "conv2"
+  convolution_param {
+    num_output: 256
+    pad: 2
+    kernel_size: 5
+
+    saliency_param {
+      saliency_term: true
+      saliency: TAYLOR
+      accum: false
+      norm: L2
+      input: WEIGHT
+    }
+  }
+```
+
+The `saliency` is the name of the method to be used to compute
+saliency. The available methods are `FISHER`, `TAYLOR`,
+`HESSIAN_DIAG_LM`, `HESSIAN_DIAG_GN`, `TAYLOR_2ND_LM`,
+`TAYLOR_2ND_GN`, `AVERAGE_INPUT`, `AVERAGE_GRADIENT`.
+
+`LM` and `GN` refer to the Levenberg-Marquardt or Gauss-Newton
+approximations of the relevant entity.
+
+The `accum` parameters says whether or not to accumulate saliency
+across minibatches.
+
+The `norm` parameter selects which norm to use for the computed
+saliency: `NONE`, `L1` or `L2`.
+
+Finally, the `input` parameter is set to either `WEIGHT` or
+`ACTIVATION` to select whether it is the saliency of weights or of
+activations that is being computed.
+
+To temporarily disable saliency computation for a layer without
+removing the `saliency_param`, you can set `saliency_term` to `false`.
+
 ## Building Caffe
 
 The Caffe build process uses CMake. The build is an out-of-tree build,
