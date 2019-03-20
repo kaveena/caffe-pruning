@@ -9,8 +9,8 @@ namespace caffe {
 template <typename Dtype>
 void ConvolutionLayer<Dtype>::Forward_gpu(const vector<Blob<Dtype>*>& bottom,
       const vector<Blob<Dtype>*>& top) {
-  if ((this->saliency_ == caffe::ConvolutionSaliencyParameter::HESSIAN_DIAG) ||
-      (this->saliency_ == caffe::ConvolutionSaliencyParameter::TAYLOR_2ND) ||
+  if ((this->saliency_ == caffe::ConvolutionSaliencyParameter::HESSIAN_DIAG_LM) ||
+      (this->saliency_ == caffe::ConvolutionSaliencyParameter::TAYLOR_2ND_LM) ||
       (this->saliency_ == caffe::ConvolutionSaliencyParameter::ALL)) {
     Caffe::set_derivative_compute(true); //if any Convolution Saliency layer exists then need ddiff computation
   }
