@@ -501,12 +501,12 @@ BOOST_PYTHON_MODULE(_caffe) {
   bp::enum_<ConvolutionSaliencyParameter::SALIENCY>("SALIENCY")
     .value("FISHER", ConvolutionSaliencyParameter::FISHER)
     .value("TAYLOR", ConvolutionSaliencyParameter::TAYLOR)
-    .value("HESSIAN_DIAG_LM", ConvolutionSaliencyParameter::HESSIAN_DIAG)
-    .value("HESSIAN_DIAG_GN", ConvolutionSaliencyParameter::HESSIAN_DIAG_APPROX2)
-    .value("TAYLOR_2ND_LM", ConvolutionSaliencyParameter::TAYLOR_2ND)
-    .value("TAYLOR_2ND_GN", ConvolutionSaliencyParameter::TAYLOR_2ND_APPROX2)
-    .value("AVERAGE_INPUT", ConvolutionSaliencyParameter::WEIGHT_AVG)
-    .value("AVERAGE_GRADIENT", ConvolutionSaliencyParameter::DIFF_AVG)
+    .value("HESSIAN_DIAG_LM", ConvolutionSaliencyParameter::HESSIAN_DIAG_LM)
+    .value("HESSIAN_DIAG_GN", ConvolutionSaliencyParameter::HESSIAN_DIAG_GN)
+    .value("TAYLOR_2ND_LM", ConvolutionSaliencyParameter::TAYLOR_2ND_LM)
+    .value("TAYLOR_2ND_GN", ConvolutionSaliencyParameter::TAYLOR_2ND_GN)
+    .value("AVERAGE_INPUT", ConvolutionSaliencyParameter::AVERAGE_INPUT)
+    .value("AVERAGE_GRADIENT", ConvolutionSaliencyParameter::AVERAGE_GRADIENT)
     .value("ALL", ConvolutionSaliencyParameter::ALL)
     ;
 
