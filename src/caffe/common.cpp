@@ -54,7 +54,9 @@ void GlobalInit(int* pargc, char*** pargv) {
 Caffe::Caffe()
     : random_generator_(), mode_(Caffe::CPU),
       solver_count_(1), solver_rank_(0), derivative_compute_(false), multiprocess_(false) {
-    _MM_SET_FLUSH_ZERO_MODE(_MM_FLUSH_ZERO_ON); 
+    #if defined(__x86_64__)
+    _MM_SET_FLUSH_ZERO_MODE(_MM_FLUSH_ZERO_ON);
+    #endif
   }
 
 Caffe::~Caffe() { }
