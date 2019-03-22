@@ -18,8 +18,9 @@
 
 #include "caffe/util/device_alternate.hpp"
 
-
+#if defined(__x86_64__)
 #include <xmmintrin.h>
+#endif
 
 // Convert macro to string
 #define STRINGIFY(m) #m
