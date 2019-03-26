@@ -13,6 +13,12 @@
 
 namespace caffe {
 
+template<typename Dtype>
+uint64_t exponent_length();
+
+template<typename Dtype>
+uint64_t mantissa_length();
+
 // Caffe gemm provides a simpler interface to the gemm functions, with the
 // limitation that the data has to be contiguous in memory.
 template <typename Dtype>

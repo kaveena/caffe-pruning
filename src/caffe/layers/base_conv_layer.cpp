@@ -146,6 +146,17 @@ void BaseConvolutionLayer<Dtype>::LayerSetUp(const vector<Blob<Dtype>*>& bottom,
   vector<int> bias_shape(this->bias_term_, this->num_output_);
   this->mask_term_ = this->layer_param_.convolution_mask_param().mask_term();
   this->saliency_term_ = this->layer_param_.convolution_saliency_param().saliency_term();
+  this->quantize_term_ = this->layer_param_.convolution_quantize_param().quantization_mode() != 0;
+  if (this->quantize_term_) {
+    int qrbits = this->layer_param_.convolution_quantize_param().quantization_range_bits();
+    uint64_t qrbits_mask = (1 << qrbits) - 1;
+    qrbits_mask <<= mantissa_length<Dtype>();
+    int qpbits = this->layer_param_.convolution_quantize_param().quantization_precision_bits();
+    uint64_t qpbits_mask = (1 << qpbits) - 1;
+    uint64_t total_mask = qrbits_mask | qpbits_mask;
+    this->quantization_mask = std::bitset<8*sizeof(Dtype)>(total_mask);
+    this->quantization_mask[(8*sizeof(Dtype))-1] = true; // preserve sign bit
+  }
   int saliency_shape_0_ = 0;
   if (this->saliency_term_) {
     if ( this->layer_param_.convolution_saliency_param().saliency() == caffe::ConvolutionSaliencyParameter::ALL  ){

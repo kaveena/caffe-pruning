@@ -80,7 +80,11 @@ void ConvolutionLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bottom,
   if (this->mask_term_) {
     const Dtype* mask = this->blobs_[this->mask_pos_]->cpu_data();
     Dtype* weight_masked = this->weights_masked_.mutable_cpu_data();
-    caffe_mul(this->blobs_[0]->count(), mask, weight, weight_masked);
+    if (this->quantize_term_) {
+      caffe_and(this->blobs_[0]->count(), this->quantization_mask, weight, weight_masked);
+    } else {
+      caffe_mul(this->blobs_[0]->count(), mask, weight, weight_masked);
+    }
     weight = this->weights_masked_.cpu_data();
   }
   if (this->bias_term_) {
@@ -88,7 +92,11 @@ void ConvolutionLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bottom,
     if (this->mask_term_) {
       const Dtype* bias_mask = this->blobs_[this->mask_pos_+1]->cpu_data();
       Dtype* bias_masked = this->bias_masked_.mutable_cpu_data();
-      caffe_mul(this->blobs_[1]->count(), bias_mask, bias, bias_masked);
+      if (this->quantize_term_) {
+        caffe_and(this->blobs_[1]->count(), this->quantization_mask, bias, bias_masked);
+      } else {
+        caffe_mul(this->blobs_[1]->count(), bias_mask, bias, bias_masked);
+      }
       bias = this->bias_masked_.cpu_data();
     }
   }

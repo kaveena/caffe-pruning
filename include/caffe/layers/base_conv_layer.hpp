@@ -7,6 +7,7 @@
 #include "caffe/layer.hpp"
 #include "caffe/proto/caffe.pb.h"
 #include "caffe/util/im2col.hpp"
+#include "caffe/util/math_functions.hpp"
 
 namespace caffe {
 
@@ -101,8 +102,11 @@ class BaseConvolutionLayer : public Layer<Dtype> {
 //  bool bias_term_; //move to layer to facilitate interaction with pycaffe
   bool mask_term_;
   bool saliency_term_;
+  bool quantize_term_;
   bool is_1x1_;
   bool force_nd_im2col_;
+
+  std::bitset<8*sizeof(Dtype)> quantization_mask;
 
   //Helper for computing ddiff
   Blob<Dtype> weights_sqr_;

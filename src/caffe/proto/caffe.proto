@@ -672,7 +672,7 @@ message ConvolutionQuantizeParameter {
   // The number of iterations between requantization passes
   optional int32 quantization_interval = 2 [ default = 1 ];
 
-  // The number of bits by which to shrink the range and precision
+  // The desired number of bits of range and precision
   optional int32 quantization_range_bits = 3 [ default = 0 ];
   optional int32 quantization_precision_bits = 4 [ default = 0 ];
 

@@ -11,6 +11,26 @@
 namespace caffe {
 
 template<>
+uint64_t exponent_length<float>() {
+  return 5;
+}
+
+template<>
+uint64_t exponent_length<double>() {
+  return 11;
+}
+
+template<>
+uint64_t mantissa_length<float>() {
+  return 23;
+}
+
+template<>
+uint64_t mantissa_length<double>() {
+  return 52;
+}
+
+template<>
 void caffe_cpu_gemm<float>(const CBLAS_TRANSPOSE TransA,
     const CBLAS_TRANSPOSE TransB, const int M, const int N, const int K,
     const float alpha, const float* A, const float* B, const float beta,
