@@ -156,6 +156,7 @@ void BaseConvolutionLayer<Dtype>::LayerSetUp(const vector<Blob<Dtype>*>& bottom,
     uint64_t total_mask = qrbits_mask | qpbits_mask;
     this->quantization_mask = std::bitset<8*sizeof(Dtype)>(total_mask);
     this->quantization_mask[(8*sizeof(Dtype))-1] = true; // preserve sign bit
+    LOG(INFO) << "Setting quantization scheme " << this->quantization_mask.to_string('*');
   }
   int saliency_shape_0_ = 0;
   if (this->saliency_term_) {
