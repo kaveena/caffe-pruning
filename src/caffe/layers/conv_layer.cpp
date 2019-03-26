@@ -101,7 +101,10 @@ void ConvolutionLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bottom,
     }
   }
   for (int i = 0; i < bottom.size(); ++i) {
-    const Dtype* bottom_data = bottom[i]->cpu_data();
+    Dtype* bottom_data = bottom[i]->mutable_cpu_data();
+    if (this->mask_term_ && this->quantize_term_) {
+      caffe_and(1, this->quantization_mask, bottom_data, bottom_data);
+    }
     Dtype* top_data = top[i]->mutable_cpu_data();
     for (int n = 0; n < this->num_; ++n) {
       this->forward_cpu_gemm(bottom_data + n * this->bottom_dim_, weight,
