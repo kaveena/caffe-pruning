@@ -658,14 +658,14 @@ message ConvolutionQuantizeParameter {
     FILTER = 3;
   }
 
-  optional QuantizationType quantization_mode = 0 [default = NONE];
+  optional QuantizationType quantization_mode = 1 [default = NONE];
 
   // The number of iterations between requantization passes
-  optional int32 quantization_interval = 1 [ default = 1 ];
+  optional int32 quantization_interval = 2 [ default = 1 ];
 
   // The number of bits by which to shrink the range and precision
-  optional int32 quantization_range_bits = 2 [ default = 0 ];
-  optional int32 quantization_precision_bits = 3 [ default = 0 ];
+  optional int32 quantization_range_bits = 3 [ default = 0 ];
+  optional int32 quantization_precision_bits = 4 [ default = 0 ];
 
 }
 
