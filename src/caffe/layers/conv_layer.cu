@@ -19,11 +19,15 @@ void ConvolutionLayer<Dtype>::Forward_gpu(const vector<Blob<Dtype>*>& bottom,
   }
   const Dtype* weight = this->blobs_[0]->gpu_data();
   const Dtype* bias;
+  this->quantize_clock_ += 1;
+
   if (this->mask_term_) {
     const Dtype* mask = this->blobs_[this->mask_pos_]->gpu_data();
     Dtype* weight_masked = this->weights_masked_.mutable_gpu_data();
     if (this->quantize_term_) {
-      caffe_gpu_and(this->blobs_[0]->count(), this->quantization_mask, weight, weight_masked);
+      if (this->quantize_clock_ == this->quantize_interval_) {
+        caffe_gpu_and(this->blobs_[0]->count(), this->quantization_mask, weight, weight_masked);
+      }
     } else {
       caffe_gpu_mul(this->blobs_[0]->count(), mask, weight, weight_masked);
     }
@@ -35,7 +39,9 @@ void ConvolutionLayer<Dtype>::Forward_gpu(const vector<Blob<Dtype>*>& bottom,
       const Dtype* bias_mask = this->blobs_[this->mask_pos_+1]->gpu_data();
       Dtype* bias_masked = this->bias_masked_.mutable_gpu_data();
       if (this->quantize_term_) {
-        caffe_gpu_and(this->blobs_[1]->count(), this->quantization_mask, bias, bias_masked);
+        if (this->quantize_clock_ == this->quantize_interval_) {
+          caffe_gpu_and(this->blobs_[1]->count(), this->quantization_mask, bias, bias_masked);
+        }
       } else {
         caffe_gpu_mul(this->blobs_[1]->count(), bias_mask, bias, bias_masked);
       }
@@ -55,6 +61,10 @@ void ConvolutionLayer<Dtype>::Forward_gpu(const vector<Blob<Dtype>*>& bottom,
         this->forward_gpu_bias(top_data + n * this->top_dim_, bias);
       }
     }
+  }
+
+  if (this->quantize_clock_ >= this->quantize_interval_) {
+    this->quantize_clock_ = 0;
   }
 }
 

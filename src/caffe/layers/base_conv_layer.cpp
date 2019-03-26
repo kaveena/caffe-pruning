@@ -147,6 +147,8 @@ void BaseConvolutionLayer<Dtype>::LayerSetUp(const vector<Blob<Dtype>*>& bottom,
   this->mask_term_ = this->layer_param_.convolution_mask_param().mask_term();
   this->saliency_term_ = this->layer_param_.convolution_saliency_param().saliency_term();
   this->quantize_term_ = this->layer_param_.convolution_quantize_param().quantization_mode() != 0;
+  this->quantize_interval_ = this->layer_param_.convolution_quantize_param().quantization_interval();
+  this->quantize_clock_ = 0;
   if (this->quantize_term_) {
     int qrbits = this->layer_param_.convolution_quantize_param().quantization_range_bits();
     uint64_t qrbits_mask = (1 << qrbits) - 1;

@@ -107,6 +107,8 @@ class BaseConvolutionLayer : public Layer<Dtype> {
   bool force_nd_im2col_;
 
   std::bitset<8*sizeof(Dtype)> quantization_mask;
+  int quantize_interval_;
+  int quantize_clock_;
 
   //Helper for computing ddiff
   Blob<Dtype> weights_sqr_;

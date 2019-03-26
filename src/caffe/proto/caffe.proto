@@ -664,7 +664,6 @@ message ConvolutionQuantizeParameter {
     NONE = 0;
     LAYER = 1;
     CHANNEL = 2;
-    FILTER = 3;
   }
 
   optional QuantizationType quantization_mode = 1 [default = NONE];
