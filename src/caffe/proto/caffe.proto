@@ -388,6 +388,7 @@ message LayerParameter {
   optional ContrastiveLossParameter contrastive_loss_param = 105;
   optional ConvolutionParameter convolution_param = 106;
   optional ConvolutionQuantizeParameter convolution_quantize_param = 149;
+  optional ConvolutionMaskParameter convolution_mask_param = 152;
   optional ConvolutionSaliencyParameter convolution_saliency_param = 151;
   optional CropParameter crop_param = 144;
   optional DataParameter data_param = 107;
@@ -647,6 +648,14 @@ message ConvolutionParameter {
   // implementation; for input blobs with num_axes != 2, this option is
   // ignored and the ND implementation will be used.)
   optional bool force_nd_im2col = 17 [default = false];
+}
+
+message ConvolutionMaskParameter {
+
+  optional bool default_init = 1 [default = true]; // use default initialisation of ones for masks
+  optional FillerParameter mask_filler = 2; // The filler for the weight and bias
+  optional bool mask_term = 3 [default = false]; // whether to have mask terms
+
 }
 
 message ConvolutionQuantizeParameter {
@@ -1375,6 +1384,7 @@ message V1LayerParameter {
   optional ContrastiveLossParameter contrastive_loss_param = 40;
   optional ConvolutionParameter convolution_param = 10;
   optional ConvolutionQuantizeParameter convolution_quantize_param = 50;
+  optional ConvolutionMaskParameter convolution_mask_param = 53;
   optional ConvolutionSaliencyParameter convolution_saliency_param = 52;
   optional DataParameter data_param = 11;
   optional DropoutParameter dropout_param = 12;

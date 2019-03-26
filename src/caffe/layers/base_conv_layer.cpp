@@ -13,7 +13,8 @@ void BaseConvolutionLayer<Dtype>::LayerSetUp(const vector<Blob<Dtype>*>& bottom,
       const vector<Blob<Dtype>*>& top) {
   // Configure the kernel size, padding, stride, and inputs.
   ConvolutionParameter conv_param = this->layer_param_.convolution_param();
-  ConvolutionMaskedParameter conv_masked_param = this->layer_param_.convolution_masked_param();
+  ConvolutionMaskParameter conv_masked_param = this->layer_param_.convolution_mask_param();
+  ConvolutionQuantizeParameter conv_quantized_param = this->layer_param_.convolution_quantize_param();
   ConvolutionSaliencyParameter conv_saliency_param = this->layer_param_.convolution_saliency_param();
   this->force_nd_im2col_ = conv_param.force_nd_im2col();
   this->channel_axis_ = bottom[0]->CanonicalAxisIndex(conv_param.axis());
@@ -143,7 +144,7 @@ void BaseConvolutionLayer<Dtype>::LayerSetUp(const vector<Blob<Dtype>*>& bottom,
   }
   this->bias_term_ = this->layer_param_.convolution_param().bias_term();
   vector<int> bias_shape(this->bias_term_, this->num_output_);
-  this->mask_term_ = this->layer_param_.convolution_masked_param().mask_term();
+  this->mask_term_ = this->layer_param_.convolution_mask_param().mask_term();
   this->saliency_term_ = this->layer_param_.convolution_saliency_param().saliency_term();
   int saliency_shape_0_ = 0;
   if (this->saliency_term_) {
@@ -197,7 +198,7 @@ void BaseConvolutionLayer<Dtype>::LayerSetUp(const vector<Blob<Dtype>*>& bottom,
           << this->blobs_[this->mask_pos_]->shape_string();
       LOG(INFO) << "Mask Initialization";
       this->blobs_[this->mask_pos_].reset(new Blob<Dtype>(weight_shape));
-      if (this->layer_param_.convolution_masked_param().default_init()) {
+      if (this->layer_param_.convolution_mask_param().default_init()) {
         Blob<Dtype> * mask_blob = this->blobs_[this->mask_pos_].get();
         for (int i=0; i<mask_blob->count(); ++i) {
           mask_blob->mutable_cpu_data()[i] = (Dtype)1.0;
@@ -205,7 +206,7 @@ void BaseConvolutionLayer<Dtype>::LayerSetUp(const vector<Blob<Dtype>*>& bottom,
       }
       else {
         shared_ptr<Filler<Dtype> > mask_filler(GetFiller<Dtype>(
-            this->layer_param_.convolution_masked_param().mask_filler()));
+            this->layer_param_.convolution_mask_param().mask_filler()));
         mask_filler->Fill(this->blobs_[this->mask_pos_].get());
       }
     }
@@ -216,7 +217,7 @@ void BaseConvolutionLayer<Dtype>::LayerSetUp(const vector<Blob<Dtype>*>& bottom,
           << this->blobs_[this->mask_pos_+1]->shape_string();
       LOG(INFO) << "Mask Initialization";
       this->blobs_[this->mask_pos_+1].reset(new Blob<Dtype>(bias_shape));
-      if (this->layer_param_.convolution_masked_param().default_init()) {
+      if (this->layer_param_.convolution_mask_param().default_init()) {
         Blob<Dtype> * mask_blob = this->blobs_[this->mask_pos_+1].get();
         for (int i=0; i<mask_blob->count(); ++i) {
           mask_blob->mutable_cpu_data()[i] = (Dtype)1.0;
@@ -224,7 +225,7 @@ void BaseConvolutionLayer<Dtype>::LayerSetUp(const vector<Blob<Dtype>*>& bottom,
       }
       else {
         shared_ptr<Filler<Dtype> > mask_filler(GetFiller<Dtype>(
-            this->layer_param_.convolution_masked_param().mask_filler()));
+            this->layer_param_.convolution_mask_param().mask_filler()));
         mask_filler->Fill(this->blobs_[this->mask_pos_+1].get());
       }
     }
@@ -259,7 +260,7 @@ void BaseConvolutionLayer<Dtype>::LayerSetUp(const vector<Blob<Dtype>*>& bottom,
     // If necessary, initialize and fill the mask.
     if (this->mask_term_) {
       this->blobs_[this->mask_pos_].reset(new Blob<Dtype>(weight_shape));
-      if (this->layer_param_.convolution_masked_param().default_init()) {
+      if (this->layer_param_.convolution_mask_param().default_init()) {
         Blob<Dtype> * mask_blob = this->blobs_[this->mask_pos_].get();
         for (int i=0; i<mask_blob->count(); ++i) {
           mask_blob->mutable_cpu_data()[i] = (Dtype)1.0;
@@ -267,13 +268,13 @@ void BaseConvolutionLayer<Dtype>::LayerSetUp(const vector<Blob<Dtype>*>& bottom,
       }
       else {
         shared_ptr<Filler<Dtype> > mask_filler(GetFiller<Dtype>(
-            this->layer_param_.convolution_masked_param().mask_filler()));
+            this->layer_param_.convolution_mask_param().mask_filler()));
         mask_filler->Fill(this->blobs_[this->mask_pos_].get());
       }
     }
     if (this->bias_term_ && this->mask_term_) {
       this->blobs_[this->mask_pos_ +1 ].reset(new Blob<Dtype>(bias_shape));
-      if (this->layer_param_.convolution_masked_param().default_init()) {
+      if (this->layer_param_.convolution_mask_param().default_init()) {
         Blob<Dtype> * mask_blob = this->blobs_[this->mask_pos_+1].get();
         for (int i=0; i<mask_blob->count(); ++i) {
           mask_blob->mutable_cpu_data()[i] = (Dtype)1.0;
@@ -281,7 +282,7 @@ void BaseConvolutionLayer<Dtype>::LayerSetUp(const vector<Blob<Dtype>*>& bottom,
       }
       else {
         shared_ptr<Filler<Dtype> > mask_filler(GetFiller<Dtype>(
-            this->layer_param_.convolution_masked_param().mask_filler()));
+            this->layer_param_.convolution_mask_param().mask_filler()));
         mask_filler->Fill(this->blobs_[this->mask_pos_+1].get());
       }
     }

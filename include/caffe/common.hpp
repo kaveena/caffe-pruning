@@ -185,8 +185,8 @@ class Caffe {
   // Parallel training
   int solver_count_;
   int solver_rank_;
-  bool multiprocess_;
   bool derivative_compute_;
+  bool multiprocess_;
 
  private:
   // The private constructor to avoid duplicate instantiation.
