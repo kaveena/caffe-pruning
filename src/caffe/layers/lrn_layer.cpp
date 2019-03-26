@@ -190,10 +190,10 @@ void LRNLayer<Dtype>::CrossChannelBackward_cpu(
   const Dtype* top_data = top[0]->cpu_data();
   const Dtype* bottom_data = bottom[0]->cpu_data();
   const Dtype* scale_data = scale_.cpu_data();
-  
+
   const Dtype* top_ddiff;
   Dtype* bottom_ddiff;
-  
+
   Dtype* bottom_diff = bottom[0]->mutable_cpu_diff();
   Blob<Dtype> padded_ratio(1, channels_ + size_ - 1, height_, width_);
   Blob<Dtype> accum_ratio(1, 1, height_, width_);
@@ -242,32 +242,30 @@ void LRNLayer<Dtype>::CrossChannelBackward_cpu(
   if (Caffe::derivative_compute()) {
     top_ddiff = top[0]->cpu_ddiff();
     bottom_ddiff = bottom[0]->mutable_cpu_ddiff();
-    
+
     Dtype scale1 = Dtype(4. * (beta_ + 1) * beta_ * alpha_ * alpha_ / (size_ * size_));
     Dtype scale2 = Dtype(2. * alpha_ * beta_ / size_);
     Dtype scale3 = (Dtype) scale2 * scale2;
-    
+
     Blob<Dtype> accum_ratio2(1, 1, height_, width_);
     Dtype* padded_ratio2_data = padded_ratio.mutable_cpu_diff();
     Dtype* padded_ratio3_data = padded_ratio.mutable_cpu_ddiff();
     Dtype* accum_ratio2_data = accum_ratio.mutable_cpu_ddiff();
-    Dtype* accum_ratio2_times_bottom = accum_ratio2.mutable_cpu_data();
     Dtype* accum_ratio3_data = accum_ratio2.mutable_cpu_diff();
     Dtype* accum_ratio3_times_bottom = accum_ratio2.mutable_cpu_ddiff();
-    
+
     int count = bottom[0]->count();
-    
+
     Dtype* helper_data_ = this->helper_.mutable_cpu_data();
-    Dtype* helper_data2_ = this->helper_.mutable_cpu_diff();
-    
+
     caffe_powx(count, scale_data, (Dtype)   - 2 * beta_, bottom_ddiff);
     caffe_mul(count, top_ddiff, bottom_ddiff, bottom_ddiff); // nijk ** -2*beta * d2E/dy2ijk
-    
+
     caffe_div(count, top_data, scale_data, helper_data_); // yijk / nijk
     caffe_mul(count, top_diff, helper_data_, helper_data_); // yijk / nijk * dE/dyijk
     caffe_axpy(count, (Dtype) -2 * scale2, helper_data_, bottom_ddiff); // nijk ** -2*beta * d2E/dy2ijk +  -2 * scale2 yijk / nijk * dE/dyijk
 
-    caffe_powx(count, top_data, (Dtype) 2,  helper_data_); 
+    caffe_powx(count, top_data, (Dtype) 2,  helper_data_);
     caffe_div(count, helper_data_, scale_data, helper_data_); // yijk ** 2 / nijk
     caffe_mul(count, top_ddiff, helper_data_, helper_data_); //yijk **2 / nijk d2E/dy2ijk
     caffe_axpy(count, (Dtype) -2 * scale2, helper_data_, bottom_ddiff); // nijk ** -2*beta * d2E/dy2ijk +  -2 * scale2 yijk / nijk * dE/dyijk + -2 * scale2 yijk**2 / nijk d2E/dy2ijk
@@ -325,22 +323,22 @@ void LRNLayer<Dtype>::CrossChannelBackward_cpu(
         // compute bottom diff
         caffe_powx<Dtype>(height_ * width_,
             bottom_data + top[0]->offset(n, c),
-            (Dtype) 2, accum_ratio3_times_bottom); // xijk **2 
-        caffe_mul<Dtype>(height_ * width_, 
+            (Dtype) 2, accum_ratio3_times_bottom); // xijk **2
+        caffe_mul<Dtype>(height_ * width_,
             accum_ratio3_times_bottom,
             accum_ratio_data, accum_ratio_times_bottom);
-        
+
         caffe_mul<Dtype>(height_ * width_,
             accum_ratio3_times_bottom,
             accum_ratio3_data, accum_ratio3_times_bottom);
-        
+
         caffe_axpy<Dtype>(height_ * width_, scale1,
             accum_ratio_times_bottom, bottom_ddiff + top[0]->offset(n, c));
         caffe_axpy<Dtype>(height_ * width_, - scale2,
             accum_ratio2_data, bottom_ddiff + top[0]->offset(n, c));
         caffe_axpy<Dtype>(height_ * width_, scale3,
             accum_ratio3_times_bottom, bottom_ddiff + top[0]->offset(n, c));
-        
+
         caffe_axpy<Dtype>(height_ * width_, -1.,
             padded_ratio_data + padded_ratio.offset(0, c), accum_ratio_data);
         caffe_axpy<Dtype>(height_ * width_, -1.,
@@ -365,12 +363,12 @@ void LRNLayer<Dtype>::WithinChannelBackward(
                             square_bottom_vec_);
     split_layer_->Backward(split_top_vec_, propagate_down, bottom);
     // the ddiff from split layer contains
-    // nijk ** (-2 * beta )d2Edxijk 
+    // nijk ** (-2 * beta )d2Edxijk
     //  + sum_u sum_v dE/dyi,j-u,k-v [ { 4 * (-beta ) (-beta - 1) xijk / n**2 } * xi,j-u,k-v ni,j-u,k-v ** (-beta - 2)
     //                                   + { -2 * beta * alpha / n } * xi,j-u,k-v ni,j-u,k-v ** (-beta - 1) ]
     //  + sum_u sum_v d2E/dy2i,j-u,k-v [ { 4 * beta **2 * alpha **2 xijk **2 / n**2} * xi,j-u,k-v ** 2 ni,j-u,k-v ** (-2beta -2)]
 
-    // we need to add 
+    // we need to add
     // -4 * beta * alpha / n  yijk nijk ** (- 1) dE/dyijk
     // -4 * beta * alpha / n yijk**2 nijk** (- 1) d2E/dy2ijk
     // nijk = ( k + alpha/n * sum_u sum_v xi,j-u,k-v **2 ) => use axpy on output of pool layer to get this
@@ -378,15 +376,15 @@ void LRNLayer<Dtype>::WithinChannelBackward(
       int count = bottom[0]->count();
       Dtype* helper_data_ = this->helper_.mutable_cpu_data();
       Dtype* helper_data2_ = this->helper_.mutable_cpu_diff();
-      
+
       caffe_axpy(count, this->alpha_, pool_top_vec_[0]->cpu_data(), helper_data_);
       caffe_add_scalar(count, this->k_, helper_data_); // nijk
-      caffe_div(count, top[0]->cpu_data(), helper_data_, helper_data2_); // yijk / nijk 
+      caffe_div(count, top[0]->cpu_data(), helper_data_, helper_data2_); // yijk / nijk
       caffe_mul(count, top[0]->cpu_diff(), helper_data2_, helper_data2_); // yijk / nijk dE/dyijk
       caffe_scal(count, (Dtype) -4 * this->beta_ * this->alpha_ / this->size_, helper_data2_); //-4 * beta * alpha / n *  yijk / nijk dE/dyijk
       caffe_add(count, helper_data2_, bottom[0]->cpu_ddiff(), bottom[0]->mutable_cpu_ddiff());
 
-      caffe_div(count, top[0]->cpu_data(), helper_data_, helper_data2_); // yijk / nijk 
+      caffe_div(count, top[0]->cpu_data(), helper_data_, helper_data2_); // yijk / nijk
       caffe_mul(count, top[0]->cpu_data(), helper_data2_, helper_data2_); // yijk**2 / nijk
       caffe_mul(count, top[0]->cpu_ddiff(), helper_data2_, helper_data2_); // yijk**2 / nijk d2E/dy2ijk
       caffe_scal(count, (Dtype) -4 * this->beta_ * this->alpha_ / this->size_, helper_data2_); //-4 * beta * alpha / n *  yijk**2 / nijk d2E/dy2ijk
