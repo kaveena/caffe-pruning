@@ -171,6 +171,8 @@ class Caffe {
   inline static void set_solver_rank(int val) { Get().solver_rank_ = val; }
   inline static bool multiprocess() { return Get().multiprocess_; }
   inline static void set_multiprocess(bool val) { Get().multiprocess_ = val; }
+  inline static bool derivative_compute() { return Get().derivative_compute_; }
+  inline static void set_derivative_compute(bool val) { Get().derivative_compute_ = val; }
   inline static bool root_solver() { return Get().solver_rank_ == 0; }
 
  protected:

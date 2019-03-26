@@ -260,23 +260,6 @@ message SolverParameter {
 
   optional float start_lr_policy = 43;
   optional float max_lr = 44; // The maximum learning rate for CLR policies
-
-  enum QuantizationType {
-    GLOBAL = 0;
-    LAYER = 1;
-    CHANNEL = 2;
-    FILTER = 3;
-    NONE = 4;
-  }
-
-  optional QuantizationType quantization_mode = 45 [default = NONE];
-
-  // The number of iterations between requantization passes
-  optional int32 quantization_interval = 46 [ default = 1 ];
-
-  // The number of bits by which to shrink the range and precision
-  optional int32 quantization_range_bits = 47 [ default = 0 ];
-  optional int32 quantization_precision_bits = 48 [ default = 0 ];
 }
 
 // A message that stores the solver snapshots
@@ -404,7 +387,7 @@ message LayerParameter {
   optional ConcatParameter concat_param = 104;
   optional ContrastiveLossParameter contrastive_loss_param = 105;
   optional ConvolutionParameter convolution_param = 106;
-  optional ConvolutionMaskedParameter convolution_masked_param = 149;
+  optional ConvolutionQuantizeParameter convolution_quantize_param = 149;
   optional ConvolutionSaliencyParameter convolution_saliency_param = 151;
   optional CropParameter crop_param = 144;
   optional DataParameter data_param = 107;
@@ -666,11 +649,23 @@ message ConvolutionParameter {
   optional bool force_nd_im2col = 17 [default = false];
 }
 
-message ConvolutionMaskedParameter {
+message ConvolutionQuantizeParameter {
 
-  optional bool default_init = 1 [default = true]; // use default initialisation of ones for masks
-  optional FillerParameter mask_filler = 2; // The filler for the weight and bias
-  optional bool mask_term = 3 [default = false]; // whether to have mask terms
+  enum QuantizationType {
+    NONE = 0;
+    LAYER = 1;
+    CHANNEL = 2;
+    FILTER = 3;
+  }
+
+  optional QuantizationType quantization_mode = 0 [default = NONE];
+
+  // The number of iterations between requantization passes
+  optional int32 quantization_interval = 1 [ default = 1 ];
+
+  // The number of bits by which to shrink the range and precision
+  optional int32 quantization_range_bits = 2 [ default = 0 ];
+  optional int32 quantization_precision_bits = 3 [ default = 0 ];
 
 }
 
@@ -1379,7 +1374,7 @@ message V1LayerParameter {
   optional ConcatParameter concat_param = 9;
   optional ContrastiveLossParameter contrastive_loss_param = 40;
   optional ConvolutionParameter convolution_param = 10;
-  optional ConvolutionMaskedParameter convolution_masked_param = 50;
+  optional ConvolutionQuantizeParameter convolution_quantize_param = 50;
   optional ConvolutionSaliencyParameter convolution_saliency_param = 52;
   optional DataParameter data_param = 11;
   optional DropoutParameter dropout_param = 12;
