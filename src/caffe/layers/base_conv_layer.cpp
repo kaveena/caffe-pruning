@@ -150,7 +150,7 @@ void BaseConvolutionLayer<Dtype>::LayerSetUp(const vector<Blob<Dtype>*>& bottom,
   if (this->quantize_term_) {
     int qrbits = this->layer_param_.convolution_quantize_param().quantization_range_bits();
     uint64_t qrbits_mask = (1 << qrbits) - 1;
-    qrbits_mask <<= mantissa_length<Dtype>();
+    qrbits_mask <<= (mantissa_length<Dtype>() + exponent_length<Dtype>()) - qrbits;
     int qpbits = this->layer_param_.convolution_quantize_param().quantization_precision_bits();
     uint64_t qpbits_mask = (1 << qpbits) - 1;
     uint64_t total_mask = qrbits_mask | qpbits_mask;
