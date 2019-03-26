@@ -12,7 +12,7 @@ namespace caffe {
 
 template<>
 uint64_t exponent_length<float>() {
-  return 5;
+  return 8;
 }
 
 template<>
