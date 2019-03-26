@@ -153,6 +153,7 @@ void BaseConvolutionLayer<Dtype>::LayerSetUp(const vector<Blob<Dtype>*>& bottom,
     qrbits_mask <<= (mantissa_length<Dtype>() + exponent_length<Dtype>()) - qrbits;
     int qpbits = this->layer_param_.convolution_quantize_param().quantization_precision_bits();
     uint64_t qpbits_mask = (1 << qpbits) - 1;
+    qpbits_mask <<= (mantissa_length<Dtype>() - qpbits);
     uint64_t total_mask = qrbits_mask | qpbits_mask;
     this->quantization_mask = std::bitset<8*sizeof(Dtype)>(total_mask);
     this->quantization_mask[(8*sizeof(Dtype))-1] = true; // preserve sign bit
