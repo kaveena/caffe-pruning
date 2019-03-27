@@ -31,11 +31,12 @@ void ConvolutionLayer<Dtype>::Forward_gpu(const vector<Blob<Dtype>*>& bottom,
       if (this->quantize_clock_ == this->quantize_interval_) {
         LOG(INFO) << "Requantizing weights";
         caffe_gpu_and(this->blobs_[0]->count(), this->quantization_mask, weight, weight_masked);
+        weight = this->weights_masked_.gpu_data();
       }
     } else {
       caffe_gpu_mul(this->blobs_[0]->count(), mask, weight, weight_masked);
+      weight = this->weights_masked_.gpu_data();
     }
-    weight = this->weights_masked_.gpu_data();
   }
   if (this->bias_term_) {
     bias = this->blobs_[1]->gpu_data();
@@ -46,11 +47,12 @@ void ConvolutionLayer<Dtype>::Forward_gpu(const vector<Blob<Dtype>*>& bottom,
         if (this->quantize_clock_ == this->quantize_interval_) {
           LOG(INFO) << "Requantizing biases";
           caffe_gpu_and(this->blobs_[1]->count(), this->quantization_mask, bias, bias_masked);
+          bias = this->bias_masked_.gpu_data();
         }
       } else {
         caffe_gpu_mul(this->blobs_[1]->count(), bias_mask, bias, bias_masked);
+        bias = this->bias_masked_.gpu_data();
       }
-      bias = this->bias_masked_.gpu_data();
     }
   }
   for (int i = 0; i < bottom.size(); ++i) {
