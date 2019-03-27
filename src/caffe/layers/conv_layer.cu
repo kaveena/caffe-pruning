@@ -216,7 +216,7 @@ void ConvolutionLayer<Dtype>::Backward_gpu(const vector<Blob<Dtype>*>& top,
 
     // Compute Channel saliency
     // MULTIPLE INPUTS NOT TREATED
-    if (this->saliency_term) {
+    if (this->saliency_term_) {
       if (this->saliency_input_ == caffe::ConvolutionSaliencyParameter::WEIGHT) {
         Dtype* channel_saliency_data = output_saliencies_channel_.mutable_gpu_data();
 
