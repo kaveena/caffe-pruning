@@ -88,6 +88,7 @@ void ConvolutionLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bottom,
     Dtype* weight_masked = this->weights_masked_.mutable_cpu_data();
     if (this->quantize_term_) {
       if (this->quantize_clock_ == this->quantize_interval_) {
+        LOG(INFO) << "Requantizing weights";
         caffe_and(this->blobs_[0]->count(), this->quantization_mask, weight, weight_masked);
       }
     } else {
@@ -102,6 +103,7 @@ void ConvolutionLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bottom,
       Dtype* bias_masked = this->bias_masked_.mutable_cpu_data();
       if (this->quantize_term_) {
         if (this->quantize_clock_ == this->quantize_interval_) {
+          LOG(INFO) << "Requantizing biases";
           caffe_and(this->blobs_[1]->count(), this->quantization_mask, bias, bias_masked);
         }
       } else {
