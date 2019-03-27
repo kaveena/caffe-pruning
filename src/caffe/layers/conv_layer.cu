@@ -92,10 +92,12 @@ void ConvolutionLayer<Dtype>::Backward_gpu(const vector<Blob<Dtype>*>& top,
   Blob<Dtype> bias_n_masked_;
   Blob<Dtype> input_shaped_blob_;
   Dtype* full_weights_diff;
+
   if (this->saliency_input_ == caffe::ConvolutionSaliencyParameter::WEIGHT) {
     weights_n_masked_.Reshape({this->num_, this->blobs_[0]->shape()[0], this->blobs_[0]->shape()[1], this->blobs_[0]->shape()[2], this->blobs_[0]->shape()[3]});
     full_weights_diff = weights_n_masked_.mutable_gpu_diff();
   }
+
   Dtype* weight_ddiff;
   Dtype* full_weights_ddiff;
 
