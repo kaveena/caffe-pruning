@@ -159,7 +159,23 @@ void BaseConvolutionLayer<Dtype>::LayerSetUp(const vector<Blob<Dtype>*>& bottom,
     uint64_t total_mask = qrbits_mask | qpbits_mask;
     this->quantization_mask = std::bitset<8*sizeof(Dtype)>(total_mask);
     this->quantization_mask[(8*sizeof(Dtype))-1] = true; // preserve sign bit
-    LOG(INFO) << "Setting quantization scheme " << this->quantization_mask.to_string('*');
+    LOG(INFO) << "Setting weight quantization scheme " << this->quantization_mask.to_string('*');
+  }
+
+  this->activation_quantize_term_ = this->layer_param_.activation_quantize_param().quantization_mode() != 0;
+  this->activation_quantize_interval_ = this->layer_param_.activation_quantize_param().quantization_interval();
+  this->activation_quantize_clock_ = 0;
+  if (this->activation_quantize_term_) {
+    int qrbits = this->layer_param_.activation_quantize_param().quantization_range_bits();
+    uint64_t qrbits_mask = (1 << qrbits) - 1;
+    qrbits_mask <<= mantissa_length<Dtype>();
+    int qpbits = this->layer_param_.activation_quantize_param().quantization_precision_bits();
+    uint64_t qpbits_mask = (1 << qpbits) - 1;
+    qpbits_mask <<= (mantissa_length<Dtype>() - qpbits);
+    uint64_t total_mask = qrbits_mask | qpbits_mask;
+    this->activation_quantization_mask = std::bitset<8*sizeof(Dtype)>(total_mask);
+    this->activation_quantization_mask[(8*sizeof(Dtype))-1] = true; // preserve sign bit
+    LOG(INFO) << "Setting activation quantization scheme " << this->activation_quantization_mask.to_string('*');
   }
   int saliency_shape_0_ = 0;
   if (this->saliency_term_) {

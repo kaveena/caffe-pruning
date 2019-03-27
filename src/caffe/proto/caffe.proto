@@ -1383,6 +1383,7 @@ message V1LayerParameter {
   optional ContrastiveLossParameter contrastive_loss_param = 40;
   optional ConvolutionParameter convolution_param = 10;
   optional ConvolutionQuantizeParameter convolution_quantize_param = 50;
+  optional ConvolutionQuantizeParameter activation_quantize_param = 54;
   optional ConvolutionMaskParameter convolution_mask_param = 53;
   optional ConvolutionSaliencyParameter convolution_saliency_param = 52;
   optional DataParameter data_param = 11;

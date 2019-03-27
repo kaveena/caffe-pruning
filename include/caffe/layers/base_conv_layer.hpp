@@ -103,12 +103,17 @@ class BaseConvolutionLayer : public Layer<Dtype> {
   bool mask_term_;
   bool saliency_term_;
   bool quantize_term_;
+  bool activation_quantize_term_;
   bool is_1x1_;
   bool force_nd_im2col_;
 
   std::bitset<8*sizeof(Dtype)> quantization_mask;
   int quantize_interval_;
   int quantize_clock_;
+
+  std::bitset<8*sizeof(Dtype)> activation_quantization_mask;
+  int activation_quantize_interval_;
+  int activation_quantize_clock_;
 
   //Helper for computing ddiff
   Blob<Dtype> weights_sqr_;
