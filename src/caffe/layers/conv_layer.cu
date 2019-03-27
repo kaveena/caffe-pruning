@@ -23,7 +23,6 @@ void ConvolutionLayer<Dtype>::Forward_gpu(const vector<Blob<Dtype>*>& bottom,
   if (layer_param.phase() == caffe::TRAIN) {
     this->quantize_clock_ += 1;
   }
-
   if (this->mask_term_) {
     const Dtype* mask = this->blobs_[this->mask_pos_]->gpu_data();
     Dtype* weight_masked = this->weights_masked_.mutable_gpu_data();
@@ -69,7 +68,6 @@ void ConvolutionLayer<Dtype>::Forward_gpu(const vector<Blob<Dtype>*>& bottom,
       }
     }
   }
-
   if ((layer_param.phase() == caffe::TRAIN) && (this->quantize_clock_ >= this->quantize_interval_)) {
     this->quantize_clock_ = 0;
   }
