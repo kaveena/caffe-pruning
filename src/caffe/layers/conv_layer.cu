@@ -216,113 +216,115 @@ void ConvolutionLayer<Dtype>::Backward_gpu(const vector<Blob<Dtype>*>& top,
 
     // Compute Channel saliency
     // MULTIPLE INPUTS NOT TREATED
-    if (this->saliency_input_ == caffe::ConvolutionSaliencyParameter::WEIGHT) {
-      Dtype* channel_saliency_data = output_saliencies_channel_.mutable_gpu_data();
+    if (this->saliency_term) {
+      if (this->saliency_input_ == caffe::ConvolutionSaliencyParameter::WEIGHT) {
+        Dtype* channel_saliency_data = output_saliencies_channel_.mutable_gpu_data();
 
-      switch (this->saliency_) {
-        case (0): { // Fisher Information
-          compute_fisher_weights_gpu(&weights_n_masked_, &bias_n_masked_, channel_saliency_data);
-        } break;
+        switch (this->saliency_) {
+          case (0): { // Fisher Information
+            compute_fisher_weights_gpu(&weights_n_masked_, &bias_n_masked_, channel_saliency_data);
+          } break;
 
-        case (1): { // Taylor Series
-          compute_taylor_weights_gpu(&weights_n_masked_, &bias_n_masked_, channel_saliency_data);
-        } break;
+          case (1): { // Taylor Series
+            compute_taylor_weights_gpu(&weights_n_masked_, &bias_n_masked_, channel_saliency_data);
+          } break;
 
-        case (2): {
-          compute_hessian_diag_weights_gpu(&weights_n_masked_, &bias_n_masked_, channel_saliency_data);
-        } break;
+          case (2): {
+            compute_hessian_diag_weights_gpu(&weights_n_masked_, &bias_n_masked_, channel_saliency_data);
+          } break;
 
-        case (3): {
-          compute_hessian_diag_approx2_weights_gpu(&weights_n_masked_, &bias_n_masked_, channel_saliency_data);
-        } break;
+          case (3): {
+            compute_hessian_diag_approx2_weights_gpu(&weights_n_masked_, &bias_n_masked_, channel_saliency_data);
+          } break;
 
-        case (4): {
-          compute_taylor_2nd_weights_gpu(&weights_n_masked_, &bias_n_masked_, channel_saliency_data);
-        } break;
+          case (4): {
+            compute_taylor_2nd_weights_gpu(&weights_n_masked_, &bias_n_masked_, channel_saliency_data);
+          } break;
 
-        case (5): {
-          compute_taylor_2nd_approx2_weights_gpu(&weights_n_masked_, &bias_n_masked_, channel_saliency_data);
-        } break;
+          case (5): {
+            compute_taylor_2nd_approx2_weights_gpu(&weights_n_masked_, &bias_n_masked_, channel_saliency_data);
+          } break;
 
-        case (6): {
-          compute_weight_avg_weights_gpu(&weights_n_masked_, &bias_n_masked_, channel_saliency_data);
-        } break;
+          case (6): {
+            compute_weight_avg_weights_gpu(&weights_n_masked_, &bias_n_masked_, channel_saliency_data);
+          } break;
 
-        case (7): {
-          compute_diff_avg_weights_gpu(&weights_n_masked_, &bias_n_masked_, channel_saliency_data);
-        } break;
+          case (7): {
+            compute_diff_avg_weights_gpu(&weights_n_masked_, &bias_n_masked_, channel_saliency_data);
+          } break;
 
-        case (8): {
-          compute_fisher_weights_gpu(&weights_n_masked_, &bias_n_masked_, channel_saliency_data);
-          compute_taylor_weights_gpu(&weights_n_masked_, &bias_n_masked_, channel_saliency_data + this->num_output_);
-          compute_hessian_diag_weights_gpu(&weights_n_masked_, &bias_n_masked_, channel_saliency_data + (2*this->num_output_));
-          compute_hessian_diag_approx2_weights_gpu(&weights_n_masked_, &bias_n_masked_, channel_saliency_data + (3*this->num_output_));
-          compute_taylor_2nd_weights_gpu(&weights_n_masked_, &bias_n_masked_, channel_saliency_data + (4*this->num_output_));
-          compute_taylor_2nd_approx2_weights_gpu(&weights_n_masked_, &bias_n_masked_, channel_saliency_data + (5*this->num_output_));
-          compute_weight_avg_weights_gpu(&weights_n_masked_, &bias_n_masked_, channel_saliency_data + (5*this->num_output_));
-          compute_diff_avg_weights_gpu(&weights_n_masked_, &bias_n_masked_, channel_saliency_data + (6*this->num_output_));
-        } break;
+          case (8): {
+            compute_fisher_weights_gpu(&weights_n_masked_, &bias_n_masked_, channel_saliency_data);
+            compute_taylor_weights_gpu(&weights_n_masked_, &bias_n_masked_, channel_saliency_data + this->num_output_);
+            compute_hessian_diag_weights_gpu(&weights_n_masked_, &bias_n_masked_, channel_saliency_data + (2*this->num_output_));
+            compute_hessian_diag_approx2_weights_gpu(&weights_n_masked_, &bias_n_masked_, channel_saliency_data + (3*this->num_output_));
+            compute_taylor_2nd_weights_gpu(&weights_n_masked_, &bias_n_masked_, channel_saliency_data + (4*this->num_output_));
+            compute_taylor_2nd_approx2_weights_gpu(&weights_n_masked_, &bias_n_masked_, channel_saliency_data + (5*this->num_output_));
+            compute_weight_avg_weights_gpu(&weights_n_masked_, &bias_n_masked_, channel_saliency_data + (5*this->num_output_));
+            compute_diff_avg_weights_gpu(&weights_n_masked_, &bias_n_masked_, channel_saliency_data + (6*this->num_output_));
+          } break;
 
-        default: {
-        } break;
+          default: {
+          } break;
+        }
       }
-    }
-    else {
-      Dtype* channel_saliency_data = output_saliencies_channel_.mutable_gpu_data();
+      else {
+        Dtype* channel_saliency_data = output_saliencies_channel_.mutable_gpu_data();
 
-      switch (this->saliency_) {
-        case (0): { // Fisher Information
-          compute_fisher_gpu(top_data, top_diff, channel_saliency_data);
-        } break;
+        switch (this->saliency_) {
+          case (0): { // Fisher Information
+            compute_fisher_gpu(top_data, top_diff, channel_saliency_data);
+          } break;
 
-        case (1): { // Taylor Series
-          compute_taylor_gpu(top_data, top_diff, channel_saliency_data);
-        } break;
+          case (1): { // Taylor Series
+            compute_taylor_gpu(top_data, top_diff, channel_saliency_data);
+          } break;
 
-        case (2): {
-          compute_hessian_diag_gpu(top_data, top_diff, top_ddiff, channel_saliency_data);
-        } break;
+          case (2): {
+            compute_hessian_diag_gpu(top_data, top_diff, top_ddiff, channel_saliency_data);
+          } break;
 
-        case (3): {
-          compute_hessian_diag_approx2_gpu(top_data, top_diff, channel_saliency_data);
-        } break;
+          case (3): {
+            compute_hessian_diag_approx2_gpu(top_data, top_diff, channel_saliency_data);
+          } break;
 
-        case (4): {
-          compute_taylor_2nd_gpu(top_data, top_diff, top_ddiff, channel_saliency_data);
-        } break;
+          case (4): {
+            compute_taylor_2nd_gpu(top_data, top_diff, top_ddiff, channel_saliency_data);
+          } break;
 
-        case (5): {
-          compute_taylor_2nd_approx2_gpu(top_data, top_diff, channel_saliency_data);
-        } break;
+          case (5): {
+            compute_taylor_2nd_approx2_gpu(top_data, top_diff, channel_saliency_data);
+          } break;
 
-        case (6): {
-          compute_weight_avg_gpu(top_data, channel_saliency_data);
-        } break;
+          case (6): {
+            compute_weight_avg_gpu(top_data, channel_saliency_data);
+          } break;
 
-        case (7): {
-          compute_diff_avg_gpu(top_diff, channel_saliency_data);
-        } break;
+          case (7): {
+            compute_diff_avg_gpu(top_diff, channel_saliency_data);
+          } break;
 
-        case (8): {
-          compute_fisher_gpu(top_data, top_diff, channel_saliency_data);
-          compute_taylor_gpu(top_data, top_diff, channel_saliency_data + this->num_output_);
-          compute_hessian_diag_gpu(top_data, top_diff, top_ddiff, channel_saliency_data + (2*this->num_output_));
-          compute_hessian_diag_approx2_gpu(top_data, top_diff, channel_saliency_data + (3*this->num_output_));
-          compute_taylor_2nd_gpu(top_data, top_diff, top_ddiff, channel_saliency_data + (4*this->num_output_));
-          compute_taylor_2nd_approx2_gpu(top_data, top_diff, channel_saliency_data + (5*this->num_output_));
-          compute_weight_avg_gpu(top_data, channel_saliency_data + (6*this->num_output_));
-          compute_diff_avg_gpu(top_diff, channel_saliency_data + (7*this->num_output_));
-        } break;
+          case (8): {
+            compute_fisher_gpu(top_data, top_diff, channel_saliency_data);
+            compute_taylor_gpu(top_data, top_diff, channel_saliency_data + this->num_output_);
+            compute_hessian_diag_gpu(top_data, top_diff, top_ddiff, channel_saliency_data + (2*this->num_output_));
+            compute_hessian_diag_approx2_gpu(top_data, top_diff, channel_saliency_data + (3*this->num_output_));
+            compute_taylor_2nd_gpu(top_data, top_diff, top_ddiff, channel_saliency_data + (4*this->num_output_));
+            compute_taylor_2nd_approx2_gpu(top_data, top_diff, channel_saliency_data + (5*this->num_output_));
+            compute_weight_avg_gpu(top_data, channel_saliency_data + (6*this->num_output_));
+            compute_diff_avg_gpu(top_diff, channel_saliency_data + (7*this->num_output_));
+          } break;
 
-        default: {
-        } break;
+          default: {
+          } break;
+        }
       }
-    }
-    if (this->layer_param_.convolution_saliency_param().accum()) {
-      caffe_gpu_add(output_saliencies_channel_.count(), output_saliencies_channel_.mutable_gpu_data(), this->blobs_[this->saliency_pos_]->mutable_gpu_data(), this->blobs_[this->saliency_pos_]->mutable_gpu_data());
-    }
-    else {
-      caffe_copy(output_saliencies_channel_.count(), output_saliencies_channel_.mutable_gpu_data(), this->blobs_[this->saliency_pos_]->mutable_gpu_data());
+      if (this->layer_param_.convolution_saliency_param().accum()) {
+        caffe_gpu_add(output_saliencies_channel_.count(), output_saliencies_channel_.mutable_gpu_data(), this->blobs_[this->saliency_pos_]->mutable_gpu_data(), this->blobs_[this->saliency_pos_]->mutable_gpu_data());
+      }
+      else {
+        caffe_copy(output_saliencies_channel_.count(), output_saliencies_channel_.mutable_gpu_data(), this->blobs_[this->saliency_pos_]->mutable_gpu_data());
+      }
     }
   }
 }
