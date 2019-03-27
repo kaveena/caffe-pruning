@@ -388,6 +388,7 @@ message LayerParameter {
   optional ContrastiveLossParameter contrastive_loss_param = 105;
   optional ConvolutionParameter convolution_param = 106;
   optional ConvolutionQuantizeParameter convolution_quantize_param = 149;
+  optional ConvolutionQuantizeParameter activation_quantize_param = 153;
   optional ConvolutionMaskParameter convolution_mask_param = 152;
   optional ConvolutionSaliencyParameter convolution_saliency_param = 151;
   optional CropParameter crop_param = 144;
