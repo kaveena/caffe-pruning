@@ -75,9 +75,16 @@ void ConvolutionLayer<Dtype>::Reshape(const vector<Blob<Dtype>*>& bottom,
 template <typename Dtype>
 void ConvolutionLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bottom,
       const vector<Blob<Dtype>*>& top) {
+  if ((this->saliency_ == caffe::ConvolutionSaliencyParameter::HESSIAN_DIAG_LM) ||
+      (this->saliency_ == caffe::ConvolutionSaliencyParameter::TAYLOR_2ND_LM) ||
+      (this->saliency_ == caffe::ConvolutionSaliencyParameter::ALL)) {
+    Caffe::set_derivative_compute(true); //if any Convolution Saliency layer exists then need ddiff computation
+  }
+  else {
+    Caffe::set_derivative_compute(false);
+  }
   const Dtype* weight = this->blobs_[0]->cpu_data();
   const Dtype* bias;
-
   LayerParameter layer_param(this->layer_param_);
   if (layer_param.phase() == caffe::TRAIN) {
     this->quantize_clock_ += 1;
@@ -113,7 +120,6 @@ void ConvolutionLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bottom,
           caffe_copy(this->blobs_[1]->count(), bias_masked, bias_mut);
         }
         bias = this->bias_masked_.cpu_data();
-
       } else {
         caffe_mul(this->blobs_[1]->count(), bias_mask, bias, bias_masked);
         bias = this->bias_masked_.cpu_data();
