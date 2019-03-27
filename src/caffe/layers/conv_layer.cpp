@@ -79,7 +79,7 @@ void ConvolutionLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bottom,
   const Dtype* bias;
 
   LayerParameter layer_param(this->layer_param_);
-  if (layer_param.get_phase() == caffe::TRAIN) {
+  if (layer_param.phase() == caffe::TRAIN) {
     this->quantize_clock_ += 1;
   }
 
@@ -125,7 +125,7 @@ void ConvolutionLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bottom,
     }
   }
 
-  if ((layer_param.get_phase() == caffe::TRAIN) && (this->quantize_clock_ >= this->quantize_interval_)) {
+  if ((layer_param.phase() == caffe::TRAIN) && (this->quantize_clock_ >= this->quantize_interval_)) {
     this->quantize_clock_ = 0;
   }
 }
