@@ -10,11 +10,66 @@ __global__ void sync_conv_groups() { }
 template <typename Dtype>
 void CuDNNConvolutionLayer<Dtype>::Forward_gpu(
     const vector<Blob<Dtype>*>& bottom, const vector<Blob<Dtype>*>& top) {
+  if ((this->saliency_ == caffe::ConvolutionSaliencyParameter::HESSIAN_DIAG_LM) ||
+      (this->saliency_ == caffe::ConvolutionSaliencyParameter::TAYLOR_2ND_LM) ||
+      (this->saliency_ == caffe::ConvolutionSaliencyParameter::ALL)) {
+    Caffe::set_derivative_compute(true); //if any Convolution Saliency layer exists then need ddiff computation
+  }
+  else {
+    Caffe::set_derivative_compute(false);
+  }
   const Dtype* weight = this->blobs_[0]->gpu_data();
+  const Dtype* bias;
+  LayerParameter layer_param(this->layer_param_);
+  if (layer_param.phase() == caffe::TRAIN) {
+    this->quantize_clock_ += 1;
+    this->activation_quantize_clock_ += 1;
+  }
+  if (this->quantize_term_) {
+    const Dtype* mask = this->blobs_[this->mask_pos_]->gpu_data();
+    Dtype* weight_masked = this->weights_masked_.mutable_gpu_data();
+    caffe_gpu_and(this->blobs_[0]->count(), this->quantization_mask, weight, weight_masked);
+
+    if (this->quantize_clock_ == this->quantize_interval_) {
+      LOG(INFO) << "Quantizing weights";
+      Dtype* weight_mut = this->blobs_[0]->mutable_gpu_data();
+      caffe_copy(this->blobs_[0]->count(), weight_masked, weight_mut);
+    }
+    weight = this->weights_masked_.gpu_data();
+  }
+  if (this->mask_term_) {
+    const Dtype* mask = this->blobs_[this->mask_pos_]->gpu_data();
+    Dtype* weight_masked = this->weights_masked_.mutable_gpu_data();
+    caffe_gpu_mul(this->blobs_[0]->count(), mask, weight, weight_masked);
+    weight = this->weights_masked_.gpu_data();
+  }
+  if (this->bias_term_) {
+    bias = this->blobs_[1]->gpu_data();
+    if (this->quantize_term_) {
+      const Dtype* bias_mask = this->blobs_[this->mask_pos_+1]->gpu_data();
+      Dtype* bias_masked = this->bias_masked_.mutable_gpu_data();
+      caffe_and(this->blobs_[1]->count(), this->quantization_mask, bias, bias_masked);
+      if (this->quantize_clock_ == this->quantize_interval_) {
+        LOG(INFO) << "Quantizing biases";
+        Dtype* bias_mut = this->blobs_[1]->mutable_gpu_data();
+        caffe_copy(this->blobs_[1]->count(), bias_masked, bias_mut);
+      }
+      bias = this->bias_masked_.gpu_data();
+    }
+    if (this->mask_term_) {
+      const Dtype* bias_mask = this->blobs_[this->mask_pos_+1]->gpu_data();
+      Dtype* bias_masked = this->bias_masked_.mutable_gpu_data();
+      caffe_gpu_mul(this->blobs_[1]->count(), bias_mask, bias, bias_masked);
+      bias = this->bias_masked_.gpu_data();
+    }
+  }
+
   for (int i = 0; i < bottom.size(); ++i) {
     const Dtype* bottom_data = bottom[i]->gpu_data();
+    if (this->activation_quantize_term_ && (this->activation_quantize_clock_ == this->activation_quantize_interval_)) {
+      caffe_gpu_and(bottom[i]->count(), this->activation_quantization_mask, bottom_data, bottom_data);
+    }
     Dtype* top_data = top[i]->mutable_gpu_data();
-
     // Forward through cuDNN in parallel over groups.
     for (int g = 0; g < this->group_; g++) {
       // Filters.
@@ -29,19 +84,23 @@ void CuDNNConvolutionLayer<Dtype>::Forward_gpu(
 
       // Bias.
       if (this->bias_term_) {
-        const Dtype* bias_data = this->blobs_[1]->gpu_data();
         CUDNN_CHECK(cudnnAddTensor(handle_[g],
               cudnn::dataType<Dtype>::one,
-              bias_desc_, bias_data + bias_offset_ * g,
+              bias_desc_, bias + bias_offset_ * g,
               cudnn::dataType<Dtype>::one,
               top_descs_[i], top_data + top_offset_ * g));
       }
     }
-
     // Synchronize the work across groups, each of which went into its own
     // stream, by launching an empty kernel into the default (null) stream.
     // NOLINT_NEXT_LINE(whitespace/operators)
     sync_conv_groups<<<1, 1>>>();
+  }
+  if ((layer_param.phase() == caffe::TRAIN) && (this->quantize_clock_ >= this->quantize_interval_)) {
+    this->quantize_clock_ = 0;
+  }
+  if ((layer_param.phase() == caffe::TRAIN) && (this->activation_quantize_clock_ >= this->activation_quantize_interval_)) {
+    this->activation_quantize_clock_ = 0;
   }
 }
 
@@ -104,7 +163,6 @@ void CuDNNConvolutionLayer<Dtype>::Backward_gpu(const vector<Blob<Dtype>*>& top,
               bottom_descs_[i], bottom_diff + bottom_offset_ * g));
       }
     }
-
     // Synchronize the work across groups, each of which went into its own
     // stream, by launching an empty kernel into the default (null) stream.
     // NOLINT_NEXT_LINE(whitespace/operators)

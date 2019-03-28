@@ -23,7 +23,8 @@ void ConvolutionLayer<Dtype>::LayerSetUp(const vector<Blob<Dtype>*>& bottom,
     if ((this->saliency_ == caffe::ConvolutionSaliencyParameter::HESSIAN_DIAG_LM) ||
         (this->saliency_ == caffe::ConvolutionSaliencyParameter::TAYLOR_2ND_LM) ||
         (this->saliency_ == caffe::ConvolutionSaliencyParameter::ALL)) {
-      Caffe::set_derivative_compute(true); //if any Convolution Saliency layer exists then need ddiff computation
+      //if one of these Convolution Saliency layers exists then we need ddiff computation
+      Caffe::set_derivative_compute(true);
     }
   }
 }
@@ -90,40 +91,42 @@ void ConvolutionLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bottom,
     this->quantize_clock_ += 1;
     this->activation_quantize_clock_ += 1;
   }
+  if (this->quantize_term_) {
+    const Dtype* mask = this->blobs_[this->mask_pos_]->cpu_data();
+    Dtype* weight_masked = this->weights_masked_.mutable_cpu_data();
+    caffe_and(this->blobs_[0]->count(), this->quantization_mask, weight, weight_masked);
+
+    if (this->quantize_clock_ == this->quantize_interval_) {
+      LOG(INFO) << "Quantizing weights";
+      Dtype* weight_mut = this->blobs_[0]->mutable_cpu_data();
+      caffe_copy(this->blobs_[0]->count(), weight_masked, weight_mut);
+    }
+    weight = this->weights_masked_.cpu_data();
+  }
   if (this->mask_term_) {
     const Dtype* mask = this->blobs_[this->mask_pos_]->cpu_data();
     Dtype* weight_masked = this->weights_masked_.mutable_cpu_data();
-    if (this->quantize_term_) {
-      caffe_and(this->blobs_[0]->count(), this->quantization_mask, weight, weight_masked);
-
-      if (this->quantize_clock_ == this->quantize_interval_) {
-        LOG(INFO) << "Quantizing weights";
-        Dtype* weight_mut = this->blobs_[0]->mutable_cpu_data();
-        caffe_copy(this->blobs_[0]->count(), weight_masked, weight_mut);
-      }
-      weight = this->weights_masked_.cpu_data();
-    } else {
-      caffe_mul(this->blobs_[0]->count(), mask, weight, weight_masked);
-      weight = this->weights_masked_.cpu_data();
-    }
+    caffe_mul(this->blobs_[0]->count(), mask, weight, weight_masked);
+    weight = this->weights_masked_.cpu_data();
   }
   if (this->bias_term_) {
     bias = this->blobs_[1]->cpu_data();
+    if (this->quantize_term_) {
+      const Dtype* bias_mask = this->blobs_[this->mask_pos_+1]->cpu_data();
+      Dtype* bias_masked = this->bias_masked_.mutable_cpu_data();
+      caffe_and(this->blobs_[1]->count(), this->quantization_mask, bias, bias_masked);
+      if (this->quantize_clock_ == this->quantize_interval_) {
+        LOG(INFO) << "Quantizing biases";
+        Dtype* bias_mut = this->blobs_[1]->mutable_cpu_data();
+        caffe_copy(this->blobs_[1]->count(), bias_masked, bias_mut);
+      }
+      bias = this->bias_masked_.cpu_data();
+    }
     if (this->mask_term_) {
       const Dtype* bias_mask = this->blobs_[this->mask_pos_+1]->cpu_data();
       Dtype* bias_masked = this->bias_masked_.mutable_cpu_data();
-      if (this->quantize_term_) {
-        caffe_and(this->blobs_[1]->count(), this->quantization_mask, bias, bias_masked);
-        if (this->quantize_clock_ == this->quantize_interval_) {
-          LOG(INFO) << "Quantizing biases";
-          Dtype* bias_mut = this->blobs_[1]->mutable_cpu_data();
-          caffe_copy(this->blobs_[1]->count(), bias_masked, bias_mut);
-        }
-        bias = this->bias_masked_.cpu_data();
-      } else {
-        caffe_mul(this->blobs_[1]->count(), bias_mask, bias, bias_masked);
-        bias = this->bias_masked_.cpu_data();
-      }
+      caffe_mul(this->blobs_[1]->count(), bias_mask, bias, bias_masked);
+      bias = this->bias_masked_.cpu_data();
     }
   }
   for (int i = 0; i < bottom.size(); ++i) {
