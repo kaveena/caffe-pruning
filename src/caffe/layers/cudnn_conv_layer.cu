@@ -63,7 +63,7 @@ void CuDNNConvolutionLayer<Dtype>::Forward_gpu(
   }
 
   for (int i = 0; i < bottom.size(); ++i) {
-    const Dtype* bottom_data = bottom[i]->gpu_data();
+    const Dtype* bottom_data = bottom[i]->mutable_gpu_data();
     if (this->activation_quantize_term_ && (this->activation_quantize_clock_ == this->activation_quantize_interval_)) {
       caffe_gpu_and(bottom[i]->count(), this->activation_quantization_mask, bottom_data, bottom_data);
     }
