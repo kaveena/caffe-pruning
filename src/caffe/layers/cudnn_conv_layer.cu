@@ -26,7 +26,6 @@ void CuDNNConvolutionLayer<Dtype>::Forward_gpu(
     this->activation_quantize_clock_ += 1;
   }
   if (this->quantize_term_) {
-    const Dtype* mask = this->blobs_[this->mask_pos_]->gpu_data();
     Dtype* weight_masked = this->weights_masked_.mutable_gpu_data();
     caffe_gpu_and(this->blobs_[0]->count(), this->quantization_mask, weight, weight_masked);
 
@@ -46,7 +45,6 @@ void CuDNNConvolutionLayer<Dtype>::Forward_gpu(
   if (this->bias_term_) {
     bias = this->blobs_[1]->gpu_data();
     if (this->quantize_term_) {
-      const Dtype* bias_mask = this->blobs_[this->mask_pos_+1]->gpu_data();
       Dtype* bias_masked = this->bias_masked_.mutable_gpu_data();
       caffe_and(this->blobs_[1]->count(), this->quantization_mask, bias, bias_masked);
       if (this->quantize_clock_ == this->quantize_interval_) {
