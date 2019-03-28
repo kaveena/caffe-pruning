@@ -73,6 +73,12 @@ class ConvolutionLayer : public BaseConvolutionLayer<Dtype> {
   /// @brief The spatial dimensions of the weights_masked_.
   vector<int> weights_masked_shape_;
   vector<int> bias_masked_shape_;
+  Blob<Dtype> weights_masked_;
+  Blob<Dtype> bias_masked_;
+  Blob<Dtype> output_saliencies_channel_;
+  // Helpers for channel saliency if all is selected
+  Blob<Dtype> output_saliencies_points_;
+  Blob<Dtype> output_saliencies_filter_;
 
   virtual void Forward_cpu(const vector<Blob<Dtype>*>& bottom,
       const vector<Blob<Dtype>*>& top);
@@ -86,12 +92,6 @@ class ConvolutionLayer : public BaseConvolutionLayer<Dtype> {
   virtual void compute_output_shape();
 
  private:
-  Blob<Dtype> weights_masked_;
-  Blob<Dtype> bias_masked_;
-  Blob<Dtype> output_saliencies_channel_;
-  // Helpers for channel saliency if all is selected
-  Blob<Dtype> output_saliencies_points_;
-  Blob<Dtype> output_saliencies_filter_;
 
   void compute_fisher_cpu(const Dtype * act_data, const Dtype * act_diff, Dtype * fisher_info);
   void compute_fisher_gpu(const Dtype * act_data, const Dtype * act_diff, Dtype * fisher_info);
