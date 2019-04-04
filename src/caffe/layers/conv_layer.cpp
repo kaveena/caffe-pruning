@@ -49,7 +49,7 @@ void ConvolutionLayer<Dtype>::compute_output_shape() {
 template <typename Dtype>
 void ConvolutionLayer<Dtype>::Reshape(const vector<Blob<Dtype>*>& bottom,
       const vector<Blob<Dtype>*>& top) {
-  if (this->mask_term_) {
+  if (this->mask_term_ || this->quantize_term_) {
     weights_masked_shape_.clear();
     weights_masked_shape_.push_back(this->blobs_[this->mask_pos_]->count());
     weights_masked_.Reshape(weights_masked_shape_);
