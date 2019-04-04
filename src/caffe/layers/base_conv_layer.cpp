@@ -195,7 +195,7 @@ void BaseConvolutionLayer<Dtype>::LayerSetUp(const vector<Blob<Dtype>*>& bottom,
     this->mask_pos_++;
     this->saliency_pos_++;
   }
-  if (this->mask_term_) {
+  if ((this->mask_term_ || this->quantize_term_)) {
     total_blobs++;
     this->saliency_pos_++;
     if (this->bias_term_) {
@@ -222,7 +222,7 @@ void BaseConvolutionLayer<Dtype>::LayerSetUp(const vector<Blob<Dtype>*>& bottom,
           << this->blobs_[1]->shape_string();
     }
     LOG(INFO) << "Skipping parameter initialization";
-    if (this->mask_term_ && weight_shape != this->blobs_[this->mask_pos_]->shape()) {
+    if ((this->mask_term_ || this->quantize_term_) && weight_shape != this->blobs_[this->mask_pos_]->shape()) {
       Blob<Dtype> mask_shaped_blob(weight_shape);
       LOG(INFO) << "Incorrect mask shape: expected shape "
           << mask_shaped_blob.shape_string() << "; instead, shape was "
@@ -241,7 +241,7 @@ void BaseConvolutionLayer<Dtype>::LayerSetUp(const vector<Blob<Dtype>*>& bottom,
         mask_filler->Fill(this->blobs_[this->mask_pos_].get());
       }
     }
-    if (this->bias_term_ && this->mask_term_ && bias_shape != this->blobs_[this->mask_pos_+1]->shape()) {
+    if (this->bias_term_ && (this->mask_term_ || this->quantize_term_) && bias_shape != this->blobs_[this->mask_pos_+1]->shape()) {
       Blob<Dtype> bias_mask_shaped_blob(bias_shape);
       LOG(INFO) << "Incorrect bias mask shape: expected shape "
           << bias_mask_shaped_blob.shape_string() << "; instead, shape was "
@@ -289,7 +289,7 @@ void BaseConvolutionLayer<Dtype>::LayerSetUp(const vector<Blob<Dtype>*>& bottom,
       bias_filler->Fill(this->blobs_[1].get());
     }
     // If necessary, initialize and fill the mask.
-    if (this->mask_term_) {
+    if ((this->mask_term_ || this->quantize_term_)) {
       this->blobs_[this->mask_pos_].reset(new Blob<Dtype>(weight_shape));
       if (this->layer_param_.convolution_mask_param().default_init()) {
         Blob<Dtype> * mask_blob = this->blobs_[this->mask_pos_].get();
@@ -303,7 +303,7 @@ void BaseConvolutionLayer<Dtype>::LayerSetUp(const vector<Blob<Dtype>*>& bottom,
         mask_filler->Fill(this->blobs_[this->mask_pos_].get());
       }
     }
-    if (this->bias_term_ && this->mask_term_) {
+    if (this->bias_term_ && (this->mask_term_ || this->quantize_term_)) {
       this->blobs_[this->mask_pos_ +1 ].reset(new Blob<Dtype>(bias_shape));
       if (this->layer_param_.convolution_mask_param().default_init()) {
         Blob<Dtype> * mask_blob = this->blobs_[this->mask_pos_+1].get();
