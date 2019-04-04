@@ -45,7 +45,7 @@ void ConvolutionLayer<Dtype>::Forward_gpu(const vector<Blob<Dtype>*>& bottom,
     bias = this->blobs_[1]->gpu_data();
     if (this->quantize_term_) {
       Dtype* bias_masked = this->bias_masked_.mutable_gpu_data();
-      caffe_and(this->blobs_[1]->count(), this->quantization_mask, bias, bias_masked);
+      caffe_gpu_and(this->blobs_[1]->count(), this->quantization_mask, bias, bias_masked);
       if (this->quantize_clock_ == this->quantize_interval_) {
         LOG(INFO) << "Quantizing biases";
         Dtype* bias_mut = this->blobs_[1]->mutable_gpu_data();
