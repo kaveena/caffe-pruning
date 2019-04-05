@@ -279,21 +279,6 @@ void caffe_strided_sum(const int N, const int num, const Dtype* a, Dtype* y) {
 template void caffe_strided_sum<float>(const int N, const int num, const float* a, float* y);
 template void caffe_strided_sum<double>(const int N, const int num, const double* a, double* y);
 
-template <typename Dtype>
-void caffe_strided_sum_inner(const int N, const int M, const int C, const Dtype* a, Dtype * y) {
-  for (int n = 0; n < N; n++) {
-    for (int c = 0; c < C; c++) {
-      Dtype accum = (Dtype) 0;
-      for (int m = 0; m < M; m++) {
-        accum += a[n*M*C + m*C + c];
-      }
-      y[n*C + c] = accum;
-    }
-  }
-}
-template void caffe_strided_sum_inner<float>(const int N, const int M, const int C, const float * a, float* y);
-template void caffe_strided_sum_inner<double>(const int N, const int M, const int C, const double * a, double* y);
- 
 template <>
 void caffe_exp<float>(const int n, const float* a, float* y) {
   vsExp(n, a, y);

@@ -532,34 +532,6 @@ void caffe_gpu_strided_sum<double>(const int N, const int num, const double* a, 
       N, num, a, y);
 }
 
-template <typename Dtype>
-__global__ void strided_sum_inner(const int N, const int M, const int C, const Dtype* a, Dtype* y) {
-  int i = blockIdx.x * blockDim.x + threadIdx.x;
-  if (i < N*C) {
-    int n = i / C;
-    int c = i % C;
-    Dtype accum = (Dtype) 0;
-    for (int m = 0; m < M; m++) {
-      accum += a[n*M*C + m*C + c];
-    }
-    __syncthreads();
-    y[i] = accum;
-  }
-}
-template <>
-void caffe_gpu_strided_sum_inner<float>(const int N, const int M, const int C, const float* a, float* y) {
-  // NOLINT_NEXT_LINE(whitespace/operators)
-  strided_sum_inner<float><<<CAFFE_GET_BLOCKS(N*C), CAFFE_CUDA_NUM_THREADS>>>(
-      N, M, C, a, y);
-}
-template <>
-void caffe_gpu_strided_sum_inner<double>(const int N, const int M, const int C, const double* a, double* y) {
-  // NOLINT_NEXT_LINE(whitespace/operators)
-  strided_sum_inner<double><<<CAFFE_GET_BLOCKS(N*C), CAFFE_CUDA_NUM_THREADS>>>(
-      N, M, C, a, y);
-}
-
-
 DEFINE_AND_INSTANTIATE_GPU_UNARY_FUNC(sign, y[index] = (Dtype(0) < x[index])
                                       - (x[index] < Dtype(0)));
 DEFINE_AND_INSTANTIATE_GPU_UNARY_FUNC(sgnbit, y[index] = signbit(x[index]));

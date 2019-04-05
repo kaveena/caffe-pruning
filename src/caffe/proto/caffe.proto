@@ -683,20 +683,21 @@ message ConvolutionQuantizedParameter {
 message ConvolutionSaliencyParameter {
   // Output activation saliency
   enum SALIENCY {
-    FISHER = 0;
-    TAYLOR = 1;
-    HESSIAN_DIAG = 2;
-    HESSIAN_DIAG_APPROX2 = 3;
-    TAYLOR_2ND = 4;
-    TAYLOR_2ND_APPROX2 = 5;
-    WEIGHT_AVG = 6;
-    DIFF_AVG = 7;
-    ALL = 8; //needs to correspond to number of enum values excluding ALL
+    TAYLOR = 0;
+    HESSIAN_DIAG = 1;
+    HESSIAN_DIAG_APPROX2 = 2;
+    TAYLOR_2ND = 3;
+    TAYLOR_2ND_APPROX2 = 4;
+    WEIGHT_AVG = 5;
+    DIFF_AVG = 6;
+    ALL = 7; //needs to correspond to number of enum values excluding ALL
   }
   enum NORM {
     NONE = 0;
     L1 = 1;
     L2 = 2;
+    ABS_SUM = 3;
+    SQR_SUM = 4;
   }
   enum INPUT {
     ACTIVATION = 0;

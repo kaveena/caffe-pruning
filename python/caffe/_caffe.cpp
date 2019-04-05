@@ -501,7 +501,6 @@ BOOST_PYTHON_MODULE(_caffe) {
   BP_REGISTER_SHARED_PTR_TO_PYTHON(Layer<Dtype>);
 
   bp::enum_<ConvolutionSaliencyParameter::SALIENCY>("SALIENCY")
-    .value("FISHER", ConvolutionSaliencyParameter::FISHER)
     .value("TAYLOR", ConvolutionSaliencyParameter::TAYLOR)
     .value("HESSIAN_DIAG", ConvolutionSaliencyParameter::HESSIAN_DIAG)
     .value("HESSIAN_DIAG_APPROX2", ConvolutionSaliencyParameter::HESSIAN_DIAG_APPROX2)
@@ -516,6 +515,8 @@ BOOST_PYTHON_MODULE(_caffe) {
     .value("NONE", ConvolutionSaliencyParameter::NONE)
     .value("L1", ConvolutionSaliencyParameter::L1)
     .value("L2", ConvolutionSaliencyParameter::L2)
+    .value("ABS_SUM", ConvolutionSaliencyParameter::ABS_SUM)
+    .value("SQR_SUM", ConvolutionSaliencyParameter::SQR_SUM)
     ;
 
   bp::enum_<ConvolutionSaliencyParameter::INPUT>("SALIENCY_INPUT")
