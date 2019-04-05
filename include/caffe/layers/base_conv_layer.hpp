@@ -100,10 +100,7 @@ class BaseConvolutionLayer : public Layer<Dtype> {
   int weight_offset_;
   int num_output_;
 //  bool bias_term_; //move to layer to facilitate interaction with pycaffe
-  bool mask_term_;
   bool saliency_term_;
-  bool quantize_term_;
-  bool activation_quantize_term_;
   bool is_1x1_;
   bool force_nd_im2col_;
 
