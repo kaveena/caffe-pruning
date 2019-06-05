@@ -388,7 +388,6 @@ message LayerParameter {
   optional ContrastiveLossParameter contrastive_loss_param = 105;
   optional ConvolutionParameter convolution_param = 106;
   optional ConvolutionMaskedParameter convolution_masked_param = 149;
-  optional ConvolutionQuantizedParameter convolution_quantized_param = 150;
   optional ConvolutionSaliencyParameter convolution_saliency_param = 151;
   optional CropParameter crop_param = 144;
   optional DataParameter data_param = 107;
@@ -658,28 +657,6 @@ message ConvolutionMaskedParameter {
 
 }
 
-message ConvolutionQuantizedParameter {
-  enum METHOD {
-    KMEANS = 0;
-    TRUNCATE = 1;
-  }
-
-  // Output activation saliency
-  enum SALIENCY {
-    FISHER = 0;
-    TAYLOR = 1;
-    MAGNITUDE = 2;
-  }
-  required METHOD method = 1;
-  // what saliency measure to use for the activations
-  optional SALIENCY saliency = 2 [default = MAGNITUDE];
-  // how many centroids to use, for method == KMEANS
-  optional uint32 centroids = 3 [default = 16];
-  // by how many bits should the mantissa be truncated, for method == TRUNCATE
-  optional uint32 truncate_bits = 4 [default = 8];
-
-}
-
 message ConvolutionSaliencyParameter {
   // Output activation saliency
   enum SALIENCY {
@@ -704,8 +681,8 @@ message ConvolutionSaliencyParameter {
     WEIGHT = 1;
   }
   // what saliency measure to use for the activations
-  required SALIENCY saliency = 1 [default = WEIGHT_AVG];
-  optional bool saliency_term = 2 [default = false]; // whether to have saliency terms
+  required bool saliency_term = 2 [default = false]; // whether to have saliency terms
+  optional SALIENCY saliency = 1 [default = WEIGHT_AVG];
   optional bool accum = 3 [default = true]; // whether to accumulate saliency over different batches
   optional NORM norm = 4 [default = NONE];
   optional INPUT input = 5 [default = ACTIVATION];
@@ -1338,9 +1315,6 @@ message V1LayerParameter {
     CONCAT = 3;
     CONTRASTIVE_LOSS = 37;
     CONVOLUTION = 4;
-    CONVOLUTIONMASKED = 40;
-    CONVOLUTIONQUANTIZED = 41;
-    CONVOLUTIONSALIENCY = 42;
     DATA = 5;
     DECONVOLUTION = 39;
     DROPOUT = 6;
@@ -1391,7 +1365,6 @@ message V1LayerParameter {
   optional ContrastiveLossParameter contrastive_loss_param = 40;
   optional ConvolutionParameter convolution_param = 10;
   optional ConvolutionMaskedParameter convolution_masked_param = 50;
-  optional ConvolutionQuantizedParameter convolution_quantized_param = 51;
   optional ConvolutionSaliencyParameter convolution_saliency_param = 52;
   optional DataParameter data_param = 11;
   optional DropoutParameter dropout_param = 12;

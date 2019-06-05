@@ -1,19 +1,19 @@
 #include <vector>
 
 #include "caffe/filler.hpp"
-#include "caffe/layers/conv_saliency_layer.hpp"
+#include "caffe/layers/conv_layer.hpp"
 
 namespace caffe {
 
 template <typename Dtype>
-void ConvolutionSaliencyLayer<Dtype>::compute_taylor_cpu(const Dtype *  act_data, const Dtype *  act_diff, const Dtype * input_data, const Dtype * input_diff,  Dtype * taylor_out, Dtype * taylor_in) {
+void ConvolutionLayer<Dtype>::compute_taylor_cpu(const Dtype *  act_data, const Dtype *  act_diff, const Dtype * input_data, const Dtype * input_diff,  Dtype * taylor_out, Dtype * taylor_in) {
   Dtype * output_saliency_data = NULL;
   Dtype * input_saliency_data = NULL;
   if (this->output_channel_saliency_compute_) {
     output_saliency_data = output_saliencies_points_.mutable_cpu_data(); 
     caffe_mul(output_saliencies_points_.count(), act_data, act_diff, output_saliency_data);
     caffe_scal(output_saliencies_points_.count(), (Dtype)(-1 * this->num_), output_saliency_data);
-  
+
   }
   if (this->input_channel_saliency_compute_) {
     input_saliency_data = input_saliencies_points_.mutable_cpu_data(); 
@@ -24,11 +24,11 @@ void ConvolutionSaliencyLayer<Dtype>::compute_taylor_cpu(const Dtype *  act_data
 }
 
 template <typename Dtype>
-void ConvolutionSaliencyLayer<Dtype>::compute_taylor_weights_cpu(Blob<Dtype> * weights_n, Blob<Dtype> * bias_n, Dtype * taylor_out, Dtype * taylor_in) {
+void ConvolutionLayer<Dtype>::compute_taylor_weights_cpu(Blob<Dtype> * weights_n, Blob<Dtype> * bias_n, Dtype * taylor_out, Dtype * taylor_in) {
   const Dtype* weights = this->blobs_[0]->cpu_data();
   const Dtype* weights_n_diff = weights_n->cpu_diff();
   Dtype* points_saliency_data = weights_n->mutable_cpu_data();
-  
+
   const Dtype* bias;
   const Dtype* bias_n_diff;
   Dtype* bias_saliency_data;
@@ -36,12 +36,12 @@ void ConvolutionSaliencyLayer<Dtype>::compute_taylor_weights_cpu(Blob<Dtype> * w
   if (this->mask_term_) {
     weights = weights_masked_.cpu_data();
   }
-  
+
   for (int n = 0; n<this->num_; n++) {
     caffe_mul(this->blobs_[0]->count(), weights, weights_n_diff + n * this->blobs_[0]->count(), points_saliency_data + n * this->blobs_[0]->count());
   }
   caffe_scal(weights_n->count(), (Dtype) (-1 * this->num_), points_saliency_data); // get unscaled diff back
-  
+
   if (this->saliency_bias_ && this->bias_term_ && this->output_channel_saliency_compute_) {
     bias = this->blobs_[1]->cpu_data();
     bias_n_diff = bias_n->cpu_diff();
@@ -56,12 +56,12 @@ void ConvolutionSaliencyLayer<Dtype>::compute_taylor_weights_cpu(Blob<Dtype> * w
   }
 
   compute_norm_and_batch_avg_weights_cpu(points_saliency_data, bias_saliency_data, taylor_out, taylor_in);
-  
+
 }
 
-template void ConvolutionSaliencyLayer<float>::compute_taylor_cpu(const float *  act_data, const float *  act_diff, const float * input_data, const float * input_diff,  float * taylor_out, float * taylor_in);
-template void ConvolutionSaliencyLayer<double>::compute_taylor_cpu(const double *  act_data, const double *  act_diff, const double * input_data, const double * input_diff,  double * taylor_out, double * taylor_in);
+template void ConvolutionLayer<float>::compute_taylor_cpu(const float *  act_data, const float *  act_diff, const float * input_data, const float * input_diff,  float * taylor_out, float * taylor_in);
+template void ConvolutionLayer<double>::compute_taylor_cpu(const double *  act_data, const double *  act_diff, const double * input_data, const double * input_diff,  double * taylor_out, double * taylor_in);
 
-template void ConvolutionSaliencyLayer<float>::compute_taylor_weights_cpu(Blob<float> * weights_n, Blob<float> * bias_n, float * taylor_out, float * taylor_in);
-template void ConvolutionSaliencyLayer<double>::compute_taylor_weights_cpu(Blob<double> * weights_n, Blob<double> * bias_n, double * taylor_out, double * taylor_in);
+template void ConvolutionLayer<float>::compute_taylor_weights_cpu(Blob<float> * weights_n, Blob<float> * bias_n, float * taylor_out, float * taylor_in);
+template void ConvolutionLayer<double>::compute_taylor_weights_cpu(Blob<double> * weights_n, Blob<double> * bias_n, double * taylor_out, double * taylor_in);
 }  // namespace caffe
