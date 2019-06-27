@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import caffe
 import os
 import struct
@@ -24,25 +25,25 @@ def test(solver, itr, accuracy_layer_name, loss_layer_name):
 
   return accuracy[accuracy_layer_name]*100.0, accuracy[loss_layer_name]
 
-def prune_weight(net, pruned_layer_idx, pruned_weight_idx):
-  layer = net.layer_dict[pruned_layer_idx]
-  m = layer.channels
-  h = layer.height
-  w = layer.width
+def prune_weight(net, pruned_layer_name, pruned_weight_idx):
+  layer = net.layer_dict[pruned_layer_name]
+  m = layer.blobs[0].data.shape[0]
+  h = net.blobs[pruned_layer_name].height
+  w = net.blobs[pruned_layer_name].width
   c = layer.blobs[0].data.shape[1]
   k = layer.blobs[0].data.shape[2]
   p = pruned_weight_idx
-  layer.blobs[0].data[p/m][p/c][p/k][p/k] = 0
+  layer.blobs[0].data.flat[p] = 0
 
-def prune_mask(net, pruned_layer_idx, pruned_weight_idx):
-  layer = net.layer_dict[pruned_layer_idx]
-  m = layer.channels
-  h = layer.height
-  w = layer.width
+def prune_mask(net, pruned_layer_name, pruned_weight_idx):
+  layer = net.layer_dict[pruned_layer_name]
+  m = layer.blobs[0].data.shape[0]
+  h = net.blobs[pruned_layer_name].height
+  w = net.blobs[pruned_layer_name].width
   c = layer.blobs[0].data.shape[1]
   k = layer.blobs[0].data.shape[2]
   p = pruned_weight_idx
-  layer.blobs[layer.mask_pos_].data[p/m][p/c][p/k][p/k] = 0
+  layer.blobs[layer.mask_pos_].data.flat[p] = 0
 
 def parser():
     parser = argparse.ArgumentParser(description='Caffe Output Channel Pruning Script')
@@ -58,9 +59,11 @@ def parser():
             help='finetune the pruned network')
     parser.add_argument('--stop-accuracy', type=float, default='10.0',
             help='Stop pruning when test accuracy drops below this value')
-    parser.add_argument('--test-batches', type=int, default=80,
+    parser.add_argument('--prune-factor', type=int, default=0.1,
+            help='Maximum proportion of remaining weights to prune in one step (per-layer)')
+    parser.add_argument('--test-batches', type=int, default=50,
             help='Number of batches to use for testing')
-    parser.add_argument('--finetune-batches', type=int, default=200,
+    parser.add_argument('--finetune-batches', type=int, default=75,
             help='Number of batches to use for finetuning')
     parser.add_argument('--test-interval', type=int, default=1,
             help='After how many pruning steps to test')
@@ -81,7 +84,7 @@ if __name__=='__main__':
     print("Caffe solver needed")
     exit(1)
 
-  if args.output_weights is None:
+  if args.output is None:
     print("Missing output caffemodel path")
     exit(1)
 
@@ -93,7 +96,7 @@ if __name__=='__main__':
   net = caffe.Net(args.model, caffe.TEST)
 
   pruning_solver = caffe.SGDSolver(args.solver)
-  pruning_solver.net.copy_from(args.pretrained)
+  pruning_solver.net.copy_from(args.input)
   pruning_solver.test_nets[0].share_with(pruning_solver.net)
   net.share_with(pruning_solver.net)
 
@@ -103,41 +106,54 @@ if __name__=='__main__':
   # The pruning state is a list of the already-pruned weight positions for each layer
   prune_state = dict()
   for layer in convolution_list:
-    prune_state[layer] = []
+    prune_state[layer] = np.array([])
 
   # We will have to keep re-checking this, so memoize it
   layer_weight_dims = dict()
   for layer in convolution_list:
-    layer_weight_dims[layer] = (layer.channels, layer.blobs[0].data.shape[1], layer.blobs[0].data.shape[2], layer.blobs[0].data.shape[3])
+    l = net.layer_dict[layer]
+    layer_weight_dims[layer] = l.blobs[0].shape
 
   # Get initial test accuraccy
-  test_acc, ce_loss = test(pruning_solver, args.test_size, args.acc_layer, args.loss_layer)
+  test_acc, ce_loss = test(pruning_solver, args.test_batches, args.accuracy_layer_name, args.loss_layer_name)
 
-  while (test_acc >= args.stop_accuracy):
-    pruning_solver.net.save(args.output_weights)
+  can_progress = dict()
+  for layer_name in convolution_list:
+    can_progress[layer_name] = True
+
+  while (test_acc >= args.stop_accuracy and sum(can_progress.values()) > 0):
+    if args.verbose:
+        print("Test accuracy:", test_acc)
+        removed_weights = 0
+        total_weights = 0
+        for layer_name in convolution_list:
+          removed_weights += prune_state[layer_name].size
+          total_weights += net.layer_dict[layer_name].blobs[0].data.size
+        print("Removed", removed_weights, "of", total_weights, "weights")
+        sys.stdout.flush()
+
+    pruning_solver.net.save(args.output)
 
     # Generate a random subset of remaining weights to prune
     # Use one randomized pruning signal per layer
     pruning_signals = dict()
-    for layer in convolution_list:
-      pruning_signals[layer] = np.zeros_like(layer.blobs[0].data)
-      d = layer_weight_dims[layer]
-      valid_indices = np.setdiff1d(np.arange(d[0]*d[1]*d[2]*d[3]), prune_state[layer])
-      num_pruned_weights = np.random.randint(0, valid_indices.size)
-      pruning_signals[layer] = np.random.choice(num_pruned_weights, valid_indices, replace=False)
-      prune_state[layer] = np.union1d(prune_state[layer], pruning_signals[layer])
 
-      if args.verbose:
-        print(layer, pruning_signals[layer])
+    for layer_name in convolution_list:
+      pruning_signals[layer_name] = np.zeros_like(net.layer_dict[layer_name].blobs[0].data)
+      valid_indices = np.setdiff1d(np.arange(np.prod(layer_weight_dims[layer_name])), prune_state[layer_name])
+      num_pruned_weights = np.random.randint(0, valid_indices.size*args.prune_factor)
+      pruning_signals[layer_name] = np.random.choice(valid_indices, num_pruned_weights, replace=False)
+      prune_state[layer_name] = np.union1d(prune_state[layer_name], pruning_signals[layer_name])
+      can_progress[layer_name] = int(valid_indices.size*args.prune_factor) > 1
 
     # Now the actual pruning step
     for layer in convolution_list:
-      for weight_idx in pruning_signals[layer]:
-        prune_mask(net, layer, weight_idx)
+      for weight_idx in pruning_signals[layer_name]:
+        prune_mask(net, layer_name, weight_idx)
 
     if args.finetune:
       pruning_solver.step(args.finetune_batches)
 
-    test_acc, ce_loss = test(pruning_solver, args.test_batches, args.acc_layer, args.loss_layer)
+    test_acc, ce_loss = test(pruning_solver, args.test_batches, args.accuracy_layer_name, args.loss_layer_name)
 
   exit(0)
