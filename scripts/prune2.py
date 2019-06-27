@@ -57,9 +57,9 @@ def parser():
             help='output pruned caffemodel')
     parser.add_argument('--finetune', action='store_true', default=False,
             help='finetune the pruned network')
-    parser.add_argument('--stop-accuracy', type=float, default='10.0',
+    parser.add_argument('--stop-accuracy', type=float, default=10.0,
             help='Stop pruning when test accuracy drops below this value')
-    parser.add_argument('--prune-factor', type=int, default=0.1,
+    parser.add_argument('--prune-factor', type=float, default=0.1,
             help='Maximum proportion of remaining weights to prune in one step (per-layer)')
     parser.add_argument('--test-batches', type=int, default=50,
             help='Number of batches to use for testing')

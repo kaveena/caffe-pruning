@@ -34,7 +34,7 @@ def parser():
             help='prune network')
     parser.add_argument('--filename', action='store', default='summary_',
             help='prefix for storing pruning data')
-    parser.add_argument('--stop-accuracy', type=float, default='10.0',
+    parser.add_argument('--stop-accuracy', type=float, default=10.0,
             help='Stop pruning when test accuracy drops below this value')
     parser.add_argument('--method', action='store', default='FISHER',
             help='Pruning method')
