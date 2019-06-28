@@ -141,7 +141,7 @@ if __name__=='__main__':
       print("Removed", removed_weights, "of", total_weights, "weights")
       sys.stdout.flush()
 
-    if args.logfile:
+    if args.log_file:
       print(test_acc, removed_weights, total_weights, file=logfile)
 
     pruning_solver.net.save(args.output)
