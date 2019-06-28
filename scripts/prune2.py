@@ -47,6 +47,8 @@ def prune_mask(net, pruned_layer_name, pruned_weight_idx):
 
 def parser():
     parser = argparse.ArgumentParser(description='Caffe Output Channel Pruning Script')
+    parser.add_argument('--log-file', action='store', default=None,
+            help='the file to log pruning data')
     parser.add_argument('--solver', action='store', default=None,
             help='the caffe solver to use')
     parser.add_argument('--model', action='store', default=None,
@@ -123,16 +125,24 @@ if __name__=='__main__':
 
   prune_interval_count = 0
 
+  logfile = None
+  if args.log_file:
+    logfile = open(args.log_file, 'w')
+
   while (test_acc >= args.stop_accuracy and sum(can_progress.values()) > 0):
+    removed_weights = 0
+    total_weights = 0
+    for layer_name in convolution_list:
+      removed_weights += prune_state[layer_name].size
+      total_weights += net.layer_dict[layer_name].blobs[0].data.size
+
     if args.verbose:
-        print("Test accuracy:", test_acc)
-        removed_weights = 0
-        total_weights = 0
-        for layer_name in convolution_list:
-          removed_weights += prune_state[layer_name].size
-          total_weights += net.layer_dict[layer_name].blobs[0].data.size
-        print("Removed", removed_weights, "of", total_weights, "weights")
-        sys.stdout.flush()
+      print("Test accuracy:", test_acc)
+      print("Removed", removed_weights, "of", total_weights, "weights")
+      sys.stdout.flush()
+
+    if args.logfile:
+      print(test_acc, removed_weights, total_weights, file=logfile)
 
     pruning_solver.net.save(args.output)
 
@@ -163,5 +173,8 @@ if __name__=='__main__':
     # Test if required
     if (prune_interval_count % args.prune_test_interval) == 0:
       test_acc, ce_loss = test(pruning_solver, args.prune_test_iterations, args.accuracy_layer_name, args.loss_layer_name)
+
+  if logfile:
+    logfile.close()
 
   exit(0)
