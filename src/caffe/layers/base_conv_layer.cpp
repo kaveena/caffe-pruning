@@ -134,7 +134,9 @@ void BaseConvolutionLayer<Dtype>::LayerSetUp(const vector<Blob<Dtype>*>& bottom,
   // - blobs_[0] holds the filter weights
   // - blobs_[1] holds the biases (optional)
   // - blobs_[2] holds the masks (optional)
-  // - blobs_[3] holds the saliencies (optional)
+  // - blobs_[3] holds the masks (optional)
+  // - blobs_[4] holds the output channel saliencies (optional)
+  // - blobs_[5] holds the input channel saliencies (optional)
   vector<int> weight_shape(2);
   weight_shape[0] = this->conv_out_channels_;
   weight_shape[1] = this->conv_in_channels_ / this->group_;
