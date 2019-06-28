@@ -61,11 +61,11 @@ def parser():
             help='Stop pruning when test accuracy drops below this value')
     parser.add_argument('--prune-factor', type=float, default=0.1,
             help='Maximum proportion of remaining weights to prune in one step (per-layer)')
-    parser.add_argument('--test-batches', type=int, default=50,
+    parser.add_argument('--prune-test-batches', type=int, default=10,
             help='Number of batches to use for testing')
     parser.add_argument('--finetune-batches', type=int, default=75,
             help='Number of batches to use for finetuning')
-    parser.add_argument('--test-interval', type=int, default=1,
+    parser.add_argument('--prune-test-interval', type=int, default=1,
             help='After how many pruning steps to test')
     parser.add_argument('--gpu', action='store_true', default=False,
             help='Use GPU')
