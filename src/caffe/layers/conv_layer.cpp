@@ -459,13 +459,13 @@ void ConvolutionLayer<Dtype>::compute_norm_and_batch_avg_cpu(Dtype * output_sali
     
       case (caffe::ConvolutionSaliencyParameter::ABS_SUM): {
         caffe_sum(this->num_ * this->channels_, count, input_saliency_data, filter_in_saliency_data); //sum hxw
-        caffe_abs(this->num_ * this->channels_ * count, filter_in_saliency_data, filter_in_saliency_data);
+        caffe_abs(this->num_ * this->channels_, filter_in_saliency_data, filter_in_saliency_data);
         caffe_strided_sum(this->channels_ / this->group_, this->num_ * this->group_, filter_in_saliency_data, input_channel_saliency);
       } break;
     
       case (caffe::ConvolutionSaliencyParameter::SQR_SUM): {
         caffe_sum(this->num_ * this->channels_, count, input_saliency_data, filter_in_saliency_data); //sum hxw
-        caffe_powx(this->num_ * this->channels_ * count, filter_in_saliency_data, (Dtype) 2, filter_in_saliency_data);
+        caffe_powx(this->num_ * this->channels_, filter_in_saliency_data, (Dtype) 2, filter_in_saliency_data);
         caffe_strided_sum(this->channels_ / this->group_, this->num_ * this->group_, filter_in_saliency_data, input_channel_saliency);
       } break;
 
