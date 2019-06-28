@@ -61,7 +61,7 @@ def parser():
             help='Stop pruning when test accuracy drops below this value')
     parser.add_argument('--prune-factor', type=float, default=0.1,
             help='Maximum proportion of remaining weights to prune in one step (per-layer)')
-    parser.add_argument('--prune-test-batches', type=int, default=10,
+    parser.add_argument('--prune-test-iterations', type=int, default=10,
             help='Number of batches to use for testing')
     parser.add_argument('--finetune-batches', type=int, default=75,
             help='Number of batches to use for finetuning')
@@ -115,11 +115,13 @@ if __name__=='__main__':
     layer_weight_dims[layer] = l.blobs[0].shape
 
   # Get initial test accuraccy
-  test_acc, ce_loss = test(pruning_solver, args.test_batches, args.accuracy_layer_name, args.loss_layer_name)
+  test_acc, ce_loss = test(pruning_solver, args.prune_test_iterations, args.accuracy_layer_name, args.loss_layer_name)
 
   can_progress = dict()
   for layer_name in convolution_list:
     can_progress[layer_name] = True
+
+  prune_interval_count = 0
 
   while (test_acc >= args.stop_accuracy and sum(can_progress.values()) > 0):
     if args.verbose:
@@ -151,9 +153,15 @@ if __name__=='__main__':
       for weight_idx in pruning_signals[layer_name]:
         prune_mask(net, layer_name, weight_idx)
 
+    # Bump the pruning step count
+    prune_interval_count += 1
+
+    # Finetune if required
     if args.finetune:
       pruning_solver.step(args.finetune_batches)
 
-    test_acc, ce_loss = test(pruning_solver, args.test_batches, args.accuracy_layer_name, args.loss_layer_name)
+    # Test if required
+    if (prune_interval_count % args.prune_test_interval) == 0:
+      test_acc, ce_loss = test(pruning_solver, args.prune_test_iterations, args.accuracy_layer_name, args.loss_layer_name)
 
   exit(0)
