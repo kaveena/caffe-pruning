@@ -6,27 +6,30 @@
 namespace caffe {
 
 template <typename Dtype>
+void taylor_2nd_approx2_kernel_cpu(const int N, const int num, const Dtype * data, const Dtype * diff, Dtype * taylor_2nd) {
+#if USE_OPENMP
+  #pragma omp parallel
+  #pragma omp for
+#endif
+  for (int i=0; i<N; i++) {
+    taylor_2nd[i] = ( 0.5 * num * num * data[i] * data[i] * diff[i] * diff[i] ) - (num * data[i] * diff[i]);
+  }   
+}
+
+template <typename Dtype>
 void ConvolutionLayer<Dtype>::compute_taylor_2nd_approx2_cpu(const Dtype *  act_data, const Dtype * act_diff, const Dtype * input_data, const Dtype * input_diff, Dtype * taylor_2nd_out, Dtype * taylor_2nd_in) {
   Dtype * output_saliency_data = NULL;
   Dtype * input_saliency_data = NULL;
   if (this->output_channel_saliency_compute_) {
     output_saliency_data = output_saliencies_points_.mutable_cpu_data(); 
-    caffe_mul(output_saliencies_points_.count(), act_data, act_diff, output_saliency_data); //a * 1/N *dE/da
-    caffe_mul(output_saliencies_points_.count(), output_saliency_data, act_diff, output_saliency_data); //a * 1/N *  1/N * (dE/da)**2
-    caffe_scal(output_saliencies_points_.count(), (Dtype)(this->num_ * 0.5), output_saliency_data);  //1/2N * (a * (dE/da2)**2)
-    caffe_sub(output_saliencies_points_.count(), output_saliency_data, act_diff, output_saliency_data); //(a/2N * (dE/da2)**2) - 1/N * dE/da 
-    caffe_mul(output_saliencies_points_.count(), output_saliency_data, act_data, output_saliency_data); //(a**2/2N * (dE/da2)**2) - a/N*dE/da
-    caffe_scal(output_saliencies_points_.count(), (Dtype)(this->num_), output_saliency_data);
+    taylor_2nd_approx2_kernel_cpu<Dtype>(
+        output_saliencies_points_.count(), this->num_, act_data, act_diff, output_saliency_data);
   }
 
   if (this->input_channel_saliency_compute_) {
     input_saliency_data = input_saliencies_points_.mutable_cpu_data(); 
-    caffe_mul(input_saliencies_points_.count(), input_data, input_diff, input_saliency_data); //a * 1/N *dE/da
-    caffe_mul(input_saliencies_points_.count(), input_saliency_data, input_diff, input_saliency_data); //a * 1/N *  1/N * (dE/da)**2
-    caffe_scal(input_saliencies_points_.count(), (Dtype)(this->num_ * 0.5), input_saliency_data);  //1/2N * (a * (dE/da2)**2)
-    caffe_sub(input_saliencies_points_.count(), input_saliency_data, input_diff, input_saliency_data); //(a/2N * (dE/da2)**2) - 1/N * dE/da 
-    caffe_mul(input_saliencies_points_.count(), input_saliency_data, input_data, input_saliency_data); //(a**2/2N * (dE/da2)**2) - a/N*dE/da
-    caffe_scal(input_saliencies_points_.count(), (Dtype)(this->num_), input_saliency_data);
+    taylor_2nd_approx2_kernel_cpu<Dtype>(
+        input_saliencies_points_.count(), this->num_, input_data, input_diff, input_saliency_data);
   }
 
   compute_norm_and_batch_avg_cpu(output_saliency_data, input_saliency_data, taylor_2nd_out, taylor_2nd_in);
