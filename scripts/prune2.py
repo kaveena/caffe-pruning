@@ -49,10 +49,14 @@ def parser():
             help='output pruned caffemodel')
     parser.add_argument('--finetune', action='store_true', default=False,
             help='finetune the pruned network')
-    parser.add_argument('--stop-accuracy', type=float, default=10.0,
+    parser.add_argument('--stop-accuracy-low', type=float, default=10.0,
             help='Stop pruning when test accuracy drops below this value')
+    parser.add_argument('--stop-accuracy-high', type=float, default=99.0,
+            help='Stop pruning when test accuracy exceeds this value')
     parser.add_argument('--prune-factor', type=float, default=0.1,
             help='Maximum proportion of remaining weights to prune in one step (per-layer)')
+    parser.add_argument('--prune-factor-ramp', type=float, default=1.0,
+            help='Amount to decrease the prune factor each iteration')
     parser.add_argument('--prune-test-iterations', type=int, default=10,
             help='Number of batches to use for testing')
     parser.add_argument('--finetune-batches', type=int, default=75,
@@ -103,31 +107,41 @@ if __name__=='__main__':
     layer_list += list(filter(lambda x: 'InnerProduct' in net.layer_dict[x].type, net.layer_dict.keys()))
   net_layers = net.layer_dict
 
-  # The pruning state is a list of the already-pruned weight positions for each layer
-  prune_state = dict()
-  for layer in layer_list:
-    prune_state[layer] = np.array([])
-
   # We will have to keep re-checking this, so memoize it
   layer_weight_dims = dict()
   for layer in layer_list:
     l = net.layer_dict[layer]
     layer_weight_dims[layer] = l.blobs[0].shape
 
+  # The pruning state is a list of the already-pruned weight positions for each layer
+  prune_state = dict()
+  for layer in layer_list:
+    mask_data = net.layer_dict[layer].blobs[2].data
+    prune_state[layer] = np.setdiff1d(np.nonzero(mask_data), np.arange(mask_data.size))
+
   # Get initial test accuraccy
   test_acc, ce_loss = test(pruning_solver, args.prune_test_iterations, args.accuracy_layer_name, args.loss_layer_name)
+
+  if args.verbose:
+    print("Initial test accuracy:", test_acc)
+    sys.stdout.flush()
 
   can_progress = dict()
   for layer_name in layer_list:
     can_progress[layer_name] = True
 
   prune_interval_count = 0
+  prune_factor_ramp = 1.0
+  prune_factor = args.prune_factor
+
+  if args.prune_factor_ramp is not None:
+    prune_factor_ramp = args.prune_factor_ramp
 
   logfile = None
   if args.log_file:
     logfile = open(args.log_file, 'w')
 
-  while (test_acc >= args.stop_accuracy and sum(can_progress.values()) > 0):
+  while (test_acc >= args.stop_accuracy_low and test_acc < args.stop_accuracy_high and sum(can_progress.values()) > 0):
     removed_weights = 0
     total_weights = 0
     for layer_name in layer_list:
@@ -136,6 +150,7 @@ if __name__=='__main__':
 
     if args.verbose:
       print("Test accuracy:", test_acc)
+      print("Prune factor:", prune_factor)
       print("Removed", removed_weights, "of", total_weights, "weights")
       sys.stdout.flush()
 
@@ -151,10 +166,10 @@ if __name__=='__main__':
     for layer_name in layer_list:
       pruning_signals[layer_name] = np.zeros_like(net.layer_dict[layer_name].blobs[0].data)
       valid_indices = np.setdiff1d(np.arange(np.prod(layer_weight_dims[layer_name])), prune_state[layer_name])
-      num_pruned_weights = np.random.randint(0, valid_indices.size*args.prune_factor)
+      num_pruned_weights = np.random.randint(0, valid_indices.size*prune_factor)
       pruning_signals[layer_name] = np.random.choice(valid_indices, num_pruned_weights, replace=False)
       prune_state[layer_name] = np.union1d(prune_state[layer_name], pruning_signals[layer_name])
-      can_progress[layer_name] = int(valid_indices.size*args.prune_factor) > 1
+      can_progress[layer_name] = int(valid_indices.size*prune_factor) > 1
 
     # Now the actual pruning step
     for layer in layer_list:
@@ -171,6 +186,9 @@ if __name__=='__main__':
     # Test if required
     if (prune_interval_count % args.prune_test_interval) == 0:
       test_acc, ce_loss = test(pruning_solver, args.prune_test_iterations, args.accuracy_layer_name, args.loss_layer_name)
+
+    # Adjust prune factor with specified ramp
+    prune_factor *= prune_factor_ramp
 
   if logfile:
     logfile.close()
