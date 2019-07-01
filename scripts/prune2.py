@@ -27,21 +27,11 @@ def test(solver, itr, accuracy_layer_name, loss_layer_name):
 
 def prune_weight(net, pruned_layer_name, pruned_weight_idx):
   layer = net.layer_dict[pruned_layer_name]
-  m = layer.blobs[0].data.shape[0]
-  h = net.blobs[pruned_layer_name].height
-  w = net.blobs[pruned_layer_name].width
-  c = layer.blobs[0].data.shape[1]
-  k = layer.blobs[0].data.shape[2]
   p = pruned_weight_idx
   layer.blobs[0].data.flat[p] = 0
 
 def prune_mask(net, pruned_layer_name, pruned_weight_idx):
   layer = net.layer_dict[pruned_layer_name]
-  m = layer.blobs[0].data.shape[0]
-  h = net.blobs[pruned_layer_name].height
-  w = net.blobs[pruned_layer_name].width
-  c = layer.blobs[0].data.shape[1]
-  k = layer.blobs[0].data.shape[2]
   p = pruned_weight_idx
   layer.blobs[layer.mask_pos_].data.flat[p] = 0
 
@@ -71,6 +61,10 @@ def parser():
             help='After how many pruning steps to test')
     parser.add_argument('--gpu', action='store_true', default=False,
             help='Use GPU')
+    parser.add_argument('--conv', action='store_true', default=True,
+            help='Prune convolution layers')
+    parser.add_argument('--fc', action='store_true', default=False,
+            help='Prune FC layers')
     parser.add_argument('--verbose', action='store_true', default=False,
             help='Print summary of pruning process')
     parser.add_argument('--accuracy-layer-name', action='store', default='top-1',
@@ -102,17 +96,21 @@ if __name__=='__main__':
   pruning_solver.test_nets[0].share_with(pruning_solver.net)
   net.share_with(pruning_solver.net)
 
-  convolution_list = list(filter(lambda x: 'Convolution' in net.layer_dict[x].type, net.layer_dict.keys()))
+  layer_list = []
+  if args.conv:
+    layer_list += list(filter(lambda x: 'Convolution' in net.layer_dict[x].type, net.layer_dict.keys()))
+  if args.fc:
+    layer_list += list(filter(lambda x: 'InnerProduct' in net.layer_dict[x].type, net.layer_dict.keys()))
   net_layers = net.layer_dict
 
   # The pruning state is a list of the already-pruned weight positions for each layer
   prune_state = dict()
-  for layer in convolution_list:
+  for layer in layer_list:
     prune_state[layer] = np.array([])
 
   # We will have to keep re-checking this, so memoize it
   layer_weight_dims = dict()
-  for layer in convolution_list:
+  for layer in layer_list:
     l = net.layer_dict[layer]
     layer_weight_dims[layer] = l.blobs[0].shape
 
@@ -120,7 +118,7 @@ if __name__=='__main__':
   test_acc, ce_loss = test(pruning_solver, args.prune_test_iterations, args.accuracy_layer_name, args.loss_layer_name)
 
   can_progress = dict()
-  for layer_name in convolution_list:
+  for layer_name in layer_list:
     can_progress[layer_name] = True
 
   prune_interval_count = 0
@@ -132,7 +130,7 @@ if __name__=='__main__':
   while (test_acc >= args.stop_accuracy and sum(can_progress.values()) > 0):
     removed_weights = 0
     total_weights = 0
-    for layer_name in convolution_list:
+    for layer_name in layer_list:
       removed_weights += prune_state[layer_name].size
       total_weights += net.layer_dict[layer_name].blobs[0].data.size
 
@@ -150,7 +148,7 @@ if __name__=='__main__':
     # Use one randomized pruning signal per layer
     pruning_signals = dict()
 
-    for layer_name in convolution_list:
+    for layer_name in layer_list:
       pruning_signals[layer_name] = np.zeros_like(net.layer_dict[layer_name].blobs[0].data)
       valid_indices = np.setdiff1d(np.arange(np.prod(layer_weight_dims[layer_name])), prune_state[layer_name])
       num_pruned_weights = np.random.randint(0, valid_indices.size*args.prune_factor)
@@ -159,7 +157,7 @@ if __name__=='__main__':
       can_progress[layer_name] = int(valid_indices.size*args.prune_factor) > 1
 
     # Now the actual pruning step
-    for layer in convolution_list:
+    for layer in layer_list:
       for weight_idx in pruning_signals[layer_name]:
         prune_mask(net, layer_name, weight_idx)
 

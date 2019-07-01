@@ -68,9 +68,17 @@ void InnerProductLayer<Dtype>::LayerSetUp(const vector<Blob<Dtype>*>& bottom,
     // If necessary, initialize and fill the mask term
     if (mask_term_) {
       this->blobs_[this->mask_pos_].reset(new Blob<Dtype>(weight_shape));
-      shared_ptr<Filler<Dtype> > mask_filler(GetFiller<Dtype>(
-          this->layer_param_.inner_product_mask_param().mask_filler()));
-      mask_filler->Fill(this->blobs_[this->mask_pos_].get());
+       if (this->layer_param_.inner_product_mask_param().default_init()) {
+        Blob<Dtype> * mask_blob = this->blobs_[this->mask_pos_].get();
+        for (int i=0; i<mask_blob->count(); ++i) {
+          mask_blob->mutable_cpu_data()[i] = (Dtype)1.0;
+        }
+      }
+      else {
+        shared_ptr<Filler<Dtype> > mask_filler(GetFiller<Dtype>(
+            this->layer_param_.inner_product_mask_param().mask_filler()));
+        mask_filler->Fill(this->blobs_[this->mask_pos_].get());
+      }
     }
   }  // parameter initialization
   this->param_propagate_down_.resize(this->blobs_.size(), true);
