@@ -33,7 +33,7 @@ def prune_weight(net, pruned_layer_name, pruned_weight_idx):
 def prune_mask(net, pruned_layer_name, pruned_weight_idx):
   layer = net.layer_dict[pruned_layer_name]
   p = pruned_weight_idx
-  layer.blobs[layer.mask_pos_].data.flat[p] = 0
+  layer.blobs[2].data.flat[p] = 0
 
 def parser():
     parser = argparse.ArgumentParser(description='Caffe Output Channel Pruning Script')
