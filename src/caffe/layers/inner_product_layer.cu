@@ -12,6 +12,12 @@ void InnerProductLayer<Dtype>::Forward_gpu(const vector<Blob<Dtype>*>& bottom,
   const Dtype* bottom_data = bottom[0]->gpu_data();
   Dtype* top_data = top[0]->mutable_gpu_data();
   const Dtype* weight = this->blobs_[0]->gpu_data();
+  if (this->mask_term_) {
+    const Dtype* mask = this->blobs_[this->mask_pos_]->gpu_data();
+    Dtype* weight_masked = this->weights_masked_.mutable_gpu_data();
+    caffe_mul(this->blobs_[0]->count(), mask, weight, weight_masked);
+    weight = this->weights_masked_.gpu_data();
+  }
   if (M_ == 1) {
     caffe_gpu_gemv<Dtype>(CblasNoTrans, N_, K_, (Dtype)1.,
                          weight, bottom_data, (Dtype)0., top_data);

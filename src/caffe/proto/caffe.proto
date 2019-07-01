@@ -406,6 +406,7 @@ message LayerParameter {
   optional ImageDataParameter image_data_param = 115;
   optional InfogainLossParameter infogain_loss_param = 116;
   optional InnerProductParameter inner_product_param = 117;
+  optional InnerProductMaskParameter inner_product_mask_param = 154;
   optional InputParameter input_param = 143;
   optional LogParameter log_param = 134;
   optional LRNParameter lrn_param = 118;
@@ -910,6 +911,7 @@ message InfogainLossParameter {
 message InnerProductParameter {
   optional uint32 num_output = 1; // The number of outputs for the layer
   optional bool bias_term = 2 [default = true]; // whether to have bias terms
+  optional bool mask_term = 7 [default = false]; // whether to have mask terms
   optional FillerParameter weight_filler = 3; // The filler for the weight
   optional FillerParameter bias_filler = 4; // The filler for the bias
 
@@ -922,6 +924,11 @@ message InnerProductParameter {
   // of the weight matrix. The weight matrix itself is not going to be transposed
   // but rather the transfer flag of operations will be toggled accordingly.
   optional bool transpose = 6 [default = false];
+}
+
+message InnerProductMaskParameter {
+  optional bool default_init = 1 [default = true]; // use default initialisation of ones for masks
+  optional FillerParameter mask_filler = 2; // The filler for the weight and bias
 }
 
 message InputParameter {
@@ -1398,6 +1405,7 @@ message V1LayerParameter {
   optional ImageDataParameter image_data_param = 15;
   optional InfogainLossParameter infogain_loss_param = 16;
   optional InnerProductParameter inner_product_param = 17;
+  optional InnerProductMaskParameter inner_product_mask_param = 55;
   optional LRNParameter lrn_param = 18;
   optional MemoryDataParameter memory_data_param = 22;
   optional MVNParameter mvn_param = 34;

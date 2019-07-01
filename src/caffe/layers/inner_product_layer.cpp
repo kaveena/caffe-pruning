@@ -10,6 +10,7 @@ template <typename Dtype>
 void InnerProductLayer<Dtype>::LayerSetUp(const vector<Blob<Dtype>*>& bottom,
       const vector<Blob<Dtype>*>& top) {
   const int num_output = this->layer_param_.inner_product_param().num_output();
+  mask_term_ = this->layer_param_.inner_product_param().mask_term();
   bias_term_ = this->layer_param_.inner_product_param().bias_term();
   transpose_ = this->layer_param_.inner_product_param().transpose();
   N_ = num_output;
@@ -23,11 +24,25 @@ void InnerProductLayer<Dtype>::LayerSetUp(const vector<Blob<Dtype>*>& bottom,
   if (this->blobs_.size() > 0) {
     LOG(INFO) << "Skipping parameter initialization";
   } else {
-    if (bias_term_) {
-      this->blobs_.resize(2);
-    } else {
-      this->blobs_.resize(1);
+    if (mask_term_) {
+      if (bias_term_) {
+        this->blobs_.resize(3);
+        this->mask_pos_ = 2;
+      } else {
+        this->blobs_.resize(2);
+        this->mask_pos_ = 1;
+      }
     }
+    else {
+      if (bias_term_) {
+        this->blobs_.resize(2);
+        this->mask_pos_ = 0; // The weights are a valid blob to use just in case
+      } else {
+        this->blobs_.resize(1);
+        this->mask_pos_ = 0; // The weights are a valid blob to use just in case
+      }
+    }
+
     // Initialize the weights
     vector<int> weight_shape(2);
     if (transpose_) {
@@ -49,6 +64,13 @@ void InnerProductLayer<Dtype>::LayerSetUp(const vector<Blob<Dtype>*>& bottom,
       shared_ptr<Filler<Dtype> > bias_filler(GetFiller<Dtype>(
           this->layer_param_.inner_product_param().bias_filler()));
       bias_filler->Fill(this->blobs_[1].get());
+    }
+    // If necessary, initialize and fill the mask term
+    if (mask_term_) {
+      this->blobs_[this->mask_pos_].reset(new Blob<Dtype>(weight_shape));
+      shared_ptr<Filler<Dtype> > mask_filler(GetFiller<Dtype>(
+          this->layer_param_.inner_product_param().mask_filler()));
+      mask_filler->Fill(this->blobs_[this->mask_pos_].get());
     }
   }  // parameter initialization
   this->param_propagate_down_.resize(this->blobs_.size(), true);
@@ -79,6 +101,12 @@ void InnerProductLayer<Dtype>::Reshape(const vector<Blob<Dtype>*>& bottom,
     bias_multiplier_.Reshape(bias_shape);
     caffe_set(M_, Dtype(1), bias_multiplier_.mutable_cpu_data());
   }
+  //Set up the mask
+  if (mask_term_) {
+    this->weights_masked_shape_.clear();
+    this->weights_masked_shape_.push_back(this->blobs_[this->mask_pos_]->count());
+    this->weights_masked_.Reshape(this->weights_masked_shape_);
+  }
 }
 
 template <typename Dtype>
@@ -87,6 +115,12 @@ void InnerProductLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bottom,
   const Dtype* bottom_data = bottom[0]->cpu_data();
   Dtype* top_data = top[0]->mutable_cpu_data();
   const Dtype* weight = this->blobs_[0]->cpu_data();
+  if (this->mask_term_) {
+    const Dtype* mask = this->blobs_[this->mask_pos_]->cpu_data();
+    Dtype* weight_masked = this->weights_masked_.mutable_cpu_data();
+    caffe_mul(this->blobs_[0]->count(), mask, weight, weight_masked);
+    weight = this->weights_masked_.cpu_data();
+  }
   caffe_cpu_gemm<Dtype>(CblasNoTrans, transpose_ ? CblasNoTrans : CblasTrans,
       M_, N_, K_, (Dtype)1.,
       bottom_data, weight, (Dtype)0., top_data);
