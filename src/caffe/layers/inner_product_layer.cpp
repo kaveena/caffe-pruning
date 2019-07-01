@@ -69,7 +69,7 @@ void InnerProductLayer<Dtype>::LayerSetUp(const vector<Blob<Dtype>*>& bottom,
     if (mask_term_) {
       this->blobs_[this->mask_pos_].reset(new Blob<Dtype>(weight_shape));
       shared_ptr<Filler<Dtype> > mask_filler(GetFiller<Dtype>(
-          this->layer_param_.inner_product_param().mask_filler()));
+          this->layer_param_.inner_product_mask_param().mask_filler()));
       mask_filler->Fill(this->blobs_[this->mask_pos_].get());
     }
   }  // parameter initialization

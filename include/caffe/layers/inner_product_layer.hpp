@@ -47,6 +47,7 @@ class InnerProductLayer : public Layer<Dtype> {
   int K_;
   int N_;
   bool bias_term_;
+  bool mask_term_;
   Blob<Dtype> bias_multiplier_;
   // Helper for computing ddiff
   Blob<Dtype> weights_sqr_;
