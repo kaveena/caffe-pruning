@@ -67,6 +67,7 @@ void InnerProductLayer<Dtype>::LayerSetUp(const vector<Blob<Dtype>*>& bottom,
     }
     // If necessary, initialize and fill the mask term
     if (mask_term_) {
+      LOG(INFO) << "Mask Initialization: " << this->layer_param_.name();
       this->blobs_[this->mask_pos_].reset(new Blob<Dtype>(weight_shape));
        if (this->layer_param_.inner_product_mask_param().default_init()) {
         Blob<Dtype> * mask_blob = this->blobs_[this->mask_pos_].get();

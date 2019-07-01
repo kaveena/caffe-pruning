@@ -227,7 +227,7 @@ void BaseConvolutionLayer<Dtype>::LayerSetUp(const vector<Blob<Dtype>*>& bottom,
       LOG(INFO) << "Incorrect mask shape: expected shape "
           << mask_shaped_blob.shape_string() << "; instead, shape was "
           << this->blobs_[this->mask_pos_]->shape_string();
-      LOG(INFO) << "Mask Initialization";
+      LOG(INFO) << "Mask Initialization: " << this->layer_param_.name();
       this->blobs_[this->mask_pos_].reset(new Blob<Dtype>(weight_shape));
       if (this->layer_param_.convolution_mask_param().default_init()) {
         Blob<Dtype> * mask_blob = this->blobs_[this->mask_pos_].get();
@@ -246,7 +246,7 @@ void BaseConvolutionLayer<Dtype>::LayerSetUp(const vector<Blob<Dtype>*>& bottom,
       LOG(INFO) << "Incorrect bias mask shape: expected shape "
           << bias_mask_shaped_blob.shape_string() << "; instead, shape was "
           << this->blobs_[this->mask_pos_+1]->shape_string();
-      LOG(INFO) << "Mask Initialization";
+      LOG(INFO) << "Mask Initialization: " << this->layer_param_.name();
       this->blobs_[this->mask_pos_+1].reset(new Blob<Dtype>(bias_shape));
       if (this->layer_param_.convolution_mask_param().default_init()) {
         Blob<Dtype> * mask_blob = this->blobs_[this->mask_pos_+1].get();
