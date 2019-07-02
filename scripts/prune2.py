@@ -88,6 +88,10 @@ if __name__=='__main__':
     print("Missing output caffemodel path")
     exit(1)
 
+  if (not (args.conv or args.fc)):
+    print("Must specify at least one of --conv and --fc")
+    exit(1)
+
   if args.gpu:
     caffe.set_mode_gpu()
   else:
