@@ -15,7 +15,7 @@ void InnerProductLayer<Dtype>::Forward_gpu(const vector<Blob<Dtype>*>& bottom,
   if (this->mask_term_) {
     const Dtype* mask = this->blobs_[this->mask_pos_]->gpu_data();
     Dtype* weight_masked = this->weights_masked_.mutable_gpu_data();
-    caffe_mul(this->blobs_[0]->count(), mask, weight, weight_masked);
+    caffe_gpu_mul(this->blobs_[0]->count(), mask, weight, weight_masked);
     weight = this->weights_masked_.gpu_data();
   }
   if (M_ == 1) {
