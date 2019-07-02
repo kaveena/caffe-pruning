@@ -200,7 +200,7 @@ if __name__=='__main__':
 
     if args.log_file:
       if (args.snapshot_interval > 0) and (prune_interval_count % args.snapshot_interval) == 0:
-        print(test_acc, removed_weights, total_weights, file=logfile)
+        print(pruned_snapshot_path, test_acc, removed_weights, total_weights, file=logfile)
       else:
         print(test_acc, removed_weights, total_weights, file=logfile)
 
