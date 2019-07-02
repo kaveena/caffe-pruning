@@ -63,6 +63,8 @@ def parser():
             help='Number of batches to use for finetuning')
     parser.add_argument('--prune-test-interval', type=int, default=1,
             help='After how many pruning steps to test')
+    parser.add_argument('--snapshot-interval', type=int, default=0,
+            help='After how many pruning steps to snapshot')
     parser.add_argument('--gpu', action='store_true', default=False,
             help='Use GPU')
     parser.add_argument('--conv', action='store_true', default=False,
@@ -193,6 +195,10 @@ if __name__=='__main__':
 
     # Adjust prune factor with specified ramp
     prune_factor *= prune_factor_ramp
+
+    if (args.snapshot_interval > 0):
+      if (prune_interval_count % args.snapshot_interval) == 0:
+        pruning_solver.snapshot()
 
   if logfile:
     logfile.close()
