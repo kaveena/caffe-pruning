@@ -65,7 +65,7 @@ def parser():
             help='After how many pruning steps to test')
     parser.add_argument('--gpu', action='store_true', default=False,
             help='Use GPU')
-    parser.add_argument('--conv', action='store_true', default=True,
+    parser.add_argument('--conv', action='store_true', default=False,
             help='Prune convolution layers')
     parser.add_argument('--fc', action='store_true', default=False,
             help='Prune FC layers')
