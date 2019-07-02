@@ -65,6 +65,8 @@ def parser():
             help='After how many pruning steps to test')
     parser.add_argument('--snapshot-interval', type=int, default=0,
             help='After how many pruning steps to snapshot')
+    parser.add_argument('--snapshot-prefix', action='store', default=None,
+            help='Prefix for snapshots of pruned models')
     parser.add_argument('--gpu', action='store_true', default=False,
             help='Use GPU')
     parser.add_argument('--conv', action='store_true', default=False,
@@ -93,6 +95,11 @@ if __name__=='__main__':
   if (not (args.conv or args.fc)):
     print("Must specify at least one of --conv and --fc")
     exit(1)
+
+  if (args.snapshot_interval > 0):
+    if not args.snapshot_prefix:
+      print("Snapshotting enabled but no --snapshot-prefix specified")
+      exit(1)
 
   if args.gpu:
     caffe.set_mode_gpu()
@@ -198,7 +205,7 @@ if __name__=='__main__':
 
     if (args.snapshot_interval > 0):
       if (prune_interval_count % args.snapshot_interval) == 0:
-        pruning_solver.snapshot()
+        pruning_solver.net.save(args.snapshot_prefix+"_iter_"+str(prune_interval_count)+".caffemodel")
 
   if logfile:
     logfile.close()
