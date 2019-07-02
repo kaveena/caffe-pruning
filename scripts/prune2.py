@@ -192,17 +192,17 @@ if __name__=='__main__':
       if (prune_interval_count % args.snapshot_interval) == 0:
         pruning_solver.net.save(pruned_snapshot_path)
 
-    if args.log_file:
-      if (args.snapshot_interval > 0) and (prune_interval_count % args.snapshot_interval) == 0:
-        print(test_acc, removed_weights, total_weights, file=logfile)
-      else:
-        print(test_acc, removed_weights, total_weights, file=logfile)
-
     removed_weights = 0
     total_weights = 0
     for layer_name in layer_list:
       removed_weights += prune_state[layer_name].size
       total_weights += net.layer_dict[layer_name].blobs[0].data.size
+
+    if args.log_file:
+      if (args.snapshot_interval > 0) and (prune_interval_count % args.snapshot_interval) == 0:
+        print(test_acc, removed_weights, total_weights, file=logfile)
+      else:
+        print(test_acc, removed_weights, total_weights, file=logfile)
 
     if args.verbose:
       print("Test accuracy:", test_acc)
