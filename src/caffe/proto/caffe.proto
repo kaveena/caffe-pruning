@@ -387,7 +387,7 @@ message LayerParameter {
   optional ConcatParameter concat_param = 104;
   optional ContrastiveLossParameter contrastive_loss_param = 105;
   optional ConvolutionParameter convolution_param = 106;
-  optional ConvolutionMaskedParameter convolution_masked_param = 149;
+  optional ConvolutionMaskParameter convolution_mask_param = 149;
   optional ConvolutionSaliencyParameter convolution_saliency_param = 151;
   optional CropParameter crop_param = 144;
   optional DataParameter data_param = 107;
@@ -649,7 +649,7 @@ message ConvolutionParameter {
   optional bool force_nd_im2col = 17 [default = false];
 }
 
-message ConvolutionMaskedParameter {
+message ConvolutionMaskParameter {
 
   optional bool default_init = 1 [default = true]; // use default initialisation of ones for masks
   optional FillerParameter mask_filler = 2; // The filler for the weight and bias
@@ -1364,7 +1364,7 @@ message V1LayerParameter {
   optional ConcatParameter concat_param = 9;
   optional ContrastiveLossParameter contrastive_loss_param = 40;
   optional ConvolutionParameter convolution_param = 10;
-  optional ConvolutionMaskedParameter convolution_masked_param = 50;
+  optional ConvolutionMaskParameter convolution_mask_param = 50;
   optional ConvolutionSaliencyParameter convolution_saliency_param = 52;
   optional DataParameter data_param = 11;
   optional DropoutParameter dropout_param = 12;
