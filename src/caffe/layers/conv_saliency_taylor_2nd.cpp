@@ -13,7 +13,7 @@ void taylor_2nd_kernel_cpu(const int N, const int num, const Dtype * data, const
 #endif
   for (int i=0; i<N; i++) {
     taylor_2nd[i] = ( 0.5 * data[i] * data[i] * ddiff[i] ) - (num * data[i] * diff[i]);
-  }   
+  }
 }
 
 template <typename Dtype>
@@ -21,13 +21,13 @@ void ConvolutionLayer<Dtype>::compute_taylor_2nd_cpu(const Dtype *  act_data, co
   Dtype * output_saliency_data = NULL;
   Dtype * input_saliency_data = NULL;
   if (this->output_channel_saliency_compute_) {
-    output_saliency_data = output_saliencies_points_.mutable_cpu_data();    
+    output_saliency_data = output_saliencies_points_.mutable_cpu_data();
     taylor_2nd_kernel_cpu<Dtype>(
         output_saliencies_points_.count(), this->num_, act_data, act_diff, act_ddiff, output_saliency_data);
   }
-  
+
   if (this->input_channel_saliency_compute_) {
-    input_saliency_data = input_saliencies_points_.mutable_cpu_data();    
+    input_saliency_data = input_saliencies_points_.mutable_cpu_data();
     taylor_2nd_kernel_cpu<Dtype>(
         input_saliencies_points_.count(), this->num_, input_data, input_diff, input_ddiff, input_saliency_data);
   }
@@ -57,7 +57,7 @@ void ConvolutionLayer<Dtype>::compute_taylor_2nd_weights_cpu(Blob<Dtype> * weigh
   }
 
   caffe_scal(weights_n->count(), 1/(Dtype)(2*(this->num_)), points_saliency_data);  //1/2N * (a * d2E/da2)
-  caffe_sub(weights_n->count(), points_saliency_data, weights_n_diff, points_saliency_data); //(a/2N * d2E/da2) - 1/N * dE/da 
+  caffe_sub(weights_n->count(), points_saliency_data, weights_n_diff, points_saliency_data); //(a/2N * d2E/da2) - 1/N * dE/da
   for (int n = 0; n<this->num_; n++) {
     caffe_mul(this->blobs_[0]->count(), weights, points_saliency_data + n * this->blobs_[0]->count(), points_saliency_data + n * this->blobs_[0]->count()); //(a**2/2N * d2E/da2) - a/N*dE/da
   }

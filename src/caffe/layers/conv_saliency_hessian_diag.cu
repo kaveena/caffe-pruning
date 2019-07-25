@@ -10,14 +10,14 @@ void ConvolutionLayer<Dtype>::compute_hessian_diag_gpu(const Dtype *  act_data, 
   Dtype* output_saliency_data = NULL;
   Dtype* input_saliency_data = NULL;
   if (this->output_channel_saliency_compute_) {
-    output_saliency_data = output_saliencies_points_.mutable_gpu_data(); 
+    output_saliency_data = output_saliencies_points_.mutable_gpu_data();
     caffe_gpu_mul(output_saliencies_points_.count(), act_data, act_data, output_saliency_data);
     caffe_gpu_mul(output_saliencies_points_.count(), output_saliency_data, act_ddiff, output_saliency_data);
     caffe_gpu_scal(output_saliencies_points_.count(), 1/(Dtype)(2), output_saliency_data);
   }
 
   if (this->input_channel_saliency_compute_) {
-    input_saliency_data = input_saliencies_points_.mutable_gpu_data(); 
+    input_saliency_data = input_saliencies_points_.mutable_gpu_data();
     caffe_gpu_mul(input_saliencies_points_.count(), input_data, input_data, input_saliency_data);
     caffe_gpu_mul(input_saliencies_points_.count(), input_saliency_data, input_ddiff, input_saliency_data);
     caffe_gpu_scal(input_saliencies_points_.count(), 1/(Dtype)(2), input_saliency_data);

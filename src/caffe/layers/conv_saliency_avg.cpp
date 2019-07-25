@@ -10,11 +10,11 @@ void ConvolutionLayer<Dtype>::compute_weight_avg_cpu(const Dtype *  act_data, co
   Dtype* output_saliency_data = NULL;
   Dtype* input_saliency_data = NULL;
   if (this->output_channel_saliency_compute_) {
-    output_saliency_data = output_saliencies_points_.mutable_cpu_data();    
+    output_saliency_data = output_saliencies_points_.mutable_cpu_data();
     caffe_copy(output_saliencies_points_.count(), act_data, output_saliency_data);
   }
   if (this->input_channel_saliency_compute_) {
-    input_saliency_data = input_saliencies_points_.mutable_cpu_data(); 
+    input_saliency_data = input_saliencies_points_.mutable_cpu_data();
     caffe_copy(input_saliencies_points_.count(), input_data, input_saliency_data);
   }
   compute_norm_and_batch_avg_cpu(output_saliency_data, input_saliency_data, saliency_info_out, saliency_info_in);
@@ -27,11 +27,11 @@ void ConvolutionLayer<Dtype>::compute_weight_avg_weights_cpu(Blob<Dtype> * weigh
 
   const Dtype* bias;
   Dtype* bias_saliency_data;
-  
+
   int kernel_size = this->blobs_[0]->count(2,4);
   int weights_count = this->blobs_[0]->count();
   int bias_count;
-  
+
   if (this->bias_term_) {
     bias_count = this->blobs_[1]->count();
   }
@@ -85,15 +85,15 @@ void ConvolutionLayer<Dtype>::compute_weight_avg_weights_cpu(Blob<Dtype> * weigh
 
 template <typename Dtype>
 void ConvolutionLayer<Dtype>::compute_diff_avg_cpu(const Dtype *  act_diff, const Dtype * input_diff, Dtype * saliency_info_out, Dtype * saliency_info_in) {
-  Dtype* output_saliency_data = NULL;    
-  Dtype* input_saliency_data = NULL;    
+  Dtype* output_saliency_data = NULL;
+  Dtype* input_saliency_data = NULL;
   if (this->output_channel_saliency_compute_) {
-    output_saliency_data = output_saliencies_points_.mutable_cpu_data();    
+    output_saliency_data = output_saliencies_points_.mutable_cpu_data();
     caffe_copy(output_saliencies_points_.count(), act_diff, output_saliency_data);
     caffe_scal(output_saliencies_points_.count(), (Dtype) this->num_, output_saliency_data);
   }
   if (this->input_channel_saliency_compute_) {
-    input_saliency_data = input_saliencies_points_.mutable_cpu_data(); 
+    input_saliency_data = input_saliencies_points_.mutable_cpu_data();
     caffe_copy(input_saliencies_points_.count(), input_diff, input_saliency_data);
     caffe_scal(input_saliencies_points_.count(), (Dtype) this->num_, input_saliency_data);
   }

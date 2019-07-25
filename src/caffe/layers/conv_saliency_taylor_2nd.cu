@@ -10,7 +10,7 @@ __global__ void taylor_2nd_kernel_gpu(const int N, const int num, const Dtype * 
   int i = blockIdx.x * blockDim.x + threadIdx.x;
   if (i < N) {
     taylor_2nd[i] = ( 0.5 * data[i] * data[i] * ddiff[i] ) - (num * data[i] * diff[i]);
-  }   
+  }
 }
 
 template <typename Dtype>
@@ -18,13 +18,13 @@ void ConvolutionLayer<Dtype>::compute_taylor_2nd_gpu(const Dtype *  act_data, co
   Dtype * output_saliency_data = NULL;
   Dtype * input_saliency_data = NULL;
   if (this->output_channel_saliency_compute_) {
-    output_saliency_data = output_saliencies_points_.mutable_gpu_data();    
+    output_saliency_data = output_saliencies_points_.mutable_gpu_data();
     taylor_2nd_kernel_gpu<Dtype><<<CAFFE_GET_BLOCKS(output_saliencies_points_.count()), CAFFE_CUDA_NUM_THREADS>>>(
         output_saliencies_points_.count(), this->num_, act_data, act_diff, act_ddiff, output_saliency_data);
   }
-  
+
   if (this->input_channel_saliency_compute_) {
-    input_saliency_data = input_saliencies_points_.mutable_gpu_data();    
+    input_saliency_data = input_saliencies_points_.mutable_gpu_data();
     taylor_2nd_kernel_gpu<Dtype><<<CAFFE_GET_BLOCKS(input_saliencies_points_.count()), CAFFE_CUDA_NUM_THREADS>>>(
         input_saliencies_points_.count(), this->num_, input_data, input_diff, input_ddiff, input_saliency_data);
   }
@@ -54,7 +54,7 @@ void ConvolutionLayer<Dtype>::compute_taylor_2nd_weights_gpu(Blob<Dtype> * weigh
   }
 
   caffe_gpu_scal(weights_n->count(), 1/(Dtype)(2*(this->num_)), points_saliency_data);  //1/2N * (a * d2E/da2)
-  caffe_gpu_sub(weights_n->count(), points_saliency_data, weights_n_diff, points_saliency_data); //(a/2N * d2E/da2) - 1/N * dE/da 
+  caffe_gpu_sub(weights_n->count(), points_saliency_data, weights_n_diff, points_saliency_data); //(a/2N * d2E/da2) - 1/N * dE/da
   for (int n = 0; n<this->num_; n++) {
     caffe_gpu_mul(this->blobs_[0]->count(), weights, points_saliency_data + n * this->blobs_[0]->count(), points_saliency_data + n * this->blobs_[0]->count()); //(a**2/2N * d2E/da2) - a/N*dE/da
   }

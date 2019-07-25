@@ -143,14 +143,12 @@ class Caffe {
 
   // Returns the mode: running on CPU or GPU.
   inline static Brew mode() { return Get().mode_; }
-  inline static bool derivative_compute() { return Get().derivative_compute_; }
   // The setters for the variables
   // Sets the mode. It is recommended that you don't change the mode halfway
   // into the program since that may cause allocation of pinned memory being
   // freed in a non-pinned way, which may cause problems - I haven't verified
   // it personally but better to note it here in the header file.
   inline static void set_mode(Brew mode) { Get().mode_ = mode; }
-  inline static void set_derivative_compute(bool compute_derivative) { Get().derivative_compute_ = compute_derivative; }
   // Sets the random seed of both boost and curand
   static void set_random_seed(const unsigned int seed);
   // Sets the device. Since we have cublas and curand stuff, set device also
@@ -170,6 +168,8 @@ class Caffe {
   inline static void set_solver_rank(int val) { Get().solver_rank_ = val; }
   inline static bool multiprocess() { return Get().multiprocess_; }
   inline static void set_multiprocess(bool val) { Get().multiprocess_ = val; }
+  inline static bool derivative_compute() { return Get().derivative_compute_; }
+  inline static void set_derivative_compute(bool val) { Get().derivative_compute_ = val; }
   inline static bool root_solver() { return Get().solver_rank_ == 0; }
 
  protected:
@@ -184,8 +184,8 @@ class Caffe {
   // Parallel training
   int solver_count_;
   int solver_rank_;
-  bool multiprocess_;
   bool derivative_compute_;
+  bool multiprocess_;
 
  private:
   // The private constructor to avoid duplicate instantiation.
