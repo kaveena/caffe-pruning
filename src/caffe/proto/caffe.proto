@@ -667,7 +667,6 @@ message ConvolutionSaliencyParameter {
     TAYLOR_2ND_APPROX2 = 4;
     WEIGHT_AVG = 5;
     DIFF_AVG = 6;
-    ALL = 7; //needs to correspond to number of enum values excluding ALL
   }
   enum NORM {
     NONE = 0;
@@ -682,12 +681,12 @@ message ConvolutionSaliencyParameter {
   }
   // what saliency measure to use for the activations
   required bool saliency_term = 2 [default = false]; // whether to have saliency terms
-  optional SALIENCY saliency = 1 [default = WEIGHT_AVG];
   optional bool accum = 3 [default = true]; // whether to accumulate saliency over different batches
-  optional NORM norm = 4 [default = NONE];
-  optional INPUT input = 5 [default = ACTIVATION];
   optional bool output_channel_compute = 6 [default = true]; // whether to accumulate saliency over different batches
   optional bool input_channel_compute = 7 [default = false]; // whether to accumulate saliency over different batches
+  repeated SALIENCY saliency = 1;
+  repeated NORM saliency_norm = 4;
+  repeated INPUT saliency_input = 5;
 }
 
 message CropParameter {

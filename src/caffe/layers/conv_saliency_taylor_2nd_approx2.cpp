@@ -17,27 +17,18 @@ void taylor_2nd_approx2_kernel_cpu(const int N, const int num, const Dtype * dat
 }
 
 template <typename Dtype>
-void ConvolutionLayer<Dtype>::compute_taylor_2nd_approx2_cpu(const Dtype *  act_data, const Dtype * act_diff, const Dtype * input_data, const Dtype * input_diff, Dtype * taylor_2nd_out, Dtype * taylor_2nd_in) {
+void ConvolutionLayer<Dtype>::compute_taylor_2nd_approx2_cpu(const Dtype *  act_data, const Dtype * act_diff, caffe::ConvolutionSaliencyParameter::NORM saliency_norm_, Dtype * taylor_2nd_out) {
   Dtype * output_saliency_data = NULL;
-  Dtype * input_saliency_data = NULL;
-  if (this->output_channel_saliency_compute_) {
-    output_saliency_data = output_saliencies_points_.mutable_cpu_data();
-    taylor_2nd_approx2_kernel_cpu<Dtype>(
-        output_saliencies_points_.count(), this->num_, act_data, act_diff, output_saliency_data);
-  }
+  output_saliency_data = output_saliencies_points_.mutable_cpu_data();
+  taylor_2nd_approx2_kernel_cpu<Dtype>(
+      output_saliencies_points_.count(), this->num_, act_data, act_diff, output_saliency_data);
 
-  if (this->input_channel_saliency_compute_) {
-    input_saliency_data = input_saliencies_points_.mutable_cpu_data();
-    taylor_2nd_approx2_kernel_cpu<Dtype>(
-        input_saliencies_points_.count(), this->num_, input_data, input_diff, input_saliency_data);
-  }
-
-  compute_norm_and_batch_avg_cpu(output_saliency_data, input_saliency_data, taylor_2nd_out, taylor_2nd_in);
+  compute_norm_and_batch_avg_cpu(output_saliency_data, saliency_norm_, taylor_2nd_out);
 
 }
 
 template <typename Dtype>
-void ConvolutionLayer<Dtype>::compute_taylor_2nd_approx2_weights_cpu(Blob<Dtype> * weights_n, Blob<Dtype> * bias_n, Dtype * taylor_2nd_out, Dtype *taylor_2nd_in) {
+void ConvolutionLayer<Dtype>::compute_taylor_2nd_approx2_weights_cpu(Blob<Dtype> * weights_n, Blob<Dtype> * bias_n, caffe::ConvolutionSaliencyParameter::NORM saliency_norm_, Dtype * taylor_2nd_out) {
   const Dtype* weights = this->blobs_[0]->cpu_data();
   const Dtype* weights_n_diff = weights_n->cpu_diff();
   Dtype* points_saliency_data = weights_n->mutable_cpu_data();
@@ -81,12 +72,12 @@ void ConvolutionLayer<Dtype>::compute_taylor_2nd_approx2_weights_cpu(Blob<Dtype>
     caffe_scal(bias_n->count(), (Dtype)(this->num_), bias_saliency_data);
   }
 
-  compute_norm_and_batch_avg_weights_cpu(points_saliency_data, bias_saliency_data, taylor_2nd_out, taylor_2nd_in);
+  compute_norm_and_batch_avg_weights_cpu(points_saliency_data, bias_saliency_data, saliency_norm_, taylor_2nd_out);
 }
 
-template void ConvolutionLayer<float>::compute_taylor_2nd_approx2_cpu(const float *  act_data, const float * act_diff, const float * input_data, const float * input_diff, float * taylor_2nd_out, float * taylor_2nd_in);
-template void ConvolutionLayer<double>::compute_taylor_2nd_approx2_cpu(const double *  act_data, const double * act_diff, const double * input_data, const double * input_diff, double * taylor_2nd_out, double * taylor_2nd_in);
+template void ConvolutionLayer<float>::compute_taylor_2nd_approx2_cpu(const float *  act_data, const float * act_diff, caffe::ConvolutionSaliencyParameter::NORM saliency_norm_, float * taylor_2nd_out);
+template void ConvolutionLayer<double>::compute_taylor_2nd_approx2_cpu(const double *  act_data, const double * act_diff, caffe::ConvolutionSaliencyParameter::NORM saliency_norm_, double * taylor_2nd_out);
 
-template void ConvolutionLayer<float>::compute_taylor_2nd_approx2_weights_cpu(Blob<float> * weights_n, Blob<float> * bias_n, float * taylor_2nd_out, float *taylor_2nd_in);
-template void ConvolutionLayer<double>::compute_taylor_2nd_approx2_weights_cpu(Blob<double> * weights_n, Blob<double> * bias_n, double * taylor_2nd_out, double *taylor_2nd_in);
+template void ConvolutionLayer<float>::compute_taylor_2nd_approx2_weights_cpu(Blob<float> * weights_n, Blob<float> * bias_n, caffe::ConvolutionSaliencyParameter::NORM saliency_norm_, float * taylor_2nd_out);
+template void ConvolutionLayer<double>::compute_taylor_2nd_approx2_weights_cpu(Blob<double> * weights_n, Blob<double> * bias_n, caffe::ConvolutionSaliencyParameter::NORM saliency_norm_, double * taylor_2nd_out);
 }  // namespace caffe

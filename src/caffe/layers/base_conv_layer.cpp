@@ -149,12 +149,12 @@ void BaseConvolutionLayer<Dtype>::LayerSetUp(const vector<Blob<Dtype>*>& bottom,
   this->saliency_term_ = this->layer_param_.convolution_saliency_param().saliency_term();
   int saliency_shape_0_ = 0;
   if (this->saliency_term_) {
-    if ( this->layer_param_.convolution_saliency_param().saliency() == caffe::ConvolutionSaliencyParameter::ALL  ){
-      saliency_shape_0_ = (int) (caffe::ConvolutionSaliencyParameter::ALL);
+    // check if the correct number of pointwise saliency, saliency input and norm have been provided
+    if (!((conv_saliency_param.saliency_size() == conv_saliency_param.saliency_input_size()) 
+      && (conv_saliency_param.saliency_size() == conv_saliency_param.saliency_norm_size()))) {
+      LOG(FATAL) << "saliency, saliency_input and saliency_norm for each saliency measure" ;
     }
-    else {
-      saliency_shape_0_ = 1;
-    }
+    saliency_shape_0_ = conv_saliency_param.saliency_size();
   }
   vector<int> saliency_out_shape = {saliency_shape_0_, this->num_output_};
   vector<int> saliency_in_shape = {saliency_shape_0_, this->channels_ / this->group_};
