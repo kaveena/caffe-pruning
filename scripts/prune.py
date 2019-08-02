@@ -54,6 +54,8 @@ def parser():
             help='After how many pruning steps to test')
     parser.add_argument('--gpu', action='store_true', default=False,
             help='Use GPU')
+    parser.add_argument('--preserve-bias', action='store_true', default=False,
+            help='Preserve the bias for pruned channels')
     parser.add_argument('--verbose', action='store_true', default=False,
             help='Print summary of pruning process')
     parser.add_argument('--accuracy-layer-name', action='store', default='top-1',
@@ -75,7 +77,7 @@ def test(solver, itr, accuracy_layer_name, loss_layer_name):
     accuracy[j] /= float(itr)
   return accuracy[accuracy_layer_name]*100.0, accuracy[loss_layer_name]
 
-def update_mask(net, pruned_channel, convolution_list, channels, prune=True, final=True):
+def update_mask(net, pruned_channel, convolution_list, channels, keep_bias, prune=True, final=True):
   fill = 0 if prune else 1
   idx = np.where(channels>pruned_channel)[0][0]
   idx_convolution = convolution_list[idx]
@@ -87,7 +89,7 @@ def update_mask(net, pruned_channel, convolution_list, channels, prune=True, fin
   if final and prune and bias:
     conv_module.blobs[1].data[idx_channel] = 0
   conv_module.blobs[conv_module.mask_pos_].data[idx_channel].fill(fill)
-  if bias:
+  if bias and not keep_bias:
     conv_module.blobs[conv_module.mask_pos_+1].data[idx_channel] = 0
 
 if __name__=='__main__':
@@ -223,7 +225,7 @@ if __name__=='__main__':
 
       prune_channel_idx = np.argmin(pruning_signal[active_channel])
       prune_channel = active_channel[prune_channel_idx]
-      update_mask(net, prune_channel, convolution_list, channels, final=True)
+      update_mask(net, prune_channel, convolution_list, channels, args.preserve_bias, final=True)
 
       if args.retrain:
         saliency_solver.step(args.train_size)
