@@ -96,6 +96,10 @@ def parser():
             help='prune input channels only')
     parser.add_argument('--input-output-channels', type=str2bool, nargs='?', default=False,
             help='prune input and output channels')
+    parser.add_argument('--preserve-bias', action='store_true', default=False,
+            help='Whether to preserve the bias values for pruned channels')
+    parser.add_argument('--gpu', action='store_true', default=False,
+            help='Use GPU')
     return parser
 
 def get_producer_convolution(net, initial_parents, producer_conv, conv_type, conv_index):
@@ -163,7 +167,7 @@ def test(solver, itr):
     accuracy[j] /= float(itr)
   return accuracy['top-1']*100.0, accuracy['loss']
 
-def UpdateMask(net, idx_channel, conv_module, fill, final=True, input=False):
+def UpdateMask(net, idx_channel, conv_module, fill, preserve_bias, final=True, input=False):
   if 'Convolution' in conv_module.type:
     bias = conv_module.bias_term_
     prune = fill == 0
@@ -191,21 +195,21 @@ def UpdateMask(net, idx_channel, conv_module, fill, final=True, input=False):
       if final and prune and bias:
         conv_module.blobs[1].data[idx_channel] = 0
       conv_module.blobs[conv_module.mask_pos_].data[idx_channel].fill(fill)
-      if bias:
+      if bias and not preserve_bias:
         conv_module.blobs[conv_module.mask_pos_+1].data[idx_channel] = 0
         conv_module.active_output_channels[idx_channel] = fill
 
-def PruneChannel(net, pruned_channel, convolution_list, channels, prune=True, final=True, input=False):
+def PruneChannel(net, pruned_channel, convolution_list, channels, preserve_bias, prune=True, final=True, input=False):
   fill = 0 if prune else 1
   idx = np.where(channels>pruned_channel)[0][0]
   idx_convolution = convolution_list[idx]
   idx_channel = (pruned_channel - channels[idx-1]) if idx > 0 else pruned_channel
   conv_module = net.layer_dict[idx_convolution]
-  UpdateMask(net, idx_channel, conv_module, fill, final, input)
+  UpdateMask(net, idx_channel, conv_module, fill, preserve_bias, final, input)
   if input: # remove previous conv's output channel
     for c in conv_module.sources:
       if net.layer_dict[c].type == 'Convolution':
-        UpdateMask(net, idx_channel, net.layer_dict[c], fill, final, input=False)
+        UpdateMask(net, idx_channel, net.layer_dict[c], fill, preserve_bias, final, input=False)
   else: # remove next conv's input channel
     for i in range(len(conv_module.sinks)):
       c = conv_module.sinks[i]
@@ -217,9 +221,9 @@ def PruneChannel(net, pruned_channel, convolution_list, channels, prune=True, fi
               if c.sources[j] == c:
                 break
               c_offset += layer_dict[c.sources[j]].output_channels
-            UpdateMask(net, idx_channel + c_offset, net.layer_dict[c], fill, final, input=True)
+            UpdateMask(net, idx_channel + c_offset, net.layer_dict[c], fill, preserve_bias, final, input=True)
 
-        UpdateMask(net, idx_channel, net.layer_dict[c], fill, final, input=True)
+        UpdateMask(net, idx_channel, net.layer_dict[c], fill, preserve_bias, final, input=True)
 
 def weights_removed(net, idx_channel, conv_module, input=False):
   num_weights = 0
@@ -249,9 +253,11 @@ if __name__=='__main__':
   if args.arch is None:
     print("Caffe solver needed")
     exit(1)
+  if args.gpu:
+    caffe.set_mode_gpu()
+
   #  Allocate two models : one for masking weights and retraining (weights + mask)
   #                          one for computing saliency (weights + masks + saliency)
-  caffe.set_mode_gpu()
   net = caffe.Net(args.arch_saliency, caffe.TEST) # net used to compute saliency
   saliency_solver = caffe.SGDSolver(args.arch)
   saliency_solver.net.copy_from(args.pretrained)
@@ -442,7 +448,7 @@ if __name__=='__main__':
 
     prune_channel_idx = np.argmin(pruning_signal[active_channel])
     prune_channel = active_channel[prune_channel_idx]
-    PruneChannel(net, prune_channel, convolution_list, channels, final=True, input=args.input_channels_only)
+    PruneChannel(net, prune_channel, convolution_list, channels, args.preserve_bias, final=True, input=args.input_channels_only)
 
     if args.characterise:
       output_train = saliency_solver.net.forward()
@@ -490,5 +496,5 @@ if __name__=='__main__':
   summary['exec_time'] = end - start
   np.save(args.filename, summary)
 
-  caffe.set_mode_cpu()
+  #caffe.set_mode_cpu()
 
