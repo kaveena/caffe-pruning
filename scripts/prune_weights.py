@@ -10,6 +10,13 @@ import time
 
 sys.dont_write_bytecode = True
 
+saliency_pos_ = 4
+mask_pos_ = 2
+
+_caffe_saliencies_ = caffe._caffe.SALIENCY.names
+_caffe_saliency_input_ = caffe._caffe.SALIENCY_INPUT.names
+_caffe_saliency_norm_ = caffe._caffe.SALIENCY_NORM.names
+
 def test(solver, itr, accuracy_layer_name, loss_layer_name):
   accuracy = dict()
   for i in range(itr):
@@ -36,7 +43,7 @@ def prune_mask(net, pruned_layer_name, pruned_weight_idx):
   layer.blobs[2].data.flat[p] = 0
 
 def parser():
-    parser = argparse.ArgumentParser(description='Caffe Output Channel Pruning Script')
+    parser = argparse.ArgumentParser(description='Caffe Weight Pruning Tool')
     parser.add_argument('--log-file', action='store', default=None,
             help='the file to log pruning data')
     parser.add_argument('--solver', action='store', default=None,
@@ -57,7 +64,7 @@ def parser():
             help='Maximum proportion of remaining weights to prune in one step (per-layer)')
     parser.add_argument('--prune-factor-ramp', type=float, default=1.0,
             help='Amount to decrease the prune factor each iteration')
-    parser.add_argument('--prune-test-iterations', type=int, default=10,
+    parser.add_argument('--prune-test-batches', type=int, default=10,
             help='Number of batches to use for testing')
     parser.add_argument('--finetune-batches', type=int, default=75,
             help='Number of batches to use for finetuning')
@@ -133,7 +140,7 @@ if __name__=='__main__':
     prune_state[layer] = np.setdiff1d(np.nonzero(mask_data), np.arange(mask_data.size))
 
   # Get initial test accuraccy
-  test_acc, ce_loss = test(pruning_solver, args.prune_test_iterations, args.accuracy_layer_name, args.loss_layer_name)
+  test_acc, ce_loss = test(pruning_solver, args.prune_test_batches, args.accuracy_layer_name, args.loss_layer_name)
 
   if args.verbose:
     print("Initial test accuracy:", test_acc)
@@ -181,7 +188,7 @@ if __name__=='__main__':
 
     # Test if required
     if (prune_interval_count % args.prune_test_interval) == 0:
-      test_acc, ce_loss = test(pruning_solver, args.prune_test_iterations, args.accuracy_layer_name, args.loss_layer_name)
+      test_acc, ce_loss = test(pruning_solver, args.prune_test_batches, args.accuracy_layer_name, args.loss_layer_name)
 
     # Adjust prune factor with specified ramp
     prune_factor *= prune_factor_ramp
