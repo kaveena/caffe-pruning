@@ -486,6 +486,7 @@ if __name__=='__main__':
     summary['predicted_eval_loss'][j] = (pruning_signal[active_channel])[prune_channel_idx]
     print(args.normalisation, method, ' Step: ', j +1,'  ||   Remove Channel: ', prune_channel, '  ||  Test Acc: ', test_acc)
     active_channel.remove(prune_channel)
+    sys.stdout.flush()
 
     if test_acc < args.stop_acc:
         break
