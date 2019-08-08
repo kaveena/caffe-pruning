@@ -387,7 +387,7 @@ if __name__=='__main__':
     if method in _caffe_saliencies_:
       for layer in convolution_list:
         named_modules[layer].blobs[named_modules[layer].saliency_pos_].data.fill(0) # reset saliency
-        named_modules[layer].blobs[named_modules[layer].saliency_pos_+1].data.fill(0) # reset saliency
+        #named_modules[layer].blobs[named_modules[layer].saliency_pos_+1].data.fill(0) # reset saliency
         if args.input_channels_only :
           named_modules[layer].saliency_input_channel_compute_ = True
           named_modules[layer].saliency_output_channel_compute_ = False
