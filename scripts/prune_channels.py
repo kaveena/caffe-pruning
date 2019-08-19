@@ -12,6 +12,7 @@ sys.dont_write_bytecode = True
 
 saliency_pos_ = 4
 mask_pos_ = 2
+bias_pos_ = 1
 
 _caffe_saliencies_ = caffe._caffe.SALIENCY.names
 _caffe_saliency_input_ = caffe._caffe.SALIENCY_INPUT.names
@@ -452,6 +453,14 @@ if __name__=='__main__':
 
     if args.characterise:
       output_train = saliency_solver.net.forward()
+      # TODO:
+      # We have data in all the output feature maps at this point, and
+      # we can inspect them to see what the distributions are like.
+      #for layer in convolution_list:
+        #conv_module = named_modules[layer]
+        #if conv_module.bias_term_:
+          #bias_blob = conv_module.blobs[1] # extract the bias blob
+          #summary['bias'+layer][j] = bias_blob.data
       current_loss = output_train['loss']
       current_acc = output_train['top-1']
       summary['train_loss'][j] = current_loss
