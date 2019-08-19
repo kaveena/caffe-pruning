@@ -1,6 +1,7 @@
 # modified from https://stackoverflow.com/a/37616966
 #matplotlib inline
 
+import os
 import warnings
 import numpy as np
 import pandas as pd
@@ -19,10 +20,12 @@ def parser():
             help='model prototxt to use')
     parser.add_argument('--weights', action='store', default=None,
             help='weights to analyze')
+    parser.add_argument('--output-dir', action='store', default=None,
+            help='directory to store distribution plots')
     return parser
 
 # Create models from data
-def best_fit_distribution(data, bins=200, ax=None):
+def best_fit_distribution(data, bins=200):
     """Model data by finding best fit distribution to data"""
     # Get histogram of original data
     y, x = np.histogram(data, bins=bins, density=True)
@@ -70,14 +73,6 @@ def best_fit_distribution(data, bins=200, ax=None):
                 pdf = distribution.pdf(x, loc=loc, scale=scale, *arg)
                 sse = np.sum(np.power(y - pdf, 2.0))
 
-                # if axis pass in add to plot
-                try:
-                    if ax:
-                        pd.Series(pdf, x).plot(ax=ax)
-                    end
-                except Exception:
-                    pass
-
                 # identify if this distribution is better
                 if best_sse > sse > 0:
                     best_distribution = distribution
@@ -111,6 +106,18 @@ def make_pdf(dist, params, size=10000):
 if __name__=='__main__':
   args = parser().parse_args()
 
+  if args.model is None:
+    print("Missing --model argument")
+    exit(1)
+
+  if args.weights is None:
+    print("Missing --weights argument")
+    exit(1)
+
+  if args.output_dir is None:
+    print("Missing --output-directory argument")
+    exit(1)
+
   # Load the Caffe model
   net = caffe.Net(args.model, caffe.TEST)
   net.copy_from(args.weights)
@@ -127,26 +134,26 @@ if __name__=='__main__':
     data = pd.Series(named_modules[layer].blobs[0].data.flatten())
 
     # Plot for comparison
-    plt.figure(figsize=(12,8))
-    ax = data.plot(kind='hist', bins=50, density=True, alpha=0.5)
+    #plt.figure(figsize=(12,8))
+    #ax = data.plot(kind='hist', bins=50, density=True, alpha=0.5)
     # Save plot limits
-    dataYLim = ax.get_ylim()
+    #dataYLim = ax.get_ylim()
 
     # Find best fit distribution
-    best_fit_name, best_fit_params = best_fit_distribution(data, 200, ax)
+    best_fit_name, best_fit_params = best_fit_distribution(data, 200)
     best_dist = getattr(st, best_fit_name)
 
     # Update plots
-    ax.set_ylim(dataYLim)
-    ax.set_title(u'Layer ' + layer)
-    ax.set_xlabel(u'Weight Magnitude')
-    ax.set_ylabel('Frequency')
+    #ax.set_ylim(dataYLim)
+    #ax.set_title(u'Layer ' + layer)
+    #ax.set_xlabel(u'Weight Magnitude')
+    #ax.set_ylabel('Frequency')
 
     # Make PDF with best params
     pdf = make_pdf(best_dist, best_fit_params)
 
     # Display
-    plt.figure(figsize=(12,8))
+    fig = plt.figure(figsize=(12,8))
     ax = pdf.plot(lw=2, label='PDF', legend=True)
     data.plot(kind='hist', bins=50, density=True, alpha=0.5, label='Data', legend=True, ax=ax)
 
@@ -157,3 +164,6 @@ if __name__=='__main__':
     ax.set_title('Layer ' + layer + ' with best fit distribution \n' + dist_str)
     ax.set_xlabel('Weight Magnitude')
     ax.set_ylabel('Frequency')
+
+    plt.savefig(os.path.join(args.output_dir, layer+'.pdf'))
+    plt.close(fig)
