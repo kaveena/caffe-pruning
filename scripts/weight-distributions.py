@@ -20,12 +20,14 @@ def parser():
             help='model prototxt to use')
     parser.add_argument('--weights', action='store', default=None,
             help='weights to analyze')
+    parser.add_argument('--bins', action='store', type=int, default=50,
+            help='weights to analyze')
     parser.add_argument('--output-dir', action='store', default=None,
             help='directory to store distribution plots')
     return parser
 
 # Create models from data
-def best_fit_distribution(data, bins=200):
+def best_fit_distribution(data, bins):
     """Model data by finding best fit distribution to data"""
     # Get histogram of original data
     y, x = np.histogram(data, bins=bins, density=True)
@@ -142,7 +144,7 @@ if __name__=='__main__':
       #dataYLim = ax.get_ylim()
 
       # Find best fit distribution
-      best_fit_name, best_fit_params = best_fit_distribution(data, 200)
+      best_fit_name, best_fit_params = best_fit_distribution(data, args.bins)
       best_dist = getattr(st, best_fit_name)
 
       # Update plots
