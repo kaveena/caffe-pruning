@@ -115,7 +115,7 @@ if __name__=='__main__':
     exit(1)
 
   if args.output_dir is None:
-    print("Missing --output-directory argument")
+    print("Missing --output-dir argument")
     exit(1)
 
   # Load the Caffe model
@@ -131,39 +131,41 @@ if __name__=='__main__':
     c = named_modules[layer].blobs[0].data.shape[1]
     k = named_modules[layer].blobs[0].data.shape[2]
 
-    data = pd.Series(named_modules[layer].blobs[0].data.flatten())
+    for alternative in [0, 1]:
+      altname = ['Weight', 'Bias'][alternative]
+      data = pd.Series(named_modules[layer].blobs[alternative].data.flatten())
 
-    # Plot for comparison
-    #plt.figure(figsize=(12,8))
-    #ax = data.plot(kind='hist', bins=50, density=True, alpha=0.5)
-    # Save plot limits
-    #dataYLim = ax.get_ylim()
+      # Plot for comparison
+      #plt.figure(figsize=(12,8))
+      #ax = data.plot(kind='hist', bins=50, density=True, alpha=0.5)
+      # Save plot limits
+      #dataYLim = ax.get_ylim()
 
-    # Find best fit distribution
-    best_fit_name, best_fit_params = best_fit_distribution(data, 200)
-    best_dist = getattr(st, best_fit_name)
+      # Find best fit distribution
+      best_fit_name, best_fit_params = best_fit_distribution(data, 200)
+      best_dist = getattr(st, best_fit_name)
 
-    # Update plots
-    #ax.set_ylim(dataYLim)
-    #ax.set_title(u'Layer ' + layer)
-    #ax.set_xlabel(u'Weight Magnitude')
-    #ax.set_ylabel('Frequency')
+      # Update plots
+      #ax.set_ylim(dataYLim)
+      #ax.set_title(u'Layer ' + layer)
+      #ax.set_xlabel(u'Weight Magnitude')
+      #ax.set_ylabel('Frequency')
 
-    # Make PDF with best params
-    pdf = make_pdf(best_dist, best_fit_params)
+      # Make PDF with best params
+      pdf = make_pdf(best_dist, best_fit_params)
 
-    # Display
-    fig = plt.figure(figsize=(12,8))
-    ax = pdf.plot(lw=2, label='PDF', legend=True)
-    data.plot(kind='hist', bins=50, density=True, alpha=0.5, label='Data', legend=True, ax=ax)
+      # Display
+      fig = plt.figure(figsize=(12,8))
+      ax = pdf.plot(lw=2, label='PDF', legend=True)
+      data.plot(kind='hist', bins=50, density=True, alpha=0.5, label='Data', legend=True, ax=ax)
 
-    param_names = (best_dist.shapes + ', loc, scale').split(', ') if best_dist.shapes else ['loc', 'scale']
-    param_str = ', '.join(['{}={:0.2f}'.format(k,v) for k,v in zip(param_names, best_fit_params)])
-    dist_str = '{}({})'.format(best_fit_name, param_str)
+      param_names = (best_dist.shapes + ', loc, scale').split(', ') if best_dist.shapes else ['loc', 'scale']
+      param_str = ', '.join(['{}={:0.2f}'.format(k,v) for k,v in zip(param_names, best_fit_params)])
+      dist_str = '{}({})'.format(best_fit_name, param_str)
 
-    ax.set_title('Layer ' + layer + ' with best fit distribution \n' + dist_str)
-    ax.set_xlabel('Weight Magnitude')
-    ax.set_ylabel('Frequency')
+      ax.set_title('Layer ' + layer + ' with best fit distribution \n' + dist_str)
+      ax.set_xlabel(altname + ' Magnitude')
+      ax.set_ylabel('Frequency')
 
-    plt.savefig(os.path.join(args.output_dir, layer+'.pdf'))
-    plt.close(fig)
+      plt.savefig(os.path.join(args.output_dir, layer+'_'+altname+'.pdf'))
+      plt.close(fig)
