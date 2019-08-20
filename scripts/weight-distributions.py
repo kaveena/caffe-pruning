@@ -156,7 +156,7 @@ if __name__=='__main__':
     ax.set_xlabel('Activation' + ' Magnitude')
     ax.set_ylabel('Frequency')
 
-    plt.savefig(os.path.join(args.output_dir, layer+'_'+altname+'.pdf'))
+    plt.savefig(os.path.join(args.output_dir, layer+'_'+'Activation'+'.pdf'))
     plt.close(fig)
 
     # Parameters
