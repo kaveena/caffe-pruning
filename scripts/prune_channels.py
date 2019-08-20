@@ -81,8 +81,7 @@ def get_children(net, layer):
   children = []
   if '_split_' in layer:
     parent_split = layer.split('_split_')[0] + '_split'
-    next_layers = list(net.layer_dict.keys())[(list(net.layer_dict.keys()).index(parent_split)+
-1):]
+    next_layers = list(net.layer_dict.keys())[(list(net.layer_dict.keys()).index(parent_split)+1):]
   else:
     next_layers = list(net.layer_dict.keys())[(list(net.layer_dict.keys()).index(layer)+1):]
   for each in next_layers:
@@ -294,12 +293,14 @@ if __name__=='__main__':
   total_input_channels = 0
   output_channels = []
   input_channels = []
+
   for layer in convolution_list:
     total_output_channels += named_modules[layer].blobs[weight_pos_].num
     total_input_channels += named_modules[layer].blobs[weight_pos_].channels
     output_channels.append(named_modules[layer].blobs[weight_pos_].num)
     input_channels.append(named_modules[layer].blobs[weight_pos_].channels)
     initial_density += named_modules[layer].blobs[weight_pos_].num * named_modules[layer].blobs[weight_pos_].height * named_modules[layer].blobs[weight_pos_].width * named_modules[layer].blobs[weight_pos_].channels
+
   output_channels = np.array(output_channels)
   output_channels = np.cumsum(output_channels)
   input_channels = np.array(input_channels)
@@ -308,7 +309,6 @@ if __name__=='__main__':
   channels = output_channels
 
   net.reshape()
-
 
   print('Total number of channels to be considered for pruning: ', total_channels)
 
