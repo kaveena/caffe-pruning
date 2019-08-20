@@ -47,7 +47,7 @@ def best_fit_distribution(data, bins):
     #    st.uniform,st.vonmises,st.vonmises_line,st.wald,st.weibull_min,st.weibull_max,st.wrapcauchy
     #]
 
-    DISTRIBUTIONS = [st.norm, st.gausshyper, st.gamma, st.logistic, st.lognorm]
+    DISTRIBUTIONS = [st.norm, st.logistic]
 
     # Best holders
     best_distribution = st.norm
