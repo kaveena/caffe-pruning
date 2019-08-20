@@ -415,7 +415,7 @@ if __name__=='__main__':
 
     prune_channel_idx = np.argmin(pruning_signal[active_channel])
     prune_channel = active_channel[prune_channel_idx]
-    PruneChannel(net, prune_channel, convolution_list, channels, args.preserve_bias, final=True, input=False)
+    PruneChannel(net, prune_channel, convolution_list, channels, args.preserve_bias, final=True)
 
     if args.characterise:
       output_train = saliency_solver.net.forward()
