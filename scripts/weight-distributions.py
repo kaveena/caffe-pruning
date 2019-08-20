@@ -133,6 +133,33 @@ if __name__=='__main__':
     c = named_modules[layer].blobs[0].data.shape[1]
     k = named_modules[layer].blobs[0].data.shape[2]
 
+    # Feature Maps
+    data = pd.Series(net.blobs[layer].data.flatten())
+
+    # Find best fit distribution
+    best_fit_name, best_fit_params = best_fit_distribution(data, args.bins)
+    best_dist = getattr(st, best_fit_name)
+
+    # Make PDF with best params
+    pdf = make_pdf(best_dist, best_fit_params)
+
+    # Display
+    fig = plt.figure(figsize=(12,8))
+    ax = pdf.plot(lw=2, label='PDF', legend=True)
+    data.plot(kind='hist', bins=args.bins, density=True, alpha=0.5, label='Data', legend=True, ax=ax)
+
+    param_names = (best_dist.shapes + ', loc, scale').split(', ') if best_dist.shapes else ['loc', 'scale']
+    param_str = ', '.join(['{}={:0.2f}'.format(k,v) for k,v in zip(param_names, best_fit_params)])
+    dist_str = '{}({})'.format(best_fit_name, param_str)
+
+    ax.set_title('Layer ' + layer + ' with best fit distribution \n' + dist_str)
+    ax.set_xlabel('Activation' + ' Magnitude')
+    ax.set_ylabel('Frequency')
+
+    plt.savefig(os.path.join(args.output_dir, layer+'_'+altname+'.pdf'))
+    plt.close(fig)
+
+    # Parameters
     for alternative in [0, 1]:
       altname = ['Weight', 'Bias'][alternative]
       data = pd.Series(named_modules[layer].blobs[alternative].data.flatten())
