@@ -371,7 +371,7 @@ if __name__=='__main__':
     current_eval_loss = 0.0
     current_eval_acc = 0.0
     for iter in range(evalset_size):
-      if method == 'random':
+      if method == 'RANDOM':
         break
       net.clear_param_diffs()
       output = net.forward()
@@ -380,7 +380,7 @@ if __name__=='__main__':
       current_eval_acc += output['top-1']
       if (method == 'WEIGHT_AVG') and (args.saliency_input == 'WEIGHT'):
         break   #no need to do multiple passes of the network
-      if (method == 'apoz'):
+      if (method == 'APOZ'):
         pruning_signal_partial = np.array([])
         if (args.saliency_input == 'ACTIVATION'):
           for layer in convolution_list:
@@ -409,7 +409,7 @@ if __name__=='__main__':
         saliency_normalised = layerwise_normalisation(saliency_data, layer, net)
         pruning_signal = np.hstack([pruning_signal, saliency_normalised])
 
-    if method == 'random':
+    if method == 'RANDOM':
       pruning_signal = np.zeros(total_channels)
       pruning_signal[random.sample(active_channel, 1)] = -1
 
