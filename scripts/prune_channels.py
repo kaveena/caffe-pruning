@@ -10,40 +10,45 @@ import time
 
 sys.dont_write_bytecode = True
 
-saliency_pos_ = 4
-mask_pos_ = 2
+weight_pos_ = 0
 bias_pos_ = 1
+weight_mask_pos_ = 2
+bias_mask_pos_ = 3
+saliency_pos_ = 4
 
 _caffe_saliencies_ = caffe._caffe.SALIENCY.names
 _caffe_saliency_input_ = caffe._caffe.SALIENCY_INPUT.names
 _caffe_saliency_norm_ = caffe._caffe.SALIENCY_NORM.names
 
+def weights_removed(net, idx_channel, conv_module):
+  num_weights = 0
+  num_weights += (conv_module.active_input_channels.sum() * conv_module.kernel_size)
+  if conv_module.bias_term_:
+    num_weights += 1
+  for l in conv_module.sinks:
+    c = net.layer_dict[l]
+    if 'Convolution' in c.type:
+      num_weights += (c.active_output_channels.sum() * c.kernel_size)
+    elif 'InnerProduct' in c.type:
+      num_weights += (c.input_size * c.output_size)
+  return num_weights
+
 def layerwise_normalisation(x, layer, net):
   conv_module = net.layer_dict[layer]
   if args.normalisation == 'l0_normalisation':
-    if args.input_channels_only and (args.saliency_input == 'WEIGHT'):
-      return x / float(conv_module.output_channels * conv_module.kernel_size)
-    elif (args.saliency_input == 'WEIGHT'):
+    if (args.saliency_input == 'WEIGHT'):
       return x / float(conv_module.input_channels * conv_module.kernel_size)
-    elif args.input_channels_only:
-      ifm = net.blobs[net.bottom_names[layer][0]]
-      return x / float(conv_module.output_channels * ifm.width * ifm.height)
     else:
       ofm = net.blobs[layer]
       return x / float(conv_module.input_channels * ofm.width * ofm.height)
   if args.normalisation == 'l0_normalisation_adjusted':
-    if args.input_channels_only and (args.saliency_input == 'WEIGHT'):
-      return x / float(conv_module.active_output_channels.sum() * conv_module.kernel_size)
-    elif (args.saliency_input == 'WEIGHT'):
+    if (args.saliency_input == 'WEIGHT'):
       return x / float(conv_module.active_input_channels.sum() * conv_module.kernel_size)
-    elif args.input_channels_only:
-      ifm = net.blobs[net.bottom_names[layer][0]]
-      return x / float(conv_module.active_output_channels.sum() * ifm.width * ifm.height)
     else:
       ofm = net.blobs[layer]
       return x / float(conv_module.active_input_channels.sum() * ofm.width * ofm.height)
   if args.normalisation == 'weights_removed':
-    return x / float(weights_removed(net, 0, conv_module, args.input_channels_only))
+    return x / float(weights_removed(net, 0, conv_module))
   elif args.normalisation == 'l1_normalisation':
     return x/float(np.abs(x).sum()) if float(np.abs(x).sum()) != 0 else x
   elif args.normalisation == 'l2_normalisation':
@@ -58,50 +63,6 @@ def str2bool(v):
         return False
     else:
         raise argparse.ArgumentTypeError('Boolean value expected.')
-
-def parser():
-    parser = argparse.ArgumentParser(description='Caffe Channel Pruning Example')
-    parser.add_argument('--arch', action='store', default=None,
-            help='the caffe solver to use')
-    parser.add_argument('--arch-saliency', action='store', default=None,
-            help='saliency prototxt to use')
-    parser.add_argument('--pretrained', action='store', default=None,
-            help='pretrained caffemodel')
-    parser.add_argument('--retrain', type=str2bool, nargs='?', default=False,
-            help='retrain the pruned network')
-    parser.add_argument('--characterise', type=str2bool, nargs='?', default=False,
-            help='characterise the pruned network')
-    parser.add_argument('--tolerance', type=float, default='1.0',
-            help='Drop in train loss before retraining starts')
-    parser.add_argument('--filename', action='store', default='summary_',
-            help='prefix for storing pruning data')
-    parser.add_argument('--stop-acc', type=float, default='10.0',
-            help='Stop pruning when test accuracy drops below this value')
-    parser.add_argument('--method', action='store', default='FISHER',
-            help='saliency method')
-    parser.add_argument('--saliency-norm', action='store', default='NONE',
-            help='Caffe saliency_norm')
-    parser.add_argument('--saliency-input', action='store', default='ACTIVATION',
-            help='Caffe saliency_input')
-    parser.add_argument('--normalisation', action='store', default='no_normalisation',
-            help='Layer-wise normalisation to use for saliency')
-    parser.add_argument('--test-size', type=int, default=80,
-            help='Number of batches to use for testing')
-    parser.add_argument('--train-size', type=int, default=200,
-            help='Number of batches to use for training')
-    parser.add_argument('--eval-size', type=int, default=40,
-            help='Number of batches to use for evaluating the saliency')
-    parser.add_argument('--test-interval', type=int, default=1,
-            help='After how many pruning steps to test')
-    parser.add_argument('--input-channels-only', type=str2bool, nargs='?', default=False,
-            help='prune input channels only')
-    parser.add_argument('--input-output-channels', type=str2bool, nargs='?', default=False,
-            help='prune input and output channels')
-    parser.add_argument('--preserve-bias', action='store_true', default=False,
-            help='Whether to preserve the bias values for pruned channels')
-    parser.add_argument('--gpu', action='store_true', default=False,
-            help='Use GPU')
-    return parser
 
 def get_producer_convolution(net, initial_parents, producer_conv, conv_type, conv_index):
   for i in range(len(initial_parents)):
@@ -168,16 +129,17 @@ def test(solver, itr):
     accuracy[j] /= float(itr)
   return accuracy['top-1']*100.0, accuracy['loss']
 
-def UpdateMask(net, idx_channel, conv_module, fill, preserve_bias, final=True, input=False):
+def UpdateMask(net, idx_channel, conv_module, fill, preserve_bias, final=True, prune_input=False):
   if 'Convolution' in conv_module.type:
     bias = conv_module.bias_term_
     prune = fill == 0
-    if input:
+
+    if prune_input and not preserve_bias: # We're removing weights corresponding to an input to this convolution
       conv_module.active_ifm[idx_channel] = fill
       if conv_module.group == 1:
+        conv_module.blobs[weight_mask_pos_].data[:,idx_channel,:,:].fill(fill)
         if final and prune:
-          conv_module.blobs[0].data[:,idx_channel,:,:].fill(0)
-        conv_module.blobs[conv_module.mask_pos_].data[:,idx_channel,:,:].fill(fill)
+          conv_module.blobs[weight_pos_].data[:,idx_channel,:,:].fill(0)
         conv_module.active_input_channels[idx_channel] = fill
       else:
         can_prune = True
@@ -186,76 +148,94 @@ def UpdateMask(net, idx_channel, conv_module, fill, preserve_bias, final=True, i
             can_prune = False
         if can_prune:
           weight_index = idx_channel / conv_module.group
+          conv_module.blobs[weight_mask_pos_].data[:,weight_index,:,:].fill(fill)
           if final and prune:
-            conv_module.blobs[0].data[:,weight_index,:,:].fill(0)
-          conv_module.blobs[conv_module.mask_pos_].data[:,weight_index,:,:].fill(fill)
+            conv_module.blobs[weight_pos_].data[:,weight_index,:,:].fill(0)
           conv_module.active_input_channels[weight_index] = fill
-    else:
-      if final and prune:
-        conv_module.blobs[0].data[idx_channel].fill(0)
-      if final and prune and bias:
-        conv_module.blobs[1].data[idx_channel] = 0
-      conv_module.blobs[conv_module.mask_pos_].data[idx_channel].fill(fill)
+    else: # We're removing weights corresponding to an output of this convolution
+      conv_module.blobs[weight_mask_pos_].data[idx_channel].fill(fill)
       if bias and not preserve_bias:
-        conv_module.blobs[conv_module.mask_pos_+1].data[idx_channel] = 0
-        conv_module.active_output_channels[idx_channel] = fill
+        conv_module.blobs[bias_mask_pos_].data[idx_channel] = 0
+      if final and prune:
+        conv_module.blobs[weight_pos_].data[idx_channel].fill(0)
+        if bias and not preserve_bias:
+          conv_module.blobs[bias_pos_].data[idx_channel] = 0
+      conv_module.active_output_channels[idx_channel] = fill
 
-def PruneChannel(net, pruned_channel, convolution_list, channels, preserve_bias, prune=True, final=True, input=False):
+def PruneChannel(net, pruned_channel, convolution_list, channels, preserve_bias, prune=True, final=True):
   fill = 0 if prune else 1
   idx = np.where(channels>pruned_channel)[0][0]
   idx_convolution = convolution_list[idx]
   idx_channel = (pruned_channel - channels[idx-1]) if idx > 0 else pruned_channel
   conv_module = net.layer_dict[idx_convolution]
-  UpdateMask(net, idx_channel, conv_module, fill, preserve_bias, final, input)
-  if input: # remove previous conv's output channel
-    for c in conv_module.sources:
-      if net.layer_dict[c].type == 'Convolution':
-        UpdateMask(net, idx_channel, net.layer_dict[c], fill, preserve_bias, final, input=False)
-  else: # remove next conv's input channel
-    for i in range(len(conv_module.sinks)):
-      c = conv_module.sinks[i]
-      if net.layer_dict[c].type == 'Convolution':
-        if len(conv_module.sink_junction_type) == len(conv_module.sinks):
-          if conv_module.sink_junction_type[i] == 'Concat':
-            c_offset = 0
-            for j in range(len(c.sources)):
-              if c.sources[j] == c:
-                break
-              c_offset += layer_dict[c.sources[j]].output_channels
-            UpdateMask(net, idx_channel + c_offset, net.layer_dict[c], fill, preserve_bias, final, input=True)
+  UpdateMask(net, idx_channel, conv_module, fill, preserve_bias, final, prune_input=False)
 
-        UpdateMask(net, idx_channel, net.layer_dict[c], fill, preserve_bias, final, input=True)
+  # remove next conv's input channel
+  for i in range(len(conv_module.sinks)):
+    c = conv_module.sinks[i]
+    if net.layer_dict[c].type == 'Convolution':
+      if len(conv_module.sink_junction_type) == len(conv_module.sinks):
+        if conv_module.sink_junction_type[i] == 'Concat':
+          c_offset = 0
+          for j in range(len(c.sources)):
+            if c.sources[j] == c:
+              break
+            c_offset += layer_dict[c.sources[j]].output_channels
+          UpdateMask(net, idx_channel + c_offset, net.layer_dict[c], fill, preserve_bias, final, prune_input=True)
+      UpdateMask(net, idx_channel, net.layer_dict[c], fill, preserve_bias, final, prune_input=True)
 
-def weights_removed(net, idx_channel, conv_module, input=False):
-  num_weights = 0
-  if input:
-    num_weights += (conv_module.active_output_channels.sum() * conv_module.kernel_size)
-    for l in conv_module.sources:
-      c = net.layer_dict[l]
-      if 'Convolution' in c.type:
-        num_weights += (c.active_input_channels.sum() * c.kernel_size)
-        if c.bias_term_:
-          num_weights += 1
-  else:
-    num_weights += (conv_module.active_input_channels.sum() * conv_module.kernel_size)
-    if conv_module.bias_term_:
-      num_weights += 1
-    for l in conv_module.sinks:
-      c = net.layer_dict[l]
-      if 'Convolution' in c.type:
-        num_weights += (c.active_output_channels.sum() * c.kernel_size)
-      elif 'InnerProduct' in c.type:
-        num_weights += (c.input_size * c.output_size)
-  return num_weights
+def parser():
+    parser = argparse.ArgumentParser(description='Caffe Channel Pruning Example')
+    parser.add_argument('--arch', action='store', default=None,
+            help='the caffe solver to use')
+    parser.add_argument('--arch-saliency', action='store', default=None,
+            help='saliency prototxt to use')
+    parser.add_argument('--pretrained', action='store', default=None,
+            help='pretrained caffemodel')
+    parser.add_argument('--retrain', type=str2bool, nargs='?', default=False,
+            help='retrain the pruned network')
+    parser.add_argument('--characterise', type=str2bool, nargs='?', default=False,
+            help='characterise the pruned network')
+    parser.add_argument('--tolerance', type=float, default='1.0',
+            help='Drop in train loss before retraining starts')
+    parser.add_argument('--filename', action='store', default='summary_',
+            help='prefix for storing pruning data')
+    parser.add_argument('--stop-acc', type=float, default='10.0',
+            help='Stop pruning when test accuracy drops below this value')
+    parser.add_argument('--method', action='store', default='FISHER',
+            help='saliency method')
+    parser.add_argument('--saliency-norm', action='store', default='NONE',
+            help='Caffe saliency_norm')
+    parser.add_argument('--saliency-input', action='store', default='ACTIVATION',
+            help='Caffe saliency_input')
+    parser.add_argument('--normalisation', action='store', default='no_normalisation',
+            help='Layer-wise normalisation to use for saliency')
+    parser.add_argument('--test-size', type=int, default=80,
+            help='Number of batches to use for testing')
+    parser.add_argument('--train-size', type=int, default=200,
+            help='Number of batches to use for training')
+    parser.add_argument('--eval-size', type=int, default=40,
+            help='Number of batches to use for evaluating the saliency')
+    parser.add_argument('--test-interval', type=int, default=1,
+            help='After how many pruning steps to test')
+    parser.add_argument('--preserve-bias', action='store_true', default=False,
+            help='Whether to preserve the bias values for pruned channels')
+    parser.add_argument('--gpu', action='store_true', default=False,
+            help='Use GPU')
+    return parser
 
 if __name__=='__main__':
   start = time.time()
   args = parser().parse_args()
+
   if args.arch is None:
     print("Caffe solver needed")
     exit(1)
+
   if args.gpu:
     caffe.set_mode_gpu()
+  else:
+    caffe.set_mode_cpu()
 
   #  Allocate two models : one for masking weights and retraining (weights + mask)
   #                          one for computing saliency (weights + masks + saliency)
@@ -271,15 +251,15 @@ if __name__=='__main__':
   #reset mask
   for layer in convolution_list:
     conv_module = named_modules[layer]
-    conv_module.blobs[conv_module.mask_pos_].data.fill(1) # reset mask
+    conv_module.blobs[weight_mask_pos_].data.fill(1) # reset mask
     if conv_module.bias_term_:
-      conv_module.blobs[conv_module.mask_pos_+1].data.fill(1) # reset mask
+      conv_module.blobs[bias_mask_pos_].data.fill(1) # reset mask
     conv_module.batch = net.blobs[layer].num
     conv_module.height = net.blobs[layer].height
     conv_module.width = net.blobs[layer].width
-    conv_module.output_channels = conv_module.blobs[0].data.shape[0]
-    conv_module.input_channels = conv_module.blobs[0].data.shape[1]
-    conv_module.kernel_size = conv_module.blobs[0].data.shape[2] * conv_module.blobs[0].data.shape[3]
+    conv_module.output_channels = conv_module.blobs[weight_pos_].data.shape[0]
+    conv_module.input_channels = conv_module.blobs[weight_pos_].data.shape[1]
+    conv_module.kernel_size = conv_module.blobs[weight_pos_].data.shape[2] * conv_module.blobs[weight_pos_].data.shape[3]
     conv_module.sources = []
     conv_module.sinks = []
     conv_module.source_junction_type = []
@@ -289,15 +269,15 @@ if __name__=='__main__':
     get_sources(net, layer, conv_module.sources, conv_module.source_junction_type, conv_module.source_conv_index)
     get_sinks(net, layer, conv_module.sinks, conv_module.sink_junction_type, conv_module.sink_conv_index)
     input_layer = net.bottom_names[layer][0]
-    conv_module.group = int(net.blobs[input_layer].channels / conv_module.blobs[0].channels)
+    conv_module.group = int(net.blobs[input_layer].channels / conv_module.blobs[weight_pos_].channels)
     conv_module.active_input_channels = np.ones(conv_module.input_channels)
     conv_module.active_ifm = np.ones(conv_module.input_channels * conv_module.group)
     conv_module.active_output_channels = np.ones(conv_module.output_channels)
     for l in conv_module.sinks:
       if 'InnerProduct' in net.layer_dict[l].type:
         net.layer_dict[l].input_channels = conv_module.output_channels
-        net.layer_dict[l].input_size = net.layer_dict[l].blobs[0].data.shape[0] / conv_module.output_channels
-        net.layer_dict[l].output_size = net.layer_dict[l].blobs[0].data.shape[1]
+        net.layer_dict[l].input_size = net.layer_dict[l].blobs[weight_pos_].data.shape[0] / conv_module.output_channels
+        net.layer_dict[l].output_size = net.layer_dict[l].blobs[weight_pos_].data.shape[1]
         net.layer_dict[l].active_input_channels = np.ones(conv_module.output_channels)
 
   if args.method in _caffe_saliencies_.keys():
@@ -315,21 +295,17 @@ if __name__=='__main__':
   output_channels = []
   input_channels = []
   for layer in convolution_list:
-    total_output_channels += named_modules[layer].blobs[0].num
-    total_input_channels += named_modules[layer].blobs[0].channels
-    output_channels.append(named_modules[layer].blobs[0].num)
-    input_channels.append(named_modules[layer].blobs[0].channels)
-    initial_density += named_modules[layer].blobs[0].num * named_modules[layer].blobs[0].height * named_modules[layer].blobs[0].width * named_modules[layer].blobs[0].channels
+    total_output_channels += named_modules[layer].blobs[weight_pos_].num
+    total_input_channels += named_modules[layer].blobs[weight_pos_].channels
+    output_channels.append(named_modules[layer].blobs[weight_pos_].num)
+    input_channels.append(named_modules[layer].blobs[weight_pos_].channels)
+    initial_density += named_modules[layer].blobs[weight_pos_].num * named_modules[layer].blobs[weight_pos_].height * named_modules[layer].blobs[weight_pos_].width * named_modules[layer].blobs[weight_pos_].channels
   output_channels = np.array(output_channels)
   output_channels = np.cumsum(output_channels)
   input_channels = np.array(input_channels)
   input_channels = np.cumsum(input_channels)
-  if args.input_channels_only:
-    total_channels = total_input_channels
-    channels = input_channels
-  else:
-    total_channels = total_output_channels
-    channels = output_channels
+  total_channels = total_output_channels
+  channels = output_channels
 
   net.reshape()
 
@@ -388,10 +364,6 @@ if __name__=='__main__':
     if method in _caffe_saliencies_:
       for layer in convolution_list:
         named_modules[layer].blobs[named_modules[layer].saliency_pos_].data.fill(0) # reset saliency
-        #named_modules[layer].blobs[named_modules[layer].saliency_pos_+1].data.fill(0) # reset saliency
-        if args.input_channels_only :
-          named_modules[layer].saliency_input_channel_compute_ = True
-          named_modules[layer].saliency_output_channel_compute_ = False
     pruning_signal = np.array([])
 
     # compute saliency
@@ -412,10 +384,7 @@ if __name__=='__main__':
         pruning_signal_partial = np.array([])
         if (args.saliency_input == 'ACTIVATION'):
           for layer in convolution_list:
-            if args.input_channels_only:
-              feature_map_name = net.bottom_names[layer][0]
-            else:
-              feature_map_name = layer
+            feature_map_name = layer
             saliency_data = (net.blobs[feature_map_name].data > 0.0).sum(axis=(0,2,3)) / float(conv_module.batch * conv_module.height * conv_module.width)
             saliency_normalised = layerwise_normalisation(saliency_data, layer, net)
             pruning_signal_partial = np.hstack([pruning_signal_partial, saliency_normalised])
@@ -436,10 +405,7 @@ if __name__=='__main__':
 
     if method in _caffe_saliencies_:
       for layer in convolution_list:
-        if args.input_channels_only:
-          saliency_data = named_modules[layer].blobs[named_modules[layer].saliency_pos_+1].data[0]
-        else:
-          saliency_data = named_modules[layer].blobs[named_modules[layer].saliency_pos_].data[0]
+        saliency_data = named_modules[layer].blobs[named_modules[layer].saliency_pos_].data[0]
         saliency_normalised = layerwise_normalisation(saliency_data, layer, net)
         pruning_signal = np.hstack([pruning_signal, saliency_normalised])
 
@@ -449,18 +415,10 @@ if __name__=='__main__':
 
     prune_channel_idx = np.argmin(pruning_signal[active_channel])
     prune_channel = active_channel[prune_channel_idx]
-    PruneChannel(net, prune_channel, convolution_list, channels, args.preserve_bias, final=True, input=args.input_channels_only)
+    PruneChannel(net, prune_channel, convolution_list, channels, args.preserve_bias, final=True, input=False)
 
     if args.characterise:
       output_train = saliency_solver.net.forward()
-      # TODO:
-      # We have data in all the output feature maps at this point, and
-      # we can inspect them to see what the distributions are like.
-      #for layer in convolution_list:
-        #conv_module = named_modules[layer]
-        #if conv_module.bias_term_:
-          #bias_blob = conv_module.blobs[1] # extract the bias blob
-          #summary['bias'+layer][j] = bias_blob.data
       current_loss = output_train['loss']
       current_acc = output_train['top-1']
       summary['train_loss'][j] = current_loss
@@ -468,7 +426,6 @@ if __name__=='__main__':
       retraining_loss = np.array([])
       retraining_acc = np.array([])
       for i in range(args.train_size):
-#        if (current_loss <= train_loss_upper_bound):
         if ((i==0) and (current_acc >= train_acc_lower_bound)):
           break
         if (current_acc >= initial_train_acc):
@@ -499,12 +456,7 @@ if __name__=='__main__':
 
     if test_acc < args.stop_acc:
         break
-  # if (j % 100) == 0 :
-  #      np.save(args.filename+'.partial', summary)
 
   end = time.time()
   summary['exec_time'] = end - start
   np.save(args.filename, summary)
-
-  #caffe.set_mode_cpu()
-
