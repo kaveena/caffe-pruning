@@ -123,6 +123,7 @@ if __name__=='__main__':
   # Load the Caffe model
   net = caffe.Net(args.model, caffe.TEST)
   net.copy_from(args.weights)
+  net.forward()
 
   named_modules = net.layer_dict
   convolution_list = list(filter(lambda x: 'Convolution' in named_modules[x].type, named_modules.keys()))
