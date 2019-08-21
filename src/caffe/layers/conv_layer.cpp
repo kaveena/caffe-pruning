@@ -274,7 +274,7 @@ void ConvolutionLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
       Dtype * output_channel_saliency_accum_data = NULL;
       output_channel_saliency_data = output_saliencies_channel_.mutable_cpu_data();
       output_channel_saliency_accum_data = this->blobs_[this->saliency_pos_]->mutable_cpu_data();
-      for (int i_s = 0; i_s < conv_saliency_param.saliency_size(); i++) {
+      for (int i_s = 0; i_s < conv_saliency_param.saliency_size(); i_s++) {
         if ((conv_saliency_param.saliency(i_s) == caffe::ConvolutionSaliencyParameter::TAYLOR) && (conv_saliency_param.saliency_input(i_s) == caffe::ConvolutionSaliencyParameter::ACTIVATION)){
             compute_taylor_cpu(top_data, top_diff, conv_saliency_param.saliency_norm(i_s), output_channel_saliency_data + (i_s * this->num_output_));
         }
