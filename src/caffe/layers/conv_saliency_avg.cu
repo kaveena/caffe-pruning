@@ -68,6 +68,19 @@ void ConvolutionLayer<Dtype>::compute_weight_avg_weights_gpu(Blob<Dtype> * weigh
   if (this->saliency_bias_ && this->bias_term_ && bias_saliency_data != NULL){
     caffe_gpu_add(this->num_output_, bias_saliency_data, saliency_info_out, saliency_info_out);
   }
+  
+  switch (saliency_norm_) {
+    case (caffe::ConvolutionSaliencyParameter::ABS_SUM): {
+      caffe_gpu_abs(this->num_output_, saliency_info_out, saliency_info_out);
+    } break;
+
+    case (caffe::ConvolutionSaliencyParameter::SQR_SUM): {
+      caffe_gpu_powx(this->num_output_, saliency_info_out, (Dtype) 2, saliency_info_out);
+    } break;
+
+    default: {
+    } break;
+  }
 }
 
 template <typename Dtype>
