@@ -37,13 +37,7 @@ void ConvolutionLayer<Dtype>::LayerSetUp(const vector<Blob<Dtype>*>& bottom,
       this->saliency_bias_ = false;
     }
     for (int i_s = 0; i_s < this->layer_param_.convolution_saliency_param().saliency_size(); i_s++){
-      if (((this->layer_param_.convolution_saliency_param().saliency(i_s) == caffe::ConvolutionSaliencyParameter::TAYLOR) 
-        || (this->layer_param_.convolution_saliency_param().saliency(i_s) == caffe::ConvolutionSaliencyParameter::HESSIAN_DIAG)
-        || (this->layer_param_.convolution_saliency_param().saliency(i_s) == caffe::ConvolutionSaliencyParameter::HESSIAN_DIAG_APPROX2)
-        || (this->layer_param_.convolution_saliency_param().saliency(i_s) == caffe::ConvolutionSaliencyParameter::TAYLOR_2ND)
-        || (this->layer_param_.convolution_saliency_param().saliency(i_s) == caffe::ConvolutionSaliencyParameter::TAYLOR_2ND_APPROX2)
-        || (this->layer_param_.convolution_saliency_param().saliency(i_s) == caffe::ConvolutionSaliencyParameter::DIFF_AVG))
-        && (this->layer_param_.convolution_saliency_param().saliency_input(i_s) == caffe::ConvolutionSaliencyParameter::WEIGHT)) {
+      if (this->layer_param_.convolution_saliency_param().saliency_input(i_s) == caffe::ConvolutionSaliencyParameter::WEIGHT) {
         this->separate_weight_diff_ = true;
       }
       if ((this->layer_param_.convolution_saliency_param().saliency(i_s) == caffe::ConvolutionSaliencyParameter::HESSIAN_DIAG) 
@@ -51,6 +45,9 @@ void ConvolutionLayer<Dtype>::LayerSetUp(const vector<Blob<Dtype>*>& bottom,
         Caffe::set_derivative_compute(true); //if any Convolution Saliency layer exists then need ddiff computation
       }
     }
+  }
+  else {
+    this->separate_weight_diff_ = false;
   }
 }
 
