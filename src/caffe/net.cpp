@@ -58,6 +58,7 @@ void Net<Dtype>::Init(const NetParameter& in_param) {
   InsertSplits(filtered_param, &param);
   // Basically, build all the layers and set up their connections.
   name_ = param.name();
+  Caffe::set_derivative_compute(param.compute_2nd_derivative());
   map<string, int> blob_name_to_idx;
   set<string> available_blobs;
   memory_used_ = 0;

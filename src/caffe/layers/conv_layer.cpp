@@ -23,7 +23,6 @@ void reduce_nmckk_cpu(const int N, const int M, const int C, const int K, const 
 template <typename Dtype>
 void ConvolutionLayer<Dtype>::LayerSetUp(const vector<Blob<Dtype>*>& bottom,
       const vector<Blob<Dtype>*>& top) {
-//  caffe::set_derivative_compute(true); //if any Convolution layer exists then need ddiff computation
   BaseConvolutionLayer<Dtype>::LayerSetUp(bottom, top);
 
   if (this->saliency_term_) {
@@ -39,10 +38,6 @@ void ConvolutionLayer<Dtype>::LayerSetUp(const vector<Blob<Dtype>*>& bottom,
     for (int i_s = 0; i_s < this->layer_param_.convolution_saliency_param().saliency_size(); i_s++){
       if (this->layer_param_.convolution_saliency_param().saliency_input(i_s) == caffe::ConvolutionSaliencyParameter::WEIGHT) {
         this->separate_weight_diff_ = true;
-      }
-      if ((this->layer_param_.convolution_saliency_param().saliency(i_s) == caffe::ConvolutionSaliencyParameter::HESSIAN_DIAG) 
-        || (this->layer_param_.convolution_saliency_param().saliency(i_s) == caffe::ConvolutionSaliencyParameter::TAYLOR_2ND)) {
-        Caffe::set_derivative_compute(true); //if any Convolution Saliency layer exists then need ddiff computation
       }
     }
   }

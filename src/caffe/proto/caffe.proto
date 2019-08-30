@@ -95,6 +95,7 @@ message NetParameter {
 
   // DEPRECATED: use 'layer' instead.
   repeated V1LayerParameter layers = 2;
+  optional bool compute_2nd_derivative = 9 [default = false];
 }
 
 // NOTE
