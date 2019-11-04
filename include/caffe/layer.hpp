@@ -291,19 +291,6 @@ class Layer {
     param_propagate_down_[param_id] = value;
   }
 
-
-  // Add attributes to change saliency of conv layers in python hackily
-  ConvolutionSaliencyParameter::SALIENCY saliency_;
-  ConvolutionSaliencyParameter::NORM saliency_norm_;
-  ConvolutionSaliencyParameter::INPUT saliency_input_;
-  bool output_channel_saliency_compute_;
-  bool input_channel_saliency_compute_;
-  int saliency_pos_;
-  int mask_pos_;
-  bool saliency_bias_;
-  bool bias_term_;
-  bool saliency_term_;
-
  protected:
   /** The protobuf that stores the layer parameters */
   LayerParameter layer_param_;
