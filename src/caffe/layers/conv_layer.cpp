@@ -29,7 +29,7 @@ void ConvolutionLayer<Dtype>::LayerSetUp(const vector<Blob<Dtype>*>& bottom,
     ConvolutionSaliencyParameter conv_saliency_param = this->layer_param_.convolution_saliency_param();
     this->output_channel_saliency_compute_ = this->layer_param_.convolution_saliency_param().output_channel_compute();
     this->input_channel_saliency_compute_ = this->layer_param_.convolution_saliency_param().input_channel_compute();
-    if (this->bias_term_) {
+    if (this->bias_term_ && this->layer_param_.convolution_saliency_param().saliency_bias()) {
       this->saliency_bias_ = true;
     }
     else {
