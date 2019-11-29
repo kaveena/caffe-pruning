@@ -482,7 +482,8 @@ void caffe_gpu_sqrt<double>(const int N, const double* a, double* y) {
 
 template <typename Dtype>
 __global__ void sum_kernel(const int n, const int num, const Dtype* a, Dtype* y) {
-  CUDA_KERNEL_LOOP(index, n) {
+  int index = blockIdx.x * blockDim.x + threadIdx.x;
+  if (index<n) {
     Dtype accum = (Dtype) 0.0;
     for (int i=0; i<num; i++) {
       accum += a[(index*num) + i];
@@ -493,7 +494,8 @@ __global__ void sum_kernel(const int n, const int num, const Dtype* a, Dtype* y)
 
 template <typename Dtype>
 __global__ void strided_sum_kernel(const int n, const int num, const Dtype* a, Dtype* y) {
-  CUDA_KERNEL_LOOP(index, n) {
+  int index = blockIdx.x * blockDim.x + threadIdx.x;
+  if (index<n) {
     Dtype accum = (Dtype) 0.0;
     for (int i=0; i<num; i++) {
       accum += a[index + (i*n)];
@@ -529,7 +531,6 @@ void caffe_gpu_strided_sum<double>(const int N, const int num, const double* a, 
   strided_sum_kernel<double><<<CAFFE_GET_BLOCKS(N), CAFFE_CUDA_NUM_THREADS>>>(
       N, num, a, y);
 }
-
 
 DEFINE_AND_INSTANTIATE_GPU_UNARY_FUNC(sign, y[index] = (Dtype(0) < x[index])
                                       - (x[index] < Dtype(0)));

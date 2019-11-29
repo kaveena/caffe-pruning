@@ -50,6 +50,8 @@ const int NPY_DTYPE = NPY_FLOAT32;
 // Selecting mode.
 void set_mode_cpu() { Caffe::set_mode(Caffe::CPU); }
 void set_mode_gpu() { Caffe::set_mode(Caffe::GPU); }
+void set_derivative_compute() { Caffe::set_derivative_compute(true); }
+void unset_derivative_compute() { Caffe::set_derivative_compute(false); }
 
 void InitLog() {
   ::google::InitGoogleLogging("");
@@ -392,6 +394,8 @@ BOOST_PYTHON_MODULE(_caffe) {
   bp::def("has_nccl", &HasNCCL);
   bp::def("set_mode_cpu", &set_mode_cpu);
   bp::def("set_mode_gpu", &set_mode_gpu);
+  bp::def("set_derivative_compute", &set_derivative_compute);
+  bp::def("unset_derivative_compute", &unset_derivative_compute);
   bp::def("set_random_seed", &set_random_seed);
   bp::def("set_device", &Caffe::SetDevice);
   bp::def("solver_count", &Caffe::solver_count);
@@ -488,41 +492,8 @@ BOOST_PYTHON_MODULE(_caffe) {
           bp::return_internal_reference<>()))
     .def("setup", &Layer<Dtype>::LayerSetUp)
     .def("reshape", &Layer<Dtype>::Reshape)
-    .add_property("type", bp::make_function(&Layer<Dtype>::type))
-    .add_property("saliency_pos_", &Layer<Dtype>::saliency_pos_)
-    .add_property("mask_pos_", &Layer<Dtype>::mask_pos_)
-    .add_property("bias_term_", &Layer<Dtype>::bias_term_)
-    .add_property("mask_term_", &Layer<Dtype>::mask_term_)
-    .add_property("quantize_term_", &Layer<Dtype>::quantize_term_)
-    .add_property("activation_quantize_term_", &Layer<Dtype>::activation_quantize_term_)
-    .def_readwrite("saliency_", &Layer<Dtype>::saliency_)
-    .def_readwrite("saliency_norm_", &Layer<Dtype>::saliency_norm_)
-    .def_readwrite("saliency_input_", &Layer<Dtype>::saliency_input_)
-    .def_readwrite("saliency_bias_", &Layer<Dtype>::saliency_bias_);
+    .add_property("type", bp::make_function(&Layer<Dtype>::type));
   BP_REGISTER_SHARED_PTR_TO_PYTHON(Layer<Dtype>);
-
-  bp::enum_<ConvolutionSaliencyParameter::SALIENCY>("SALIENCY")
-    .value("FISHER", ConvolutionSaliencyParameter::FISHER)
-    .value("TAYLOR", ConvolutionSaliencyParameter::TAYLOR)
-    .value("HESSIAN_DIAG_LM", ConvolutionSaliencyParameter::HESSIAN_DIAG_LM)
-    .value("HESSIAN_DIAG_GN", ConvolutionSaliencyParameter::HESSIAN_DIAG_GN)
-    .value("TAYLOR_2ND_LM", ConvolutionSaliencyParameter::TAYLOR_2ND_LM)
-    .value("TAYLOR_2ND_GN", ConvolutionSaliencyParameter::TAYLOR_2ND_GN)
-    .value("AVERAGE_INPUT", ConvolutionSaliencyParameter::AVERAGE_INPUT)
-    .value("AVERAGE_GRADIENT", ConvolutionSaliencyParameter::AVERAGE_GRADIENT)
-    .value("ALL", ConvolutionSaliencyParameter::ALL)
-    ;
-
-  bp::enum_<ConvolutionSaliencyParameter::NORM>("SALIENCY_NORM")
-    .value("NONE", ConvolutionSaliencyParameter::NONE)
-    .value("L1", ConvolutionSaliencyParameter::L1)
-    .value("L2", ConvolutionSaliencyParameter::L2)
-    ;
-
-  bp::enum_<ConvolutionSaliencyParameter::INPUT>("SALIENCY_INPUT")
-    .value("ACTIVATION", ConvolutionSaliencyParameter::ACTIVATION)
-    .value("WEIGHT", ConvolutionSaliencyParameter::WEIGHT)
-    ;
 
   bp::class_<SolverParameter>("SolverParameter", bp::no_init)
     .add_property("max_iter", &SolverParameter::max_iter)

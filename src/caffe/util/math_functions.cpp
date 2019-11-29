@@ -276,10 +276,11 @@ void caffe_sqrt<double>(const int n, const double* a, double* y) {
 template <typename Dtype>
 void caffe_sum(const int N, const int num, const Dtype* a, Dtype* y) {
   for (int j = 0; j < N; j++) {
-    y[j] = (Dtype) 0;
+    Dtype accum = (Dtype) 0;
     for (int i = 0; i < num; i++) {
-      y[j] += a[j*num + i];
+      accum += a[j*num + i];
     }
+    y[j] = accum;
   }
 }
 template void caffe_sum<float>(const int N, const int num, const float* a, float* y);
@@ -288,10 +289,11 @@ template void caffe_sum<double>(const int N, const int num, const double* a, dou
 template <typename Dtype>
 void caffe_strided_sum(const int N, const int num, const Dtype* a, Dtype* y) {
   for (int j = 0; j < N; j++) {
-    y[j] = (Dtype) 0;
+    Dtype accum = (Dtype) 0;
     for (int i = 0; i < num; i++) {
-      y[j] += a[i*N + j];
+      accum += a[i*N + j];
     }
+    y[j] = accum;
   }
 }
 template void caffe_strided_sum<float>(const int N, const int num, const float* a, float* y);

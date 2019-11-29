@@ -95,6 +95,7 @@ message NetParameter {
 
   // DEPRECATED: use 'layer' instead.
   repeated V1LayerParameter layers = 2;
+  optional bool compute_2nd_derivative = 9 [default = false];
 }
 
 // NOTE
@@ -682,20 +683,20 @@ message ConvolutionQuantizeParameter {
 message ConvolutionSaliencyParameter {
   // Output activation saliency
   enum SALIENCY {
-    FISHER = 0;
-    TAYLOR = 1;
-    HESSIAN_DIAG_LM = 2;
-    HESSIAN_DIAG_GN = 3;
-    TAYLOR_2ND_LM = 4;
-    TAYLOR_2ND_GN = 5;
-    AVERAGE_INPUT = 6;
-    AVERAGE_GRADIENT = 7;
-    ALL = 8; //needs to correspond to number of enum values excluding ALL
+    TAYLOR = 0;
+    HESSIAN_DIAG_APPROX1 = 1;
+    HESSIAN_DIAG_APPROX2 = 2;
+    TAYLOR_2ND_APPROX1 = 3;
+    TAYLOR_2ND_APPROX2 = 4;
+    AVERAGE_INPUT = 5;
+    AVERAGE_GRADIENT = 6;
   }
   enum NORM {
     NONE = 0;
     L1 = 1;
     L2 = 2;
+    ABS_SUM = 3;
+    SQR_SUM = 4;
   }
   enum INPUT {
     ACTIVATION = 0;
@@ -703,11 +704,14 @@ message ConvolutionSaliencyParameter {
   }
 
   // what saliency measure to use for the activations
-  required SALIENCY saliency = 1 [default = AVERAGE_INPUT];
-  optional bool saliency_term = 2 [default = false]; // whether to have saliency terms
+  required bool saliency_term = 2 [default = false]; // whether to have saliency terms
+  optional bool saliency_bias = 8 [default = true]; // whether to have saliency terms
   optional bool accum = 3 [default = true]; // whether to accumulate saliency over different batches
-  optional NORM norm = 4 [default = NONE];
-  optional INPUT input = 5 [default = ACTIVATION];
+  optional bool output_channel_compute = 6 [default = true]; // whether to accumulate saliency over different batches
+  optional bool input_channel_compute = 7 [default = false]; // whether to accumulate saliency over different batches
+  repeated SALIENCY saliency = 1;
+  repeated NORM saliency_norm = 4;
+  repeated INPUT saliency_input = 5;
 }
 
 message CropParameter {

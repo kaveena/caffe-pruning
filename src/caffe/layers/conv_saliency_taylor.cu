@@ -6,18 +6,17 @@
 namespace caffe {
 
 template <typename Dtype>
-void ConvolutionLayer<Dtype>::compute_taylor_gpu(const Dtype *  act_data, const Dtype *  act_diff, Dtype * taylor) {
-  Dtype* output_saliency_data = output_saliencies_points_.mutable_gpu_data();
-
+void ConvolutionLayer<Dtype>::compute_taylor_gpu(const Dtype *  act_data, const Dtype *  act_diff, caffe::ConvolutionSaliencyParameter::NORM saliency_norm_,  Dtype * taylor_out) {
+  Dtype * output_saliency_data = NULL;
+  output_saliency_data = output_saliencies_points_.mutable_gpu_data();
   caffe_gpu_mul(output_saliencies_points_.count(), act_data, act_diff, output_saliency_data);
   caffe_gpu_scal(output_saliencies_points_.count(), (Dtype)(-1 * this->num_), output_saliency_data);
 
-  compute_norm_and_batch_avg_gpu(output_saliencies_points_.count(2,4), output_saliency_data, taylor);
-
+  compute_norm_and_batch_avg_gpu(output_saliency_data, saliency_norm_, taylor_out);
 }
 
 template <typename Dtype>
-void ConvolutionLayer<Dtype>::compute_taylor_weights_gpu(Blob<Dtype> * weights_n, Blob<Dtype> * bias_n, Dtype * taylor) {
+void ConvolutionLayer<Dtype>::compute_taylor_weights_gpu(Blob<Dtype> * weights_n, Blob<Dtype> * bias_n, caffe::ConvolutionSaliencyParameter::NORM saliency_norm_, Dtype * taylor_out) {
   const Dtype* weights = this->blobs_[0]->gpu_data();
   const Dtype* weights_n_diff = weights_n->gpu_diff();
   Dtype* points_saliency_data = weights_n->mutable_gpu_data();
@@ -35,7 +34,7 @@ void ConvolutionLayer<Dtype>::compute_taylor_weights_gpu(Blob<Dtype> * weights_n
   }
   caffe_gpu_scal(weights_n->count(), (Dtype) (-1 * this->num_), points_saliency_data); // get unscaled diff back
 
-  if (this->saliency_bias_ && this->bias_term_) {
+  if (this->saliency_bias_ && this->bias_term_ && this->output_channel_saliency_compute_) {
     bias = this->blobs_[1]->gpu_data();
     bias_n_diff = bias_n->gpu_diff();
     bias_saliency_data = bias_n->mutable_gpu_data();
@@ -48,13 +47,13 @@ void ConvolutionLayer<Dtype>::compute_taylor_weights_gpu(Blob<Dtype> * weights_n
     caffe_gpu_scal(bias_n->count(), (Dtype) (-1 * this->num_), bias_saliency_data); // get unscaled diff back
   }
 
-  compute_norm_and_batch_avg_gpu(weights_n->count(2, 5), points_saliency_data, taylor, bias_saliency_data);
+  compute_norm_and_batch_avg_weights_gpu(points_saliency_data, bias_saliency_data, saliency_norm_, taylor_out);
 
 }
 
-template void ConvolutionLayer<float>::compute_taylor_gpu(const float *  act_data, const float *  act_diff, float * taylor);
-template void ConvolutionLayer<double>::compute_taylor_gpu(const double *  act_data, const double *  act_diff, double * taylor);
+template void ConvolutionLayer<float>::compute_taylor_gpu(const float *  act_data, const float *  act_diff, caffe::ConvolutionSaliencyParameter::NORM saliency_norm_, float * taylor_out);
+template void ConvolutionLayer<double>::compute_taylor_gpu(const double *  act_data, const double *  act_diff, caffe::ConvolutionSaliencyParameter::NORM saliency_norm_,  double * taylor_out);
 
-template void ConvolutionLayer<float>::compute_taylor_weights_gpu(Blob<float> * weights_n, Blob<float> * bias_n, float * taylor);
-template void ConvolutionLayer<double>::compute_taylor_weights_gpu(Blob<double> * weights_n, Blob<double> * bias_n, double * taylor);
+template void ConvolutionLayer<float>::compute_taylor_weights_gpu(Blob<float> * weights_n, Blob<float> * bias_n, caffe::ConvolutionSaliencyParameter::NORM saliency_norm_, float * taylor_out);
+template void ConvolutionLayer<double>::compute_taylor_weights_gpu(Blob<double> * weights_n, Blob<double> * bias_n, caffe::ConvolutionSaliencyParameter::NORM saliency_norm_, double * taylor_out);
 }  // namespace caffe
