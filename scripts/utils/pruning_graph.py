@@ -128,13 +128,13 @@ class PruningConvolutionLayer(PruningLayer):
       self.caffe_layer.blobs[self.mask_pos].data[:,idx_channel,:,:].fill(0)
     self.active_input_channels[idx_channel] = 0
     print("pruned input channel ", idx_channel, self.name)
-  def UpdateMaskOutputChannel(self, idx_channel, final=True):
+  def UpdateMaskOutputChannel(self, idx_channel, final=True, preserve_bias=False):
     if final:
       self.caffe_layer.blobs[0].data[idx_channel].fill(0)
-    if final and self.bias_term:
+    if final and self.bias_term and not(preserve_bias):
       self.caffe_layer.blobs[1].data[idx_channel] = 0
     self.caffe_layer.blobs[self.mask_pos].data[idx_channel].fill(0)
-    if self.bias_term:
+    if self.bias_term and not(preserve_bias):
       self.caffe_layer.blobs[self.mask_pos+1].data[idx_channel] = 0
     self.active_output_channels[idx_channel] = 0
     self.active_ofm[idx_channel] = 0
@@ -337,7 +337,7 @@ class PruningGraph:
         if source_module.active_output_channels[i_c_source] != 0:
           live = True
     return live
-  def PruneChannel(self, pruned_channel, final=True, remove_all_nodes=False):
+  def PruneChannel(self, pruned_channel, final=True, remove_all_nodes=False, preserve_bias=False):
     """
     Prune a channel from the network.
     
@@ -357,7 +357,7 @@ class PruningGraph:
     idx_channel, idx_convolution = self.GetChannelFromGlobalChannelIdx(pruned_channel, is_input_channel_idx=False)
     conv_module = self.graph[idx_convolution]
     # remove local weights
-    conv_module.UpdateMaskOutputChannel(idx_channel, final)
+    conv_module.UpdateMaskOutputChannel(idx_channel, final, preserve_bias=preserve_bias)
     # update desencendants channels
     # if an output channel then update depencies of consumer channels
     if remove_all_nodes:
@@ -367,7 +367,7 @@ class PruningGraph:
         self.graph[idx_conv_sink].UpdateMaskInputChannel(idx_sink, final)
       for global_source_output_idx in found_sources:
         idx_source, idx_conv_source = self.GetChannelFromGlobalChannelIdx(global_source_output_idx, False)
-        self.graph[idx_conv_source].UpdateMaskOutputChannel(idx_source, final)
+        self.graph[idx_conv_source].UpdateMaskOutputChannel(idx_source, final, preserve_bias=preserve_bias)
     for global_sink_input_idx in conv_module.output_channel_input_idx[int(idx_channel)]:
       if global_sink_input_idx > 0:
         live_channel = self.CheckLiveInputChannel(global_sink_input_idx, [pruned_channel])

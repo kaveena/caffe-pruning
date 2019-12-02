@@ -164,7 +164,7 @@ if __name__=='__main__':
 
     prune_channel_idx = np.argmin(pruning_signal[active_channel])
     prune_channel = active_channel[prune_channel_idx]
-    pruning_net.PruneChannel(prune_channel, final=True)
+    pruning_net.PruneChannel(prune_channel, final=True, preserve_bias=args.preserve_bias)
 
     if args.retrain:
       saliency_solver.step(args.train_size)
