@@ -189,7 +189,7 @@ void CuDNNConvolutionLayer<Dtype>::Reshape(
         bwd_filter_algo_[i] = CUDNN_CONVOLUTION_BWD_FILTER_ALGO_3;
         break;
       case (caffe::ConvolutionParameter::BWD_FILTER_ALGO_WINOGRAD_NONFUSED):
-        bwd_filter_algo_[i] = CUDNN_CONVOLUTION_BWD_FILTER_WINOGRAD_NONFUSED;
+        bwd_filter_algo_[i] = CUDNN_CONVOLUTION_BWD_FILTER_ALGO_WINOGRAD_NONFUSED;
         break;
       case (caffe::ConvolutionParameter::BWD_FILTER_ALGO_FFT_TILING):
         bwd_filter_algo_[i] = CUDNN_CONVOLUTION_BWD_FILTER_ALGO_FFT_TILING;
