@@ -25,7 +25,7 @@ def parser():
             help='retrain the pruned network')
     parser.add_argument('--filename', action='store', default='summary_',
             help='prefix for storing pruning data')
-    parser.add_argument('--stop-acc', type=float, default='10.0',
+    parser.add_argument('--drop-acc', type=float, default='0.1',
             help='Stop pruning when test accuracy drops below this value')
     parser.add_argument('--saliency-pointwise', action='store', default='AVERAGE_INPUT',
             help='Caffe pointwise saliency')
@@ -179,7 +179,7 @@ if __name__=='__main__':
     active_channel.remove(prune_channel)
     sys.stdout.flush()
 
-    if test_acc < args.stop_acc:
+    if test_acc < (summary['initial_test_acc'] - args.drop_acc):
         break
 
   end = time.time()
