@@ -85,8 +85,6 @@ class ConvolutionLayer : public BaseConvolutionLayer<Dtype> {
   virtual inline bool reverse_dimensions() { return false; }
   virtual void compute_output_shape();
 
- private:
-
   bool separate_weight_diff_;
 
   Blob<Dtype> weights_masked_;
@@ -95,6 +93,8 @@ class ConvolutionLayer : public BaseConvolutionLayer<Dtype> {
   // Helpers for channel saliency
   Blob<Dtype> output_saliencies_points_;
   Blob<Dtype> output_saliencies_filter_;
+
+ private:
 
   void compute_taylor_cpu(const Dtype *  act_data, const Dtype *  act_diff, caffe::ConvolutionSaliencyParameter::NORM saliency_norm_,  Dtype * taylor_out);
   void compute_hessian_diag_cpu(const Dtype *  act_data, const Dtype *  act_ddiff, caffe::ConvolutionSaliencyParameter::NORM saliency_norm_, Dtype * hessian_diag_out);
