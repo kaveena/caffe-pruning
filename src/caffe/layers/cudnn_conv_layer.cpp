@@ -128,14 +128,43 @@ void CuDNNConvolutionLayer<Dtype>::Reshape(
         stride_h, stride_w);
 
     // choose forward and backward algorithms + workspace(s)
-    CUDNN_CHECK(cudnnGetConvolutionForwardAlgorithm(handle_[0],
-      bottom_descs_[i],
-      filter_desc_,
-      conv_descs_[i],
-      top_descs_[i],
-      CUDNN_CONVOLUTION_FWD_SPECIFY_WORKSPACE_LIMIT,
-      workspace_limit_bytes,
-      &fwd_algo_[i]));
+
+    switch(this->layer_param_.convolution_param().fwd_algo()) {
+      case (caffe::ConvolutionParameter::FWD_ALGO_IMPLICIT_GEMM):
+        fwd_algo_[i] = cudnn::CUDNN_CONVOLUTION_FWD_ALGO_IMPLICIT_GEMM;
+        break;
+      case (caffe::ConvolutionParameter::FWD_ALGO_IMPLICIT_PRECOMP_GEMM):
+        fwd_algo_[i] = cudnn::CUDNN_CONVOLUTION_FWD_ALGO_IMPLICIT_PRECOMP_GEMM;
+        break;
+      case (caffe::ConvolutionParameter::FWD_ALGO_GEMM):
+        fwd_algo_[i] = cudnn::CUDNN_CONVOLUTION_FWD_ALGO_GEMM;
+        break;
+      case (caffe::ConvolutionParameter::FWD_ALGO_DIRECT):
+        fwd_algo_[i] = cudnn::CUDNN_CONVOLUTION_FWD_ALGO_DIRECT;
+        break;
+      case (caffe::ConvolutionParameter::FWD_ALGO_FFT):
+        fwd_algo_[i] = cudnn::CUDNN_CONVOLUTION_FWD_ALGO_FFT;
+        break;
+      case (caffe::ConvolutionParameter::FWD_ALGO_FFT_TILING):
+        fwd_algo_[i] = cudnn::CUDNN_CONVOLUTION_FWD_ALGO_FFT_TILING;
+        break;
+      case (caffe::ConvolutionParameter::FWD_ALGO_WINOGRAD):
+        fwd_algo_[i] = cudnn::CUDNN_CONVOLUTION_FWD_ALGO_WINOGRAD;
+        break;
+      case (caffe::ConvolutionParameter::FWD_ALGO_WINOGRAD_NONFUSED):
+        fwd_algo_[i] = cudnn::CUDNN_CONVOLUTION_FWD_ALGO_WINOGRAD_NONFUSED;
+        break;
+      case (caffe::ConvolutionParameter::FWD_ALGO_HEURISTIC):
+        CUDNN_CHECK(cudnnGetConvolutionForwardAlgorithm(handle_[0],
+          bottom_descs_[i],
+          filter_desc_,
+          conv_descs_[i],
+          top_descs_[i],
+          CUDNN_CONVOLUTION_FWD_SPECIFY_WORKSPACE_LIMIT,
+          workspace_limit_bytes,
+          &fwd_algo_[i]));
+        break;
+    }
 
     CUDNN_CHECK(cudnnGetConvolutionForwardWorkspaceSize(handle_[0],
       bottom_descs_[i],
@@ -146,10 +175,32 @@ void CuDNNConvolutionLayer<Dtype>::Reshape(
       &(workspace_fwd_sizes_[i])));
 
     // choose backward algorithm for filter
-    CUDNN_CHECK(cudnnGetConvolutionBackwardFilterAlgorithm(handle_[0],
-          bottom_descs_[i], top_descs_[i], conv_descs_[i], filter_desc_,
-          CUDNN_CONVOLUTION_BWD_FILTER_SPECIFY_WORKSPACE_LIMIT,
-          workspace_limit_bytes, &bwd_filter_algo_[i]) );
+    switch(this->layer_param_.convolution_param().bwd_filter_algo()) {
+      case (caffe::ConvolutionParameter::BWD_FILTER_ALGO_0):
+        bwd_filter_algo_[i] = cudnn::CUDNN_CONVOLUTION_BWD_FILTER_ALGO_0;
+        break;
+      case (caffe::ConvolutionParameter::BWD_FILTER_ALGO_1):
+        bwd_filter_algo_[i] = cudnn::CUDNN_CONVOLUTION_BWD_FILTER_ALGO_1;
+        break;
+      case (caffe::ConvolutionParameter::BWD_FILTER_ALGO_FFT):
+        bwd_filter_algo_[i] = cudnn::CUDNN_CONVOLUTION_BWD_FILTER_ALGO_FFT;
+        break;
+      case (caffe::ConvolutionParameter::BWD_FILTER_ALGO_3):
+        bwd_filter_algo_[i] = cudnn::CUDNN_CONVOLUTION_BWD_FILTER_ALGO_3;
+        break;
+      case (caffe::ConvolutionParameter::BWD_FILTER_ALGO_WINOGRAD_NONFUSED):
+        bwd_filter_algo_[i] = cudnn::CUDNN_CONVOLUTION_BWD_FILTER_WINOGRAD_NONFUSED;
+        break;
+      case (caffe::ConvolutionParameter::BWD_FILTER_ALGO_FFT_TILING):
+        bwd_filter_algo_[i] = cudnn::CUDNN_CONVOLUTION_BWD_FILTER_ALGO_FFT_TILING;
+        break;
+      case (caffe::ConvolutionParameter::BWD_FILTER_ALGO_HEURISTIC):
+        CUDNN_CHECK(cudnnGetConvolutionBackwardFilterAlgorithm(handle_[0],
+                    bottom_descs_[i], top_descs_[i], conv_descs_[i], filter_desc_,
+                    CUDNN_CONVOLUTION_BWD_FILTER_SPECIFY_WORKSPACE_LIMIT,
+                    workspace_limit_bytes, &bwd_filter_algo_[i]));
+        break;
+    }
 
     // get workspace for backwards filter algorithm
     CUDNN_CHECK(cudnnGetConvolutionBackwardFilterWorkspaceSize(handle_[0],
@@ -157,10 +208,32 @@ void CuDNNConvolutionLayer<Dtype>::Reshape(
           bwd_filter_algo_[i], &workspace_bwd_filter_sizes_[i]));
 
     // choose backward algo for data
-    CUDNN_CHECK(cudnnGetConvolutionBackwardDataAlgorithm(handle_[0],
-          filter_desc_, top_descs_[i], conv_descs_[i], bottom_descs_[i],
-          CUDNN_CONVOLUTION_BWD_DATA_SPECIFY_WORKSPACE_LIMIT,
-        workspace_limit_bytes, &bwd_data_algo_[i]));
+    switch(this->layer_param_.convolution_param().bwd_data_algo()) {
+      case (caffe::ConvolutionParameter::BWD_DATA_ALGO_0):
+        bwd_data_algo_[i] = cudnn::CUDNN_CONVOLUTION_BWD_DATA_ALGO_0;
+        break;
+      case (caffe::ConvolutionParameter::BWD_DATA_ALGO_1):
+        bwd_data_algo_[i] = cudnn::CUDNN_CONVOLUTION_BWD_DATA_ALGO_1;
+        break;
+      case (caffe::ConvolutionParameter::BWD_DATA_ALGO_FFT):
+        bwd_data_algo_[i] = cudnn::CUDNN_CONVOLUTION_BWD_DATA_ALGO_FFT;
+        break;
+      case (caffe::ConvolutionParameter::BWD_DATA_ALGO_FFT_TILING):
+        bwd_data_algo_[i] = cudnn::CUDNN_CONVOLUTION_BWD_DATA_ALGO_FFT_TILING;
+        break;
+      case (caffe::ConvolutionParameter::BWD_DATA_ALGO_WINOGRAD):
+        bwd_data_algo_[i] = cudnn::CUDNN_CONVOLUTION_BWD_DATA_ALGO_WINOGRAD;
+        break;
+      case (caffe::ConvolutionParameter::BWD_DATA_ALGO_WINOGRAD_NONFUSED):
+        bwd_data_algo_[i] = cudnn::CUDNN_CONVOLUTION_BWD_DATA_ALGO_WINOGRAD_NONFUSED;
+        break;
+      case (caffe::ConvolutionParameter::BWD_DATA_ALGO_HEURISTIC):
+        CUDNN_CHECK(cudnnGetConvolutionBackwardDataAlgorithm(handle_[0],
+                   filter_desc_, top_descs_[i], conv_descs_[i], bottom_descs_[i],
+                   CUDNN_CONVOLUTION_BWD_DATA_SPECIFY_WORKSPACE_LIMIT,
+                   workspace_limit_bytes, &bwd_data_algo_[i]));
+        break;
+    }
 
     // get workspace size
     CUDNN_CHECK(cudnnGetConvolutionBackwardDataWorkspaceSize(handle_[0],
