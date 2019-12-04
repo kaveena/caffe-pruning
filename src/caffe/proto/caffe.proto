@@ -688,9 +688,9 @@ message ConvolutionParameter {
     BWD_DATA_ALGO_HEURISTIC = 6;
   }
 
-  optional CuDNNFwdAlgo fwd_algo = 18 [default = FWD_ALGO_HEURISTIC];
-  optional CuDNNBwdFilterAlgo bwd_filter_algo = 19 [default = BWD_FILTER_ALGO_HEURISTIC];
-  optional CuDNNBwdDataAlgo bwd_data_algo = 20 [default = BWD_DATA_ALGO_HEURISTIC];
+  optional CuDNNFwdAlgo fwd_algo = 19 [default = FWD_ALGO_HEURISTIC];
+  optional CuDNNBwdFilterAlgo bwd_filter_algo = 20 [default = BWD_FILTER_ALGO_HEURISTIC];
+  optional CuDNNBwdDataAlgo bwd_data_algo = 21 [default = BWD_DATA_ALGO_HEURISTIC];
 }
 
 message ConvolutionMaskParameter {
