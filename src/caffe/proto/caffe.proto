@@ -651,6 +651,46 @@ message ConvolutionParameter {
   // implementation; for input blobs with num_axes != 2, this option is
   // ignored and the ND implementation will be used.)
   optional bool force_nd_im2col = 17 [default = false];
+
+  // Control the algorithms used by CUDNN for the forward, backward data
+  // and backward filter operations instead of using the CUDNN heuristic.
+  // To re-enable the CUDNN heuristic, use the XXX_ALGO_HEURISTIC enum option.
+
+  enum CuDNNFwdAlgo {
+    FWD_ALGO_IMPLICIT_GEMM = 0;
+    FWD_ALGO_IMPLICIT_PRECOMP_GEMM = 1;
+    FWD_ALGO_GEMM = 2;
+    FWD_ALGO_DIRECT = 3;
+    FWD_ALGO_FFT = 4;
+    FWD_ALGO_FFT_TILING = 5;
+    FWD_ALGO_WINOGRAD = 6;
+    FWD_ALGO_WINOGRAD_NONFUSED = 7;
+    FWD_ALGO_HEURISTIC = 8;
+  }
+
+  enum CuDNNBwdFilterAlgo {
+    BWD_FILTER_ALGO_0 = 0;
+    BWD_FILTER_ALGO_1 = 1;
+    BWD_FILTER_ALGO_FFT = 2;
+    BWD_FILTER_ALGO_3 = 3;
+    BWD_FILTER_ALGO_WINOGRAD_NONFUSED = 4;
+    BWD_FILTER_ALGO_FFT_TILING = 5;
+    BWD_FILTER_ALGO_HEURISTIC = 6;
+  }
+
+  enum CuDNNBwdDataAlgo {
+    BWD_DATA_ALGO_0 = 0;
+    BWD_DATA_ALGO_1 = 1;
+    BWD_DATA_ALGO_FFT = 2;
+    BWD_DATA_ALGO_FFT_TILING = 3;
+    BWD_DATA_ALGO_WINOGRAD = 4;
+    BWD_DATA_ALGO_WINOGRAD_NONFUSED = 5;
+    BWD_DATA_ALGO_HEURISTIC = 6;
+  }
+
+  optional CuDNNFwdAlgo fwd_algo = 18 [default = FWD_ALGO_HEURISTIC];
+  optional CuDNNBwdFilterAlgo bwd_filter_algo = 19 [default = BWD_FILTER_ALGO_HEURISTIC];
+  optional CuDNNBwdDataAlgo bwd_data_algo = 20 [default = BWD_DATA_ALGO_HEURISTIC];
 }
 
 message ConvolutionMaskParameter {
