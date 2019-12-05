@@ -21,7 +21,6 @@ void ConvolutionLayer<Dtype>::compute_weight_avg_weights_cpu(Blob<Dtype> * weigh
   const Dtype* bias;
   Dtype* bias_saliency_data;
 
-  int kernel_size = this->blobs_[0]->count(2,4);
   int weights_count = this->blobs_[0]->count();
   int bias_count;
 
