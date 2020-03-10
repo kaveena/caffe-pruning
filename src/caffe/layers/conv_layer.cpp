@@ -200,12 +200,12 @@ void ConvolutionLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
         bias_n_masked_.Reshape({this->num_, this->blobs_[1]->shape()[0]});
         full_bias_diff = bias_n_masked_.mutable_cpu_diff();
       }
+    }
 
-      if (Caffe::derivative_compute()) {
-        bias_ddiff = this->blobs_[1]->mutable_cpu_ddiff();
-        if (this->separate_weight_diff_) {
-          full_bias_ddiff = bias_n_masked_.mutable_cpu_ddiff();
-        }
+    if (Caffe::derivative_compute()) {
+      bias_ddiff = this->blobs_[1]->mutable_cpu_ddiff();
+      if (this->separate_weight_diff_) {
+        full_bias_ddiff = bias_n_masked_.mutable_cpu_ddiff();
       }
     }
   }
