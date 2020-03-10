@@ -111,7 +111,7 @@ if __name__=='__main__':
     for layer_name in layer_list:
       pruning_signals[layer_name] = np.zeros_like(net.layer_dict[layer_name].blobs[0].data)
       valid_indices = np.setdiff1d(np.arange(np.prod(layer_weight_dims[layer_name])), prune_state[layer_name])
-      num_pruned_weights = np.random.randint(0, valid_indices.size*prune_factor)
+      num_pruned_weights = np.random.randint(0, valid_indices.size)
       pruning_signals[layer_name] = np.random.choice(valid_indices, num_pruned_weights, replace=False)
       prune_state[layer_name] = np.union1d(prune_state[layer_name], pruning_signals[layer_name])
 
