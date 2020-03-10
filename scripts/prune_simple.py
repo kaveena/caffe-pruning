@@ -129,7 +129,7 @@ if __name__=='__main__':
       total_weights += net.layer_dict[layer_name].blobs[0].data.size
 
       print("Test accuracy:", test_acc)
-      print("Removed", removed_weights, "of", total_weights, "weights")
+      print("Removed", removed_weights, "of", total_weights, "weights", " in layer ", layer_name)
       sys.stdout.flush()
 
   pruning_solver.net.save(args.output)
