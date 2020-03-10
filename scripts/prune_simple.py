@@ -47,8 +47,6 @@ def parser():
             help='output pruned caffemodel')
     parser.add_argument('--gpu', action='store_true', default=False,
             help='Use GPU')
-    parser.add_argument('--conv', action='store_true', default=False,
-            help='Prune convolution layers')
     parser.add_argument('--verbose', action='store_true', default=False,
             help='Print summary of pruning process')
     parser.add_argument('--accuracy-layer-name', action='store', default='top-1',
@@ -66,10 +64,6 @@ if __name__=='__main__':
 
   if args.output is None:
     print("Missing output caffemodel path")
-    exit(1)
-
-  if (not (args.conv or args.fc)):
-    print("Must specify at least one of --conv and --fc")
     exit(1)
 
   if args.gpu:
