@@ -84,13 +84,13 @@ if __name__=='__main__':
   layer_list += list(filter(lambda x: 'Convolution' in net.layer_dict[x].type, net.layer_dict.keys()))
   net_layers = net.layer_dict
 
-  # We will have to keep re-checking this, so memoize it
+  # Get the shape of every layer's weights
   layer_weight_dims = dict()
   for layer in layer_list:
     l = net.layer_dict[layer]
     layer_weight_dims[layer] = l.blobs[0].shape
 
-  # The pruning state is a list of the already-pruned weight positions for each layer
+  # The pruning state is a list of the already-pruned weight indices for each layer
   prune_state = dict()
   for layer in layer_list:
     mask_data = net.layer_dict[layer].blobs[2].data
@@ -104,16 +104,18 @@ if __name__=='__main__':
     sys.stdout.flush()
 
   while (test_acc > 40.0):
-    # Generate a random subset of remaining weights to prune
-    # Use one randomized pruning signal per layer
+    # The pruning signal for a layer has a zero at some index if we should ignore (i.e. prune) the weight at that index
     pruning_signals = dict()
 
     for layer_name in layer_list:
       pruning_signals[layer_name] = np.zeros_like(net.layer_dict[layer_name].blobs[0].data)
-      valid_indices = np.setdiff1d(np.arange(np.prod(layer_weight_dims[layer_name])), prune_state[layer_name])
-      num_pruned_weights = np.random.randint(0, valid_indices.size)
-      pruning_signals[layer_name] = np.random.choice(valid_indices, num_pruned_weights, replace=False)
-      prune_state[layer_name] = np.union1d(prune_state[layer_name], pruning_signals[layer_name])
+      all_indices = np.arange(np.prod(layer_weight_dims[layer_name]))
+      already_pruned_indices = prune_state[layer_name]
+      valid_indices = np.setdiff1d(all_indices, already_pruned_indices)
+      if (valid_indices.size / all_indices.size ) > 0.25:
+        num_pruned_weights = 1
+        pruning_signals[layer_name] = np.random.choice(valid_indices, num_pruned_weights, replace=False)
+        prune_state[layer_name] = np.union1d(prune_state[layer_name], pruning_signals[layer_name])
 
     # Now the actual pruning step
     for layer in layer_list:
