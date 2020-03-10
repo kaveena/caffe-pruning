@@ -10,13 +10,6 @@ import time
 
 sys.dont_write_bytecode = True
 
-saliency_pos_ = 4
-mask_pos_ = 2
-
-_caffe_saliencies_ = caffe._caffe.SALIENCY.names
-_caffe_saliency_input_ = caffe._caffe.SALIENCY_INPUT.names
-_caffe_saliency_norm_ = caffe._caffe.SALIENCY_NORM.names
-
 def test(solver, itr, accuracy_layer_name, loss_layer_name):
   accuracy = dict()
   for i in range(itr):
