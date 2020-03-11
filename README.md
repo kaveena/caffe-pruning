@@ -51,12 +51,11 @@ layer {
 ```
 
 The `saliency` is the name of the method to be used to compute
-saliency. The available methods are `FISHER`, `TAYLOR`,
-`HESSIAN_DIAG_LM`, `HESSIAN_DIAG_GN`, `TAYLOR_2ND_LM`,
-`TAYLOR_2ND_GN`, `AVERAGE_INPUT`, `AVERAGE_GRADIENT`.
+saliency. The available methods are  `TAYLOR`,
+`HESSIAN_DIAG_APPROX1`, `HESSIAN_DIAG_APPROX2`, `TAYLOR_2ND_APPROX1`,
+`TAYLOR_2ND_APPROX2`, `AVERAGE_INPUT`, `AVERAGE_GRADIENT`.
 
-`LM` and `GN` refer to the Levenberg-Marquardt or Gauss-Newton
-approximations of the relevant entity.
+`APPROX1` and `APPROX2` methods both assume a diagonal Hessian for the activations and the weights.  `APPROX1` propagates the diagonal Hessians ins a similar way to backpropagation to compute the 2nd order derivatives.  `APPROX2` uses the Gauss-Newton approximation of Hessian and only retains the diagonal values.
 
 The `accum` parameters says whether or not to accumulate saliency
 across minibatches.
@@ -70,6 +69,18 @@ activations that is being computed.
 
 To temporarily disable saliency computation for a layer without
 removing the `saliency_param`, you can set `saliency_term` to `false`.
+
+## Second Order Derivatives Computation
+
+Some pointwise saliency methods (`HESSIAN_DIAG_APPROX1` and `TAYLOR_2ND_APPROX1`)
+require the computation of second order derivations in similar way to
+backpropagation.  To enable the computation of the second order derivatives,
+the Net Parameter `2nd_order_derivative` needs to be set to true.  This enables
+the memory allocation and computation of the higher order derivatives.
+
+This is global Caffe setting! Hence, if pycaffe is used all the networks need
+to either have `2nd_order_derivative` set to true or false.  The default
+behaviour is `2nd_order_derivative` set to false.
 
 ## Building Caffe
 
