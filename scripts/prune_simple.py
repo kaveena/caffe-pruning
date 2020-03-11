@@ -45,6 +45,8 @@ def parser():
             help='pretrained caffemodel')
     parser.add_argument('--output', action='store', default=None,
             help='output pruned caffemodel')
+    parser.add_argument('--test-iterations', action='store', type=int, default=8,
+            help='how many test iterations to use when testing the model accuracy')
     parser.add_argument('--gpu', action='store_true', default=False,
             help='Use GPU')
     parser.add_argument('--verbose', action='store_true', default=False,
@@ -71,8 +73,6 @@ if __name__=='__main__':
   else:
     caffe.set_mode_cpu()
 
-  test_batches = 4
-
   net = caffe.Net(args.model, caffe.TEST)
 
   pruning_solver = caffe.SGDSolver(args.solver)
@@ -97,7 +97,7 @@ if __name__=='__main__':
     prune_state[layer] = np.setdiff1d(np.nonzero(mask_data), np.arange(mask_data.size))
 
   # Get initial test accuraccy
-  test_acc, ce_loss = test(pruning_solver, test_batches, args.accuracy_layer_name, args.loss_layer_name)
+  test_acc, ce_loss = test(pruning_solver, args.test_iterations, args.accuracy_layer_name, args.loss_layer_name)
 
   if args.verbose:
     print("Initial test accuracy:", test_acc)
@@ -122,7 +122,7 @@ if __name__=='__main__':
       for weight_idx in pruning_signals[layer_name]:
         prune_mask(net, layer_name, weight_idx)
 
-    test_acc, ce_loss = test(pruning_solver, test_batches, args.accuracy_layer_name, args.loss_layer_name)
+    test_acc, ce_loss = test(pruning_solver, args.test_iterations, args.accuracy_layer_name, args.loss_layer_name)
 
     removed_weights = 0
     total_weights = 0
