@@ -42,7 +42,6 @@ void Blob<Dtype>::Reshape(const vector<int>& shape) {
     data_.reset(new SyncedMemory(capacity_ * sizeof(Dtype)));
     diff_.reset(new SyncedMemory(capacity_ * sizeof(Dtype)));
     if (Caffe::derivative_compute()) {
-      std::cout << "blob reshape, 2nd order derivative compute :" << Caffe::derivative_compute() << std::endl;
       ddiff_.reset(new SyncedMemory(capacity_ * sizeof(Dtype)));
     }
   }
