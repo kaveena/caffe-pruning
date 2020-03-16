@@ -27,10 +27,10 @@ mkdir -p install
 
 cd build 
 
-cmake $CMAKE_OPTIONS -DCMAKE_INSTALL_PREFIX:PATH=$(realpath ../install/usr) -DCMAKE_INSTALL_LIBDIR=$(realpath ../install/lib) .. 
+cmake $CMAKE_OPTIONS .. 
 
 make -j`grep processor /proc/cpuinfo | wc -l` clean caffe caffeproto pycaffe python
 
-make install
+make DESTDIR=$(realpath ../install) install
 
 cd ..

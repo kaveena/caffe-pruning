@@ -17,6 +17,16 @@ triNNity-caffe includes:
 - Pruning (Sparsification), both pointwise and channel pruning
 - General quality-of-life fixes and performance improvements
 
+## Building Caffe for local modification
+
+The `build.sh` script builds Caffe with a simple CPU-only configuration
+for testing out modifications to the source. For more build options, 
+including GPU support, see the end of this README.
+
+When you have run `build.sh`, you need to `source env.sh` when you 
+open a new shell, so that Caffe components are on your `PATH` and 
+`PYTHONPATH`. If in doubt, `echo $PATH` and `echo $PYTHONPATH`.
+
 ## Saliency Computation
 
 When pruning, it is important to know the relative importance, or
