@@ -1,10 +1,22 @@
-### Running an official image
+### Building images yourself
+
+Examples (run these commands in the `caffe/docker` directory):
+
+`docker build -t caffe:cpu cpu`
+
+`docker build -t caffe:gpu gpu`
+
+You can also build Caffe and run the tests in the image:
+
+`docker run -ti caffe:cpu bash -c "cd /opt/caffe/build; make runtest"`
+
+### Running an official BVLC Caffe image
 
 You can run one of the automatic [builds](https://hub.docker.com/r/bvlc/caffe). E.g. for the CPU version:
 
 `docker run -ti bvlc/caffe:cpu caffe --version`
 
-or for GPU support (You need a CUDA 8.0 capable driver and
+or for GPU support (You need a CUDA 10.0 capable driver and
 [nvidia-docker](https://github.com/NVIDIA/nvidia-docker)):
 
 `nvidia-docker run -ti bvlc/caffe:gpu caffe --version`
@@ -33,15 +45,3 @@ import caffe
 The caffe build requirements are included in the container, so this can be used to
 build and run custom versions of caffe. Also, `caffe/python` is in PATH, so python
 utilities can be used directly, e.g. `draw_net.py`, `classify.py`, or `detect.py`.
-
-### Building images yourself
-
-Examples:
-
-`docker build -t caffe:cpu cpu`
-
-`docker build -t caffe:gpu gpu`
-
-You can also build Caffe and run the tests in the image:
-
-`docker run -ti caffe:cpu bash -c "cd /opt/caffe/build; make runtest"`
