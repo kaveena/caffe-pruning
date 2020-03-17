@@ -5,6 +5,7 @@ Makefile*
 
 # Make sure not to accidentally commit in-tree build files
 CMakeFiles/
+CMakeCache.txt
 *cmake_install*
 
 # Compiled Object files

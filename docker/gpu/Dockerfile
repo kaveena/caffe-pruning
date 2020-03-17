@@ -18,6 +18,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         libopencv-dev \
         libprotobuf-dev \
         libsnappy-dev \
+	libnccl-dev \
         protobuf-compiler \
         python3-dev \
         python3-numpy \
