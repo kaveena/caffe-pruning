@@ -6,7 +6,7 @@ export CMAKE_PARALLEL_LEVEL=`grep processor /proc/cpuinfo | wc -l`
 
 CMAKE_OPTIONS="-DCPU_ONLY=ON \
                -DUSE_NCCL=OFF \
-               -DBUILD_tools=ON \
+               -DBUILD_tools=OFF \
                -DBUILD_SHARED_LIBS=OFF \
                -DBUILD_python=ON \
                -DBUILD_matlab=OFF \
@@ -21,11 +21,11 @@ CMAKE_OPTIONS="-DCPU_ONLY=ON \
                -DBLAS=CBLAS \
                -D python_version=3"
                
-mkdir -p build
+mkdir -p caffe-build
 
 mkdir -p install
 
-cd build 
+cd caffe-build 
 
 cmake $CMAKE_OPTIONS .. 
 
