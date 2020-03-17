@@ -19,18 +19,18 @@ CMAKE_OPTIONS="-DCPU_ONLY=ON \
                -DALLOW_LMDB_NOLOCK=OFF \
                -DUSE_OPENMP=ON \
                -DBLAS=CBLAS \
-               -D python_version=3"
+               -Dpython_version=3"
                
-mkdir -p caffe-build
+rm -rf build && mkdir -p build
 
-mkdir -p install
+rm -rf install && mkdir -p install 
 
-cd caffe-build 
+cmake -Bbuild $CMAKE_OPTIONS -DCMAKE_INSTALL_PREFIX=./install .
 
-cmake $CMAKE_OPTIONS .. 
+cd build
 
 make -j`grep processor /proc/cpuinfo | wc -l` clean caffe caffeproto pycaffe python
 
-make DESTDIR=$(realpath ../install) install
+make install
 
 cd ..
