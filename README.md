@@ -32,7 +32,7 @@ open a new shell, so that Caffe components are on your `PATH` and
 Dockerfiles are provided in the `docker` folder to build an image with
 Caffe installed. See `docker/README` for details.
 
-## Building Caffe
+## Manually Building Caffe without `build.sh`
 
 The Caffe build process uses CMake. The build is an out-of-tree build,
 so don't run CMake in the Caffe source directory (the directory where this
