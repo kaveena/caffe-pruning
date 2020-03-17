@@ -27,70 +27,10 @@ When you have run `build.sh`, you need to `source env.sh` when you
 open a new shell, so that Caffe components are on your `PATH` and 
 `PYTHONPATH`. If in doubt, `echo $PATH` and `echo $PYTHONPATH`.
 
-## Saliency Computation
+## Building Caffe with Docker
 
-When pruning, it is important to know the relative importance, or
-*saliency* of each of the items being pruned. triNNity-caffe extends
-layers with weights with a new saliency parameter, which can be used to
-control how the saliency is computed. Saliency is stored in a Blob,
-just like weights and biases. The dimensions of the saliency Blob are
-exactly the same as the weight Blob for the layer.
-
-The parameters used to control saliency computation are `saliency`,
-`saliency_term`, `accum`, `norm`, and `input`.
-
-```
-layer {
-  name: "conv2"
-  type: "Convolution"
-  bottom: "norm1"
-  top: "conv2"
-  convolution_param {
-    num_output: 256
-    pad: 2
-    kernel_size: 5
-
-    saliency_param {
-      saliency_term: true
-      saliency: TAYLOR
-      accum: false
-      norm: L2
-      input: WEIGHT
-    }
-  }
-```
-
-The `saliency` is the name of the method to be used to compute
-saliency. The available methods are  `TAYLOR`,
-`HESSIAN_DIAG_APPROX1`, `HESSIAN_DIAG_APPROX2`, `TAYLOR_2ND_APPROX1`,
-`TAYLOR_2ND_APPROX2`, `AVERAGE_INPUT`, `AVERAGE_GRADIENT`.
-
-`APPROX1` and `APPROX2` methods both assume a diagonal Hessian for the activations and the weights.  `APPROX1` propagates the diagonal Hessians ins a similar way to backpropagation to compute the 2nd order derivatives.  `APPROX2` uses the Gauss-Newton approximation of Hessian and only retains the diagonal values.
-
-The `accum` parameters says whether or not to accumulate saliency
-across minibatches.
-
-The `norm` parameter selects which norm to use for the computed
-saliency: `NONE`, `L1` or `L2`.
-
-Finally, the `input` parameter is set to either `WEIGHT` or
-`ACTIVATION` to select whether it is the saliency of weights or of
-activations that is being computed.
-
-To temporarily disable saliency computation for a layer without
-removing the `saliency_param`, you can set `saliency_term` to `false`.
-
-## Second Order Derivatives Computation
-
-Some pointwise saliency methods (`HESSIAN_DIAG_APPROX1` and `TAYLOR_2ND_APPROX1`)
-require the computation of second order derivations in similar way to
-backpropagation.  To enable the computation of the second order derivatives,
-the Net Parameter `2nd_order_derivative` needs to be set to true.  This enables
-the memory allocation and computation of the higher order derivatives.
-
-This is global Caffe setting! Hence, if pycaffe is used all the networks need
-to either have `2nd_order_derivative` set to true or false.  The default
-behaviour is `2nd_order_derivative` set to false.
+Dockerfiles are provided in the `docker` folder to build an image with
+Caffe installed. See `docker/README` for details.
 
 ## Building Caffe
 
@@ -169,6 +109,71 @@ Whether to use OpenCV for handling images
 `USE_OPENMP:BOOL=OFF`
 
 Whether to use OpenMP parallelization
+
+## Using the triNNity-caffe pruning extensions
+
+When pruning, it is important to know the relative importance, or
+*saliency* of each of the items being pruned. triNNity-caffe extends
+layers with weights with a new saliency parameter, which can be used to
+control how the saliency is computed. Saliency is stored in a Blob,
+just like weights and biases. The dimensions of the saliency Blob are
+exactly the same as the weight Blob for the layer.
+
+The parameters used to control saliency computation are `saliency`,
+`saliency_term`, `accum`, `norm`, and `input`.
+
+```
+layer {
+  name: "conv2"
+  type: "Convolution"
+  bottom: "norm1"
+  top: "conv2"
+  convolution_param {
+    num_output: 256
+    pad: 2
+    kernel_size: 5
+
+    saliency_param {
+      saliency_term: true
+      saliency: TAYLOR
+      accum: false
+      norm: L2
+      input: WEIGHT
+    }
+  }
+```
+
+The `saliency` is the name of the method to be used to compute
+saliency. The available methods are  `TAYLOR`,
+`HESSIAN_DIAG_APPROX1`, `HESSIAN_DIAG_APPROX2`, `TAYLOR_2ND_APPROX1`,
+`TAYLOR_2ND_APPROX2`, `AVERAGE_INPUT`, `AVERAGE_GRADIENT`.
+
+`APPROX1` and `APPROX2` methods both assume a diagonal Hessian for the activations and the weights.  `APPROX1` propagates the diagonal Hessians ins a similar way to backpropagation to compute the 2nd order derivatives.  `APPROX2` uses the Gauss-Newton approximation of Hessian and only retains the diagonal values.
+
+The `accum` parameters says whether or not to accumulate saliency
+across minibatches.
+
+The `norm` parameter selects which norm to use for the computed
+saliency: `NONE`, `L1` or `L2`.
+
+Finally, the `input` parameter is set to either `WEIGHT` or
+`ACTIVATION` to select whether it is the saliency of weights or of
+activations that is being computed.
+
+To temporarily disable saliency computation for a layer without
+removing the `saliency_param`, you can set `saliency_term` to `false`.
+
+### Second Order Derivatives Computation
+
+Some pointwise saliency methods (`HESSIAN_DIAG_APPROX1` and `TAYLOR_2ND_APPROX1`)
+require the computation of second order derivations in similar way to
+backpropagation.  To enable the computation of the second order derivatives,
+the Net Parameter `2nd_order_derivative` needs to be set to true.  This enables
+the memory allocation and computation of the higher order derivatives.
+
+This is global Caffe setting! Hence, if pycaffe is used all the networks need
+to either have `2nd_order_derivative` set to true or false.  The default
+behaviour is `2nd_order_derivative` set to false.
 
 ## License and Citation
 
