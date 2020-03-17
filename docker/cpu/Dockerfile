@@ -34,10 +34,10 @@ WORKDIR $CAFFE_ROOT
 ENV CLONE_TAG=master
 
 RUN git clone -b ${CLONE_TAG} --depth 1 https://bitbucket.org/STG-TCD/trinnity-caffe.git . && \
-    pip install --upgrade pip && \
-    cd python && for req in $(cat requirements.txt) pydot; do pip install $req; done && cd .. && \
+    python -m pip install --upgrade pip && \
+    cd python && for req in $(cat requirements.txt) pydot; do python -m pip install $req; done && cd .. && \
     mkdir build && cd build && \
-    cmake -DCPU_ONLY=1 -DBLAS=Open.. && \
+    cmake -DCPU_ONLY=1 -DBLAS=Open .. && \
     make -j"$(nproc)"
 
 ENV PYCAFFE_ROOT $CAFFE_ROOT/python
