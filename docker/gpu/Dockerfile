@@ -3,11 +3,17 @@ LABEL maintainer caffe-maint@googlegroups.com
 
 ARG DEBIAN_FRONTEND=noninteractive
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
+RUN apt-get update && apt-get install -y --no-install-recommends wget
+
+RUN wget -O - https://apt.kitware.com/keys/kitware-archive-latest.asc 2>/dev/null | apt-key add -
+
+RUN apt-add-repository 'deb https://apt.kitware.com/ubuntu/ bionic main
+
+RUN apt-get update && apt-get install -y --no-install-recommends cmake
+
+RUN apt-get install -y --no-install-recommends \
         build-essential \
-        cmake \
         git \
-        wget \
         libopenblas-dev \
         libboost-all-dev \
         libgflags-dev \
