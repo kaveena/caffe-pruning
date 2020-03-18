@@ -3,11 +3,11 @@ LABEL maintainer caffe-maint@googlegroups.com
 
 ARG DEBIAN_FRONTEND=noninteractive
 
-RUN apt-get update && apt-get install -y --no-install-recommends wget
+RUN apt-get update && apt-get install -y --no-install-recommends wget gnupg apt-utils software-properties-common
 
 RUN wget -O - https://apt.kitware.com/keys/kitware-archive-latest.asc 2>/dev/null | apt-key add -
 
-RUN apt-add-repository 'deb https://apt.kitware.com/ubuntu/ bionic main
+RUN apt-add-repository 'deb https://apt.kitware.com/ubuntu/ bionic main'
 
 RUN apt-get update && apt-get install -y --no-install-recommends cmake
 

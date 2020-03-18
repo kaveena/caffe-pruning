@@ -1,18 +1,14 @@
-FROM ubuntu:18.04
+FROM ubuntu:19.10
 LABEL maintainer caffe-maint@googlegroups.com
 
 ARG DEBIAN_FRONTEND=noninteractive
 
-RUN apt-get update && apt-get install -y --no-install-recommends wget
-
-RUN wget -O - https://apt.kitware.com/keys/kitware-archive-latest.asc 2>/dev/null | apt-key add -
-
-RUN apt-add-repository 'deb https://apt.kitware.com/ubuntu/ bionic main
-
-RUN apt-get update && apt-get install -y --no-install-recommends cmake
+RUN apt-get update
 
 RUN apt-get install -y --no-install-recommends \
         build-essential \
+	wget \
+	cmake \
         git \
         libopenblas-dev \
         libboost-all-dev \
