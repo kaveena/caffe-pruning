@@ -2,11 +2,21 @@
 
 Examples (run these commands in the `caffe/docker` directory):
 
+To build the CPU version of Caffe:
+
 `docker build -t caffe:cpu cpu`
+
+To build the GPU version of Caffe:
 
 `docker build -t caffe:gpu gpu`
 
-You can also build Caffe and run the tests in the image:
+### Running commands in the image
+
+You can run commands inside the docker image by starting a shell like so:
+
+`docker run -ti caffe:cpu bash`
+
+You can also run the Caffe tests in the image:
 
 `docker run -ti caffe:cpu bash -c "cd /opt/caffe/build; make runtest"`
 
