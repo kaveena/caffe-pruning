@@ -101,7 +101,7 @@ void BatchNormLayer<Dtype>::Backward_gpu(const vector<Blob<Dtype>*>& top,
   } else {
     caffe_copy(x_norm_.count(), top[0]->gpu_diff(), x_norm_.mutable_gpu_diff());
     top_diff = x_norm_.gpu_diff();
-    if (Caffe::derivative_compute()) {
+    if (Caffe::compute_2nd_derivative()) {
       caffe_copy(x_norm_.count(), top[0]->gpu_ddiff(), x_norm_.mutable_gpu_ddiff());
       top_ddiff = x_norm_.gpu_ddiff();
     }
@@ -110,13 +110,13 @@ void BatchNormLayer<Dtype>::Backward_gpu(const vector<Blob<Dtype>*>& top,
   Dtype* bottom_ddiff = bottom[0]->mutable_gpu_ddiff();
   if (use_global_stats_) {
     caffe_gpu_div(temp_.count(), top_diff, temp_.gpu_data(), bottom_diff);
-    if (Caffe::derivative_compute()) {
+    if (Caffe::compute_2nd_derivative()) {
       caffe_gpu_div(temp_.count(), top_ddiff, temp_.gpu_data(), bottom_ddiff);
       caffe_gpu_div(temp_.count(), bottom_ddiff, temp_.gpu_data(), bottom_ddiff);
     }
     return;
   }
-  if (Caffe::derivative_compute()) {
+  if (Caffe::compute_2nd_derivative()) {
     LOG(FATAL) << "Second order derivative propagation not implemented for batch norm layer during TRAIN phase";
   }
   const Dtype* top_data = x_norm_.gpu_data();

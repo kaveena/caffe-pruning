@@ -41,7 +41,7 @@ void Blob<Dtype>::Reshape(const vector<int>& shape) {
     capacity_ = count_;
     data_.reset(new SyncedMemory(capacity_ * sizeof(Dtype)));
     diff_.reset(new SyncedMemory(capacity_ * sizeof(Dtype)));
-    if (Caffe::derivative_compute()) {
+    if (Caffe::compute_2nd_derivative()) {
       ddiff_.reset(new SyncedMemory(capacity_ * sizeof(Dtype)));
     }
   }
@@ -97,7 +97,7 @@ void Blob<Dtype>::set_cpu_data(Dtype* data) {
   if (data_->size() != size) {
     data_.reset(new SyncedMemory(size));
     diff_.reset(new SyncedMemory(size));
-    if (Caffe::derivative_compute()) {
+    if (Caffe::compute_2nd_derivative()) {
       ddiff_.reset(new SyncedMemory(size));
     }
   }
@@ -118,7 +118,7 @@ void Blob<Dtype>::set_gpu_data(Dtype* data) {
   if (data_->size() != size) {
     data_.reset(new SyncedMemory(size));
     diff_.reset(new SyncedMemory(size));
-    if (Caffe::derivative_compute()) {
+    if (Caffe::compute_2nd_derivative()) {
       ddiff_.reset(new SyncedMemory(size));
     }
   }
@@ -139,7 +139,7 @@ const Dtype* Blob<Dtype>::gpu_diff() const {
 
 template <typename Dtype>
 const Dtype* Blob<Dtype>::cpu_ddiff() const {
-  if (!Caffe::derivative_compute()) {
+  if (!Caffe::compute_2nd_derivative()) {
     LOG(FATAL) << "compute_2nd_derivative need to be set to true to allocate memory for 2nd order derivatives";
   }
   CHECK(ddiff_);
@@ -148,7 +148,7 @@ const Dtype* Blob<Dtype>::cpu_ddiff() const {
 
 template <typename Dtype>
 const Dtype* Blob<Dtype>::gpu_ddiff() const {
-  if (!Caffe::derivative_compute()) {
+  if (!Caffe::compute_2nd_derivative()) {
     LOG(FATAL) << "compute_2nd_derivative need to be set to true to allocate memory for 2nd order derivatives";
   }
   CHECK(ddiff_);
@@ -181,7 +181,7 @@ Dtype* Blob<Dtype>::mutable_gpu_diff() {
 
 template <typename Dtype>
 Dtype* Blob<Dtype>::mutable_cpu_ddiff() {
-  if (!Caffe::derivative_compute()) {
+  if (!Caffe::compute_2nd_derivative()) {
     LOG(FATAL) << "compute_2nd_derivative need to be set to true to allocate memory for 2nd order derivatives";
   }
   CHECK(ddiff_);
@@ -190,7 +190,7 @@ Dtype* Blob<Dtype>::mutable_cpu_ddiff() {
 
 template <typename Dtype>
 Dtype* Blob<Dtype>::mutable_gpu_ddiff() {
-  if (!Caffe::derivative_compute()) {
+  if (!Caffe::compute_2nd_derivative()) {
     LOG(FATAL) << "compute_2nd_derivative need to be set to true to allocate memory for 2nd order derivatives";
   }
   CHECK(ddiff_);
@@ -212,7 +212,7 @@ void Blob<Dtype>::ShareDiff(const Blob& other) {
 template <typename Dtype>
 void Blob<Dtype>::ShareDdiff(const Blob& other) {
   CHECK_EQ(count_, other.count());
-  if (!Caffe::derivative_compute()) {
+  if (!Caffe::compute_2nd_derivative()) {
     LOG(FATAL) << "compute_2nd_derivative need to be set to true to allocate memory for 2nd order derivatives";
   }
   ddiff_ = other.ddiff();
@@ -497,7 +497,7 @@ void Blob<Dtype>::CopyFrom(const Blob& source, bool copy_diff, bool reshape) {
     if (copy_diff) {
       caffe_copy(count_, source.gpu_diff(),
           static_cast<Dtype*>(diff_->mutable_gpu_data()));
-      if (Caffe::derivative_compute()) {
+      if (Caffe::compute_2nd_derivative()) {
         caffe_copy(count_, source.gpu_ddiff(),
             static_cast<Dtype*>(ddiff_->mutable_gpu_data()));
       }
@@ -510,7 +510,7 @@ void Blob<Dtype>::CopyFrom(const Blob& source, bool copy_diff, bool reshape) {
     if (copy_diff) {
       caffe_copy(count_, source.cpu_diff(),
           static_cast<Dtype*>(diff_->mutable_cpu_data()));
-      if (Caffe::derivative_compute()) {
+      if (Caffe::compute_2nd_derivative()) {
         caffe_copy(count_, source.cpu_ddiff(),
             static_cast<Dtype*>(ddiff_->mutable_cpu_data()));
       }
@@ -566,7 +566,7 @@ void Blob<Dtype>::FromProto(const BlobProto& proto, bool reshape) {
     for (int i = 0; i < count_; ++i) {
       diff_vec[i] = proto.double_diff(i);
     }
-    if (Caffe::derivative_compute()) {
+    if (Caffe::compute_2nd_derivative()) {
     Dtype* ddiff_vec = mutable_cpu_ddiff();
       for (int i = 0; i < count_; ++i) {
         ddiff_vec[i] = proto.double_ddiff(i);
@@ -578,7 +578,7 @@ void Blob<Dtype>::FromProto(const BlobProto& proto, bool reshape) {
     for (int i = 0; i < count_; ++i) {
       diff_vec[i] = proto.diff(i);
     }
-    if (Caffe::derivative_compute()) {
+    if (Caffe::compute_2nd_derivative()) {
       Dtype* ddiff_vec = mutable_cpu_ddiff();
       for (int i = 0; i < count_; ++i) {
         ddiff_vec[i] = proto.ddiff(i);
@@ -595,7 +595,7 @@ void Blob<double>::ToProto(BlobProto* proto, bool write_diff) const {
   }
   proto->clear_double_data();
   proto->clear_double_diff();
-  if (Caffe::derivative_compute()) {
+  if (Caffe::compute_2nd_derivative()) {
     proto->clear_double_ddiff();
   }
   const double* data_vec = cpu_data();
@@ -607,7 +607,7 @@ void Blob<double>::ToProto(BlobProto* proto, bool write_diff) const {
     for (int i = 0; i < count_; ++i) {
       proto->add_double_diff(diff_vec[i]);
     }
-    if (Caffe::derivative_compute()) {
+    if (Caffe::compute_2nd_derivative()) {
       const double* ddiff_vec = cpu_ddiff();
       for (int i = 0; i < count_; ++i) {
         proto->add_double_ddiff(ddiff_vec[i]);
@@ -624,7 +624,7 @@ void Blob<float>::ToProto(BlobProto* proto, bool write_diff) const {
   }
   proto->clear_data();
   proto->clear_diff();
-  if (Caffe::derivative_compute()) {
+  if (Caffe::compute_2nd_derivative()) {
     proto->clear_ddiff();
   }
   const float* data_vec = cpu_data();
@@ -636,7 +636,7 @@ void Blob<float>::ToProto(BlobProto* proto, bool write_diff) const {
     for (int i = 0; i < count_; ++i) {
       proto->add_diff(diff_vec[i]);
     }
-    if (Caffe::derivative_compute()) {
+    if (Caffe::compute_2nd_derivative()) {
       const float* ddiff_vec = cpu_ddiff();
       for (int i = 0; i < count_; ++i) {
         proto->add_ddiff(ddiff_vec[i]);

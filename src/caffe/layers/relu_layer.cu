@@ -50,7 +50,7 @@ void ReLULayer<Dtype>::Backward_gpu(const vector<Blob<Dtype>*>& top,
     Dtype* bottom_diff = bottom[0]->mutable_gpu_diff();
     const Dtype* top_ddiff;
     Dtype* bottom_ddiff;
-    if (Caffe::derivative_compute()) {
+    if (Caffe::compute_2nd_derivative()) {
       top_ddiff = top[0]->gpu_ddiff();
       bottom_ddiff = bottom[0]->mutable_gpu_ddiff();
     }
@@ -60,7 +60,7 @@ void ReLULayer<Dtype>::Backward_gpu(const vector<Blob<Dtype>*>& top,
     ReLUBackward<Dtype><<<CAFFE_GET_BLOCKS(count), CAFFE_CUDA_NUM_THREADS>>>(
         count, top_diff, bottom_data, bottom_diff, negative_slope);
     CUDA_POST_KERNEL_CHECK;
-    if (Caffe::derivative_compute()) {
+    if (Caffe::compute_2nd_derivative()) {
       ReLUBackward<Dtype><<<CAFFE_GET_BLOCKS(count), CAFFE_CUDA_NUM_THREADS>>>(
           count, top_ddiff, bottom_data, bottom_ddiff, negative_slope);
       CUDA_POST_KERNEL_CHECK;

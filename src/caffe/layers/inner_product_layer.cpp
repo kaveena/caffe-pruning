@@ -172,7 +172,7 @@ void InnerProductLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
     // Gradient with respect to bottom data
     // ddloss = ddtop * (dtopdbottom**2)
     const Dtype* top_ddiff;
-    if (Caffe::derivative_compute()) {
+    if (Caffe::compute_2nd_derivative()) {
       top_ddiff = top[0]->cpu_ddiff();
     }
     Dtype* weights_sqr = this->weights_sqr_.mutable_cpu_data();
@@ -182,7 +182,7 @@ void InnerProductLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
           M_, K_, N_,
           (Dtype)1., top_diff, this->blobs_[0]->cpu_data(),
           (Dtype)0., bottom[0]->mutable_cpu_diff());
-      if (Caffe::derivative_compute()) {
+      if (Caffe::compute_2nd_derivative()) {
         caffe_cpu_gemm<Dtype>(CblasNoTrans, CblasTrans,
             M_, K_, N_,
             (Dtype)1., top_ddiff, weights_sqr,
@@ -193,7 +193,7 @@ void InnerProductLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
           M_, K_, N_,
           (Dtype)1., top_diff, this->blobs_[0]->cpu_data(),
           (Dtype)0., bottom[0]->mutable_cpu_diff());
-      if (Caffe::derivative_compute()) {
+      if (Caffe::compute_2nd_derivative()) {
         caffe_cpu_gemm<Dtype>(CblasNoTrans, CblasNoTrans,
             M_, K_, N_,
             (Dtype)1., top_ddiff, weights_sqr,

@@ -62,7 +62,7 @@ void DropoutLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
       }
     } else {
       caffe_copy(top[0]->count(), top_diff, bottom_diff);
-      if (Caffe::derivative_compute()){
+      if (Caffe::compute_2nd_derivative()){
         top_ddiff = top[0]->cpu_ddiff();
         bottom_ddiff = bottom[0]->mutable_cpu_ddiff();
         caffe_copy(top[0]->count(), top_ddiff, bottom_ddiff);
