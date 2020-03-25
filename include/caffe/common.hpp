@@ -169,8 +169,8 @@ class Caffe {
   inline static void set_solver_rank(int val) { Get().solver_rank_ = val; }
   inline static bool multiprocess() { return Get().multiprocess_; }
   inline static void set_multiprocess(bool val) { Get().multiprocess_ = val; }
-  inline static bool compute_2nd_derivative() { return Get().compute_2nd_derivative_; }
-  inline static void set_compute_2nd_derivative(bool val) { Get().compute_2nd_derivative_ = val; }
+  inline static bool allocate_2nd_derivative_memory() { return Get().allocate_2nd_derivative_memory_; }
+  inline static void set_allocate_2nd_derivative_memory(bool val) { Get().allocate_2nd_derivative_memory_ = val; }
   inline static bool root_solver() { return Get().solver_rank_ == 0; }
 
  protected:
@@ -185,8 +185,10 @@ class Caffe {
   // Parallel training
   int solver_count_;
   int solver_rank_;
-  bool compute_2nd_derivative_;
   bool multiprocess_;
+
+  // allocate memory for 2nd order derivatives in blobs
+  bool allocate_2nd_derivative_memory_;
 
  private:
   // The private constructor to avoid duplicate instantiation.

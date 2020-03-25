@@ -52,7 +52,7 @@ void ConcatLayer<Dtype>::Backward_gpu(const vector<Blob<Dtype>*>& top,
   const Dtype* top_diff = top[0]->gpu_diff();
   const Dtype* top_ddiff;
   Dtype* bottom_ddiff;
-  if (Caffe::compute_2nd_derivative()) {
+  if (this->layer_param_.compute_2nd_derivative()) {
     top_ddiff = top[0]->gpu_ddiff();
   }
   int offset_concat_axis = 0;
@@ -62,7 +62,7 @@ void ConcatLayer<Dtype>::Backward_gpu(const vector<Blob<Dtype>*>& top,
     const int bottom_concat_axis = bottom[i]->shape(concat_axis_);
     if (propagate_down[i]) {
       Dtype* bottom_diff = bottom[i]->mutable_gpu_diff();
-      if (Caffe::compute_2nd_derivative()) {
+      if (this->layer_param_.compute_2nd_derivative()) {
         bottom_ddiff = bottom[i]->mutable_gpu_ddiff();
       }
       const int bottom_concat_size = bottom_concat_axis * concat_input_size_;
@@ -71,7 +71,7 @@ void ConcatLayer<Dtype>::Backward_gpu(const vector<Blob<Dtype>*>& top,
           <<<CAFFE_GET_BLOCKS(nthreads), CAFFE_CUDA_NUM_THREADS>>>(
           nthreads, top_diff, kForward, num_concats_, concat_input_size_,
           top_concat_axis, bottom_concat_axis, offset_concat_axis, bottom_diff);
-      if (Caffe::compute_2nd_derivative()) {
+      if (this->layer_param_.compute_2nd_derivative()) {
         Concat<Dtype>  // NOLINT_NEXT_LINE(whitespace/operators)
             <<<CAFFE_GET_BLOCKS(nthreads), CAFFE_CUDA_NUM_THREADS>>>(
             nthreads, top_ddiff, kForward, num_concats_, concat_input_size_,

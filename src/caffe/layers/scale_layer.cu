@@ -136,14 +136,14 @@ void ScaleLayer<Dtype>::Backward_gpu(const vector<Blob<Dtype>*>& top,
     Dtype* bottom_diff = bottom[0]->mutable_gpu_diff();
     const Dtype* top_ddiff;
     Dtype* bottom_ddiff;
-    if (Caffe::compute_2nd_derivative()) {
+    if (this->layer_param_.compute_2nd_derivative()) {
       top_ddiff = top[0]->gpu_ddiff();
       bottom_ddiff = bottom[0]->mutable_gpu_ddiff();
     }
     ScaleForward<Dtype>  // NOLINT_NEXT_LINE(whitespace/operators)
         <<<CAFFE_GET_BLOCKS(count), CAFFE_CUDA_NUM_THREADS>>>(
         count, top_diff, scale_data, scale_dim_, inner_dim_, bottom_diff);
-    if (Caffe::compute_2nd_derivative()) {
+    if (this->layer_param_.compute_2nd_derivative()) {
       ScaleBackwardBackward<Dtype>  // NOLINT_NEXT_LINE(whitespace/operators)
           <<<CAFFE_GET_BLOCKS(count), CAFFE_CUDA_NUM_THREADS>>>(
           count, top_ddiff, scale_data, scale_dim_, inner_dim_, bottom_ddiff);

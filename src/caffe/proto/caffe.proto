@@ -261,6 +261,7 @@ message SolverParameter {
 
   optional float start_lr_policy = 43;
   optional float max_lr = 44; // The maximum learning rate for CLR policies
+  optional bool allocate_2nd_derivative_memory = 45 [default = false];
 }
 
 // A message that stores the solver snapshots
@@ -367,6 +368,9 @@ message LayerParameter {
   // included/excluded.
   repeated NetStateRule include = 8;
   repeated NetStateRule exclude = 9;
+ 
+  // Whether to compute 2nd order derivatives of activations and weights
+  optional bool compute_2nd_derivative = 12 [default = false];
 
   // Parameters for data pre-processing.
   optional TransformationParameter transform_param = 100;

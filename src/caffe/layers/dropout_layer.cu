@@ -63,7 +63,7 @@ void DropoutLayer<Dtype>::Backward_gpu(const vector<Blob<Dtype>*>& top,
       CUDA_POST_KERNEL_CHECK;
     } else {
       caffe_copy(top[0]->count(), top_diff, bottom_diff);
-      if (Caffe::compute_2nd_derivative()){
+      if (this->layer_param_.compute_2nd_derivative()){
         top_ddiff = top[0]->gpu_ddiff();
         bottom_ddiff = bottom[0]->mutable_gpu_ddiff();
         caffe_copy(top[0]->count(), top_ddiff, bottom_ddiff);

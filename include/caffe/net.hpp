@@ -215,6 +215,8 @@ class Net {
   const shared_ptr<Layer<Dtype> > layer_by_name(const string& layer_name) const;
 
   void set_debug_info(const bool value) { debug_info_ = value; }
+  
+  inline bool compute_2nd_derivative() const { return compute_2nd_derivative_; }
 
   // Helpers for Init.
   /**
@@ -335,6 +337,8 @@ class Net {
   vector<Callback*> after_forward_;
   vector<Callback*> before_backward_;
   vector<Callback*> after_backward_;
+  /// @brief compute 2nd order derivatives or not during backward pass
+  bool compute_2nd_derivative_;
 
 DISABLE_COPY_AND_ASSIGN(Net);
 };

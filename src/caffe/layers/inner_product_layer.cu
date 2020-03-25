@@ -68,7 +68,7 @@ void InnerProductLayer<Dtype>::Backward_gpu(const vector<Blob<Dtype>*>& top,
     // Gradient with respect to bottom data
     // ddloss = ddtop * (dtopdbottom**2)
     const Dtype* top_ddiff;
-    if (Caffe::compute_2nd_derivative()) {
+    if (this->layer_param_.compute_2nd_derivative()) {
       top_ddiff = top[0]->gpu_ddiff();
     }
     Dtype* weights_sqr = this->weights_sqr_.mutable_gpu_data();
@@ -78,7 +78,7 @@ void InnerProductLayer<Dtype>::Backward_gpu(const vector<Blob<Dtype>*>& top,
           M_, K_, N_,
           (Dtype)1., top_diff, this->blobs_[0]->gpu_data(),
           (Dtype)0., bottom[0]->mutable_gpu_diff());
-      if (Caffe::compute_2nd_derivative()) {
+      if (this->layer_param_.compute_2nd_derivative()) {
         caffe_gpu_gemm<Dtype>(CblasNoTrans, CblasTrans,
             M_, K_, N_,
             (Dtype)1., top_ddiff, weights_sqr,
@@ -89,7 +89,7 @@ void InnerProductLayer<Dtype>::Backward_gpu(const vector<Blob<Dtype>*>& top,
           M_, K_, N_,
          (Dtype)1., top_diff, this->blobs_[0]->gpu_data(),
          (Dtype)0., bottom[0]->mutable_gpu_diff());
-      if (Caffe::compute_2nd_derivative()) {
+      if (this->layer_param_.compute_2nd_derivative()) {
        caffe_gpu_gemm<Dtype>(CblasNoTrans, CblasNoTrans,
            M_, K_, N_,
            (Dtype)1., top_ddiff, weights_sqr,

@@ -165,15 +165,19 @@ removing the `saliency_param`, you can set `saliency_term` to `false`.
 
 ### Second Order Derivatives Computation
 
-Some pointwise saliency methods (`HESSIAN_DIAG_APPROX1` and `TAYLOR_2ND_APPROX1`)
-require the computation of second order derivations in similar way to
-backpropagation.  To enable the computation of the second order derivatives,
-the Net Parameter `2nd_order_derivative` needs to be set to true.  This enables
-the memory allocation and computation of the higher order derivatives.
+Some pointwise saliency methods (`HESSIAN_DIAG_APPROX1` and
+`TAYLOR_2ND_APPROX1`) require the computation of second order derivations in
+similar way to backpropagation.  To enable the computation of the second order
+derivatives, the Solver Parameter `allocate_2nd_derivative_memory` and the Net
+Parameter `2nd_order_derivative` need to be set to true.
 
-This is global Caffe setting! Hence, if pycaffe is used all the networks need
-to either have `2nd_order_derivative` set to true or false.  The default
-behaviour is `2nd_order_derivative` set to false.
+When `allocate_2nd_derivative_memory` is set to true, each blob have additional
+memory allocate for its `ddiff` attribute.  This is global a Caffe setting!
+Hence, if pycaffe is used all the networks need to either have
+`allocate_2nd_derivative_memory` set to true or false.  The default behaviour
+is `allocate_2nd_derivative_memory` set to false.  The PyCaffe functions
+`caffe._caffe.set_allocate_2nd_derivative_memory` can also be used to toggle this
+setting.
 
 ## License and Citation
 

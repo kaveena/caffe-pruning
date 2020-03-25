@@ -50,8 +50,6 @@ const int NPY_DTYPE = NPY_FLOAT32;
 // Selecting mode.
 void set_mode_cpu() { Caffe::set_mode(Caffe::CPU); }
 void set_mode_gpu() { Caffe::set_mode(Caffe::GPU); }
-void set_compute_2nd_derivative() { Caffe::set_compute_2nd_derivative(true); }
-void unset_compute_2nd_derivative() { Caffe::set_compute_2nd_derivative(false); }
 
 void InitLog() {
   ::google::InitGoogleLogging("");
@@ -394,8 +392,6 @@ BOOST_PYTHON_MODULE(_caffe) {
   bp::def("has_nccl", &HasNCCL);
   bp::def("set_mode_cpu", &set_mode_cpu);
   bp::def("set_mode_gpu", &set_mode_gpu);
-  bp::def("set_compute_2nd_derivative", &set_compute_2nd_derivative);
-  bp::def("unset_compute_2nd_derivative", &unset_compute_2nd_derivative);
   bp::def("set_random_seed", &set_random_seed);
   bp::def("set_device", &Caffe::SetDevice);
   bp::def("solver_count", &Caffe::solver_count);
@@ -403,6 +399,7 @@ BOOST_PYTHON_MODULE(_caffe) {
   bp::def("solver_rank", &Caffe::solver_rank);
   bp::def("set_solver_rank", &Caffe::set_solver_rank);
   bp::def("set_multiprocess", &Caffe::set_multiprocess);
+  bp::def("set_allocate_2nd_derivative_memory", &Caffe::set_allocate_2nd_derivative_memory);
 
   bp::def("layer_type_list", &LayerRegistry<Dtype>::LayerTypeList);
 
