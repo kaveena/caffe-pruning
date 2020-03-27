@@ -50,6 +50,9 @@ void Solver<Dtype>::Init(const SolverParameter& param) {
   if (param_.random_seed() >= 0) {
     Caffe::set_random_seed(param_.random_seed() + Caffe::solver_rank());
   }
+  // General Caffe setting
+  Caffe::set_allocate_2nd_derivative_memory(param.allocate_2nd_derivative_memory());
+
   // Scaffolding code
   InitTrainNet();
   InitTestNets();
