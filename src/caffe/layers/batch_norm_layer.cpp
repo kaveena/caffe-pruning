@@ -171,6 +171,8 @@ void BatchNormLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
     const vector<Blob<Dtype>*>& bottom) {
   const Dtype* top_diff;
   const Dtype* top_ddiff;
+  Dtype* bottom_diff;
+  Dtype* bottom_ddiff;
   if (bottom[0] != top[0]) {
     top_diff = top[0]->cpu_diff();
     if (this->layer_param_.compute_2nd_derivative()) {
@@ -184,8 +186,10 @@ void BatchNormLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
       top_ddiff = x_norm_.cpu_ddiff();
     }
   }
-  Dtype* bottom_diff = bottom[0]->mutable_cpu_diff();
-  Dtype* bottom_ddiff = bottom[0]->mutable_cpu_ddiff();
+  bottom_diff = bottom[0]->mutable_cpu_diff();
+  if (this->layer_param_.compute_2nd_derivative()) {
+    bottom_ddiff = bottom[0]->mutable_cpu_ddiff();
+  }
   if (use_global_stats_) {
     caffe_div(temp_.count(), top_diff, temp_.cpu_data(), bottom_diff);
     if (this->layer_param_.compute_2nd_derivative()) {
