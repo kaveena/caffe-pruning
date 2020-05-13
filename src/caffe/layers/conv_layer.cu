@@ -263,6 +263,9 @@ void ConvolutionLayer<Dtype>::Backward_gpu(const vector<Blob<Dtype>*>& top,
         if ((conv_saliency_param.saliency(i_s) == caffe::ConvolutionSaliencyParameter::AVERAGE_INPUT) && (conv_saliency_param.saliency_input(i_s) == caffe::ConvolutionSaliencyParameter::ACTIVATION)){
             compute_weight_avg_gpu(top_data, conv_saliency_param.saliency_norm(i_s), output_channel_saliency_data + (i_s * this->num_output_));
         }
+        if ((conv_saliency_param.saliency(i_s) == caffe::ConvolutionSaliencyParameter::APOZ) && (conv_saliency_param.saliency_input(i_s) == caffe::ConvolutionSaliencyParameter::ACTIVATION)){
+            compute_apoz_gpu(top_data, conv_saliency_param.saliency_norm(i_s), output_channel_saliency_data + (i_s * this->num_output_));
+        }
         if ((conv_saliency_param.saliency(i_s) == caffe::ConvolutionSaliencyParameter::AVERAGE_GRADIENT) && (conv_saliency_param.saliency_input(i_s) == caffe::ConvolutionSaliencyParameter::ACTIVATION)){
             compute_diff_avg_gpu(top_diff, conv_saliency_param.saliency_norm(i_s), output_channel_saliency_data + (i_s * this->num_output_));
         }
@@ -283,6 +286,9 @@ void ConvolutionLayer<Dtype>::Backward_gpu(const vector<Blob<Dtype>*>& top,
         }
         if ((conv_saliency_param.saliency(i_s) == caffe::ConvolutionSaliencyParameter::AVERAGE_INPUT) && (conv_saliency_param.saliency_input(i_s) == caffe::ConvolutionSaliencyParameter::WEIGHT)){
           compute_weight_avg_weights_gpu(&weights_n_masked_, &bias_n_masked_, conv_saliency_param.saliency_norm(i_s), output_channel_saliency_data + (i_s * this->num_output_));
+        }
+        if ((conv_saliency_param.saliency(i_s) == caffe::ConvolutionSaliencyParameter::APOZ) && (conv_saliency_param.saliency_input(i_s) == caffe::ConvolutionSaliencyParameter::WEIGHT)){
+          compute_apoz_weights_gpu(&weights_n_masked_, &bias_n_masked_, conv_saliency_param.saliency_norm(i_s), output_channel_saliency_data + (i_s * this->num_output_));
         }
         if ((conv_saliency_param.saliency(i_s) == caffe::ConvolutionSaliencyParameter::AVERAGE_GRADIENT) && (conv_saliency_param.saliency_input(i_s) == caffe::ConvolutionSaliencyParameter::WEIGHT)){
           compute_diff_avg_weights_gpu(&weights_n_masked_, &bias_n_masked_, conv_saliency_param.saliency_norm(i_s), output_channel_saliency_data + (i_s * this->num_output_));

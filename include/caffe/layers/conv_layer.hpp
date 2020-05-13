@@ -102,6 +102,7 @@ class ConvolutionLayer : public BaseConvolutionLayer<Dtype> {
   void compute_taylor_2nd_cpu(const Dtype *  act_data, const Dtype * act_diff, const Dtype *  act_ddiff, caffe::ConvolutionSaliencyParameter::NORM saliency_norm_, Dtype * taylor_2nd_out);
   void compute_taylor_2nd_approx2_cpu(const Dtype *  act_data, const Dtype * act_diff, caffe::ConvolutionSaliencyParameter::NORM saliency_norm_, Dtype * taylor_2nd_out);
   void compute_weight_avg_cpu(const Dtype *  act_data, caffe::ConvolutionSaliencyParameter::NORM saliency_norm_, Dtype * saliency_info_out);
+  void compute_apoz_cpu(const Dtype *  act_data, caffe::ConvolutionSaliencyParameter::NORM saliency_norm_, Dtype * saliency_info_out);
   void compute_diff_avg_cpu(const Dtype *  act_diff, caffe::ConvolutionSaliencyParameter::NORM saliency_norm_, Dtype * saliency_info_out);
   
   void compute_taylor_weights_cpu(Blob<Dtype> * weights_n, Blob<Dtype> * bias_n, caffe::ConvolutionSaliencyParameter::NORM saliency_norm_, Dtype * taylor_out);
@@ -110,6 +111,7 @@ class ConvolutionLayer : public BaseConvolutionLayer<Dtype> {
   void compute_taylor_2nd_weights_cpu(Blob<Dtype> * weights_n, Blob<Dtype> * bias_n, caffe::ConvolutionSaliencyParameter::NORM saliency_norm_, Dtype * taylor_2nd_out);
   void compute_taylor_2nd_approx2_weights_cpu(Blob<Dtype> * weights_n, Blob<Dtype> * bias_n, caffe::ConvolutionSaliencyParameter::NORM saliency_norm_, Dtype * taylor_2nd_out);
   void compute_weight_avg_weights_cpu(Blob<Dtype> * weights_n, Blob<Dtype> * bias_n, caffe::ConvolutionSaliencyParameter::NORM saliency_norm_, Dtype * saliency_info_out);
+  void compute_apoz_weights_cpu(Blob<Dtype> * weights_n, Blob<Dtype> * bias_n, caffe::ConvolutionSaliencyParameter::NORM saliency_norm_, Dtype * saliency_info_out);
   void compute_diff_avg_weights_cpu(Blob<Dtype> * weights_n, Blob<Dtype> * bias_n, caffe::ConvolutionSaliencyParameter::NORM saliency_norm_, Dtype * saliency_info_out);
 
   void compute_norm_and_batch_avg_cpu(Dtype * output_saliency_data, caffe::ConvolutionSaliencyParameter::NORM saliency_norm_, Dtype * output_channel_saliency);
@@ -121,6 +123,7 @@ class ConvolutionLayer : public BaseConvolutionLayer<Dtype> {
   void compute_taylor_2nd_gpu(const Dtype *  act_data, const Dtype * act_diff, const Dtype *  act_ddiff, caffe::ConvolutionSaliencyParameter::NORM saliency_norm_, Dtype * taylor_2nd_out);
   void compute_taylor_2nd_approx2_gpu(const Dtype *  act_data, const Dtype * act_diff, caffe::ConvolutionSaliencyParameter::NORM saliency_norm_, Dtype * taylor_2nd_out);
   void compute_weight_avg_gpu(const Dtype *  act_data, caffe::ConvolutionSaliencyParameter::NORM saliency_norm_, Dtype * saliency_info_out);
+  void compute_apoz_gpu(const Dtype *  act_data, caffe::ConvolutionSaliencyParameter::NORM saliency_norm_, Dtype * saliency_info_out);
   void compute_diff_avg_gpu(const Dtype *  act_diff, caffe::ConvolutionSaliencyParameter::NORM saliency_norm_, Dtype * saliency_info_out);
   
   void compute_taylor_weights_gpu(Blob<Dtype> * weights_n, Blob<Dtype> * bias_n, caffe::ConvolutionSaliencyParameter::NORM saliency_norm_, Dtype * taylor_out);
@@ -129,6 +132,7 @@ class ConvolutionLayer : public BaseConvolutionLayer<Dtype> {
   void compute_taylor_2nd_weights_gpu(Blob<Dtype> * weights_n, Blob<Dtype> * bias_n, caffe::ConvolutionSaliencyParameter::NORM saliency_norm_, Dtype * taylor_2nd_out);
   void compute_taylor_2nd_approx2_weights_gpu(Blob<Dtype> * weights_n, Blob<Dtype> * bias_n, caffe::ConvolutionSaliencyParameter::NORM saliency_norm_, Dtype * taylor_2nd_out);
   void compute_weight_avg_weights_gpu(Blob<Dtype> * weights_n, Blob<Dtype> * bias_n, caffe::ConvolutionSaliencyParameter::NORM saliency_norm_, Dtype * saliency_info_out);
+  void compute_apoz_weights_gpu(Blob<Dtype> * weights_n, Blob<Dtype> * bias_n, caffe::ConvolutionSaliencyParameter::NORM saliency_norm_, Dtype * saliency_info_out);
   void compute_diff_avg_weights_gpu(Blob<Dtype> * weights_n, Blob<Dtype> * bias_n, caffe::ConvolutionSaliencyParameter::NORM saliency_norm_, Dtype * saliency_info_out);
 
   void compute_norm_and_batch_avg_gpu(Dtype * output_saliency_data, caffe::ConvolutionSaliencyParameter::NORM saliency_norm_, Dtype * output_channel_saliency);
