@@ -28,12 +28,14 @@ def test(solver, itr, accuracy_layer_name, loss_layer_name):
 def prune_weight(net, pruned_layer_name, pruned_weight_idx):
   layer = net.layer_dict[pruned_layer_name]
   p = pruned_weight_idx
-  layer.blobs[0].data.flat[p] = 0
+  if np.any(p):
+    layer.blobs[0].data.flat[p] = 0
 
 def prune_mask(net, pruned_layer_name, pruned_weight_idx):
   layer = net.layer_dict[pruned_layer_name]
   p = pruned_weight_idx
-  layer.blobs[2].data.flat[p] = 0
+  if np.any(p):
+    layer.blobs[2].data.flat[p] = 0
 
 def parser():
     parser = argparse.ArgumentParser(description='Caffe Weight Pruning Tool')
@@ -118,7 +120,7 @@ if __name__=='__main__':
         prune_state[layer_name] = np.union1d(prune_state[layer_name], pruning_signals[layer_name])
 
     # Now the actual pruning step
-    for layer in layer_list:
+    for layer_name in layer_list:
       for weight_idx in pruning_signals[layer_name]:
         prune_mask(net, layer_name, weight_idx)
 
@@ -136,4 +138,4 @@ if __name__=='__main__':
 
   pruning_solver.net.save(args.output)
 
-  exit(0)
+  sys.exit(0)
