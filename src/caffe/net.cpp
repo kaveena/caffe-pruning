@@ -58,7 +58,8 @@ void Net<Dtype>::Init(const NetParameter& in_param) {
   InsertSplits(filtered_param, &param);
   // Basically, build all the layers and set up their connections.
   name_ = param.name();
-  Caffe::set_derivative_compute(param.compute_2nd_derivative());
+  // Set compute_2nd_derivative from prototxt
+  compute_2nd_derivative_ = param.compute_2nd_derivative();
   map<string, int> blob_name_to_idx;
   set<string> available_blobs;
   memory_used_ = 0;
@@ -74,6 +75,8 @@ void Net<Dtype>::Init(const NetParameter& in_param) {
     if (!param.layer(layer_id).has_phase()) {
       param.mutable_layer(layer_id)->set_phase(phase_);
     }
+    // Inherit compute_2nd_derivative from net
+    param.mutable_layer(layer_id)->set_compute_2nd_derivative(compute_2nd_derivative_);
     // Setup layer.
     const LayerParameter& layer_param = param.layer(layer_id);
     if (layer_param.propagate_down_size() > 0) {
@@ -938,7 +941,7 @@ void Net<Dtype>::ClearParamDiffs() {
     case Caffe::CPU:
       caffe_set(blob->count(), static_cast<Dtype>(0),
                 blob->mutable_cpu_diff());
-      if (Caffe::derivative_compute()) {
+      if (this->compute_2nd_derivative_) {
         caffe_set(blob->count(), static_cast<Dtype>(0),
                   blob->mutable_cpu_ddiff());
       }
@@ -947,7 +950,7 @@ void Net<Dtype>::ClearParamDiffs() {
 #ifndef CPU_ONLY
       caffe_gpu_set(blob->count(), static_cast<Dtype>(0),
                     blob->mutable_gpu_diff());
-      if (Caffe::derivative_compute()) {
+      if (this->compute_2nd_derivative_) {
         caffe_gpu_set(blob->count(), static_cast<Dtype>(0),
                       blob->mutable_gpu_ddiff());
       }

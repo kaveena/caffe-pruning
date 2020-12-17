@@ -125,12 +125,12 @@ void SoftmaxWithLossLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
   if (propagate_down[0]) {
     Dtype* bottom_diff = bottom[0]->mutable_cpu_diff();
     Dtype* bottom_ddiff;
-    if (Caffe::derivative_compute()) {
+    if (this->layer_param_.compute_2nd_derivative()) {
       bottom_ddiff = bottom[0]->mutable_cpu_ddiff();
     }
     const Dtype* prob_data = prob_.cpu_data();
     caffe_copy(prob_.count(), prob_data, bottom_diff);
-    if (Caffe::derivative_compute()) {
+    if (this->layer_param_.compute_2nd_derivative()) {
       caffe_copy(prob_.count(), prob_data, bottom_ddiff);
     }
     const Dtype* label = bottom[1]->cpu_data();
@@ -149,7 +149,7 @@ void SoftmaxWithLossLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
         }
       }
     }
-    if (Caffe::derivative_compute()) {
+    if (this->layer_param_.compute_2nd_derivative()) {
     // ddloss = p - p**2
       caffe_powx(prob_.count(), bottom_ddiff, (Dtype)2, bottom_ddiff);
       caffe_sub(prob_.count(), prob_data, bottom_ddiff, bottom_ddiff);

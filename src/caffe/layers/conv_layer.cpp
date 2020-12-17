@@ -184,7 +184,7 @@ void ConvolutionLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
   }
 
   if (this->saliency_term_) {
-    if (Caffe::derivative_compute()) {
+    if (this->layer_param_.compute_2nd_derivative()) {
       weight_ddiff = this->blobs_[0]->mutable_cpu_diff();
       if (this->separate_weight_diff_) {
         full_weights_ddiff = weights_n_masked_.mutable_cpu_ddiff();
@@ -200,12 +200,12 @@ void ConvolutionLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
         bias_n_masked_.Reshape({this->num_, this->blobs_[1]->shape()[0]});
         full_bias_diff = bias_n_masked_.mutable_cpu_diff();
       }
+    }
 
-      if (Caffe::derivative_compute()) {
-        bias_ddiff = this->blobs_[1]->mutable_cpu_ddiff();
-        if (this->separate_weight_diff_) {
-          full_bias_ddiff = bias_n_masked_.mutable_cpu_ddiff();
-        }
+    if (this->layer_param_.compute_2nd_derivative()) {
+      bias_ddiff = this->blobs_[1]->mutable_cpu_ddiff();
+      if (this->separate_weight_diff_) {
+        full_bias_ddiff = bias_n_masked_.mutable_cpu_ddiff();
       }
     }
   }
@@ -220,7 +220,7 @@ void ConvolutionLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
     const Dtype* top_ddiff;
     Dtype* bottom_ddiff;
     Dtype* input_sqr_;
-    if (Caffe::derivative_compute()) {
+    if (this->layer_param_.compute_2nd_derivative()) {
       input_shaped_blob_.Reshape(bottom[i]->shape());
       top_ddiff = top[i]->cpu_ddiff();
       bottom_ddiff = bottom[i]->mutable_cpu_ddiff();
@@ -237,14 +237,14 @@ void ConvolutionLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
         if (this->separate_weight_diff_) {
           this->backward_cpu_bias_no_accum(full_bias_diff + n * this->blobs_[1]->count(), top_diff + n * this->top_dim_);
           caffe_add(this->blobs_[1]->count(), full_bias_diff + n * this->blobs_[1]->count(), bias_diff, bias_diff);
-          if (Caffe::derivative_compute()) {
+          if (this->layer_param_.compute_2nd_derivative()) {
             this->backward_cpu_bias_no_accum(full_bias_ddiff + n * this->blobs_[1]->count(), top_ddiff + n * this->top_dim_);
             caffe_add(this->blobs_[1]->count(), full_bias_ddiff + n * this->blobs_[1]->count(), bias_ddiff, bias_ddiff);
           }
         }
         else {
           this->backward_cpu_bias(bias_diff, top_diff + n * this->top_dim_);
-          if (Caffe::derivative_compute()) {
+          if (this->layer_param_.compute_2nd_derivative()) {
             this->backward_cpu_bias(bias_ddiff, top_ddiff + n * this->top_dim_);
           }
         }
@@ -261,7 +261,7 @@ void ConvolutionLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
             this->weight_cpu_gemm_no_accum(bottom_data + n * this->bottom_dim_,
                 top_diff + n * this->top_dim_, full_weights_diff + n * this->blobs_[0]->count());
             caffe_add(this->blobs_[0]->count(), full_weights_diff + n * this->blobs_[0]->count(), weight_diff, weight_diff);
-            if (Caffe::derivative_compute()) {
+            if (this->layer_param_.compute_2nd_derivative()) {
               this->weight_cpu_gemm_no_accum(input_sqr_ + n * this->bottom_dim_,
                   top_ddiff + n * this->top_dim_, full_weights_ddiff + n * this->blobs_[0]->count());
               caffe_add(this->blobs_[0]->count(), full_weights_ddiff + n * this->blobs_[0]->count(), weight_ddiff, weight_ddiff);
@@ -270,7 +270,7 @@ void ConvolutionLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
           else {
             this->weight_cpu_gemm(bottom_data + n * this->bottom_dim_,
                 top_diff + n * this->top_dim_, weight_diff);
-            if (Caffe::derivative_compute()) {
+            if (this->layer_param_.compute_2nd_derivative()) {
               this->weight_cpu_gemm(input_sqr_ + n * this->bottom_dim_,
                 top_ddiff + n * this->top_dim_, weight_ddiff);
             }
@@ -281,7 +281,7 @@ void ConvolutionLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
           this->backward_cpu_gemm(top_diff + n * this->top_dim_, weight,
               bottom_diff + n * this->bottom_dim_);
         }
-        if (Caffe::derivative_compute()) {
+        if (this->layer_param_.compute_2nd_derivative()) {
           if (propagate_down[i]) {
             this->backward_cpu_gemm(top_ddiff + n * this->top_dim_, weights_sqr,
                 bottom_ddiff + n * this->bottom_dim_);
@@ -320,6 +320,9 @@ void ConvolutionLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
         if ((conv_saliency_param.saliency(i_s) == caffe::ConvolutionSaliencyParameter::AVERAGE_INPUT) && (conv_saliency_param.saliency_input(i_s) == caffe::ConvolutionSaliencyParameter::ACTIVATION)){
             compute_weight_avg_cpu(top_data, conv_saliency_param.saliency_norm(i_s), output_channel_saliency_data + (i_s * this->num_output_));
         }
+        if ((conv_saliency_param.saliency(i_s) == caffe::ConvolutionSaliencyParameter::APOZ) && (conv_saliency_param.saliency_input(i_s) == caffe::ConvolutionSaliencyParameter::ACTIVATION)){
+            compute_apoz_cpu(top_data, conv_saliency_param.saliency_norm(i_s), output_channel_saliency_data + (i_s * this->num_output_));
+        }
         if ((conv_saliency_param.saliency(i_s) == caffe::ConvolutionSaliencyParameter::AVERAGE_GRADIENT) && (conv_saliency_param.saliency_input(i_s) == caffe::ConvolutionSaliencyParameter::ACTIVATION)){
             compute_diff_avg_cpu(top_diff, conv_saliency_param.saliency_norm(i_s), output_channel_saliency_data + (i_s * this->num_output_));
         }
@@ -340,6 +343,9 @@ void ConvolutionLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
         }
         if ((conv_saliency_param.saliency(i_s) == caffe::ConvolutionSaliencyParameter::AVERAGE_INPUT) && (conv_saliency_param.saliency_input(i_s) == caffe::ConvolutionSaliencyParameter::WEIGHT)){
           compute_weight_avg_weights_cpu(&weights_n_masked_, &bias_n_masked_, conv_saliency_param.saliency_norm(i_s), output_channel_saliency_data + (i_s * this->num_output_));
+        }
+        if ((conv_saliency_param.saliency(i_s) == caffe::ConvolutionSaliencyParameter::APOZ) && (conv_saliency_param.saliency_input(i_s) == caffe::ConvolutionSaliencyParameter::WEIGHT)){
+          compute_apoz_weights_cpu(&weights_n_masked_, &bias_n_masked_, conv_saliency_param.saliency_norm(i_s), output_channel_saliency_data + (i_s * this->num_output_));
         }
         if ((conv_saliency_param.saliency(i_s) == caffe::ConvolutionSaliencyParameter::AVERAGE_GRADIENT) && (conv_saliency_param.saliency_input(i_s) == caffe::ConvolutionSaliencyParameter::WEIGHT)){
           compute_diff_avg_weights_cpu(&weights_n_masked_, &bias_n_masked_, conv_saliency_param.saliency_norm(i_s), output_channel_saliency_data + (i_s * this->num_output_));

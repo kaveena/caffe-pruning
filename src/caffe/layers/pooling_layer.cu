@@ -378,7 +378,7 @@ void PoolingLayer<Dtype>::Backward_gpu(const vector<Blob<Dtype>*>& top,
   caffe_gpu_set(count, Dtype(0.), bottom_diff);
   const Dtype* top_ddiff;
   Dtype* bottom_ddiff;
-  if (Caffe::derivative_compute()) {
+  if (this->layer_param_.compute_2nd_derivative()) {
     top_ddiff = top[0]->gpu_ddiff();
     bottom_ddiff = bottom[0]->mutable_gpu_ddiff();
     caffe_gpu_set(count, Dtype(0.), bottom_ddiff);
@@ -400,7 +400,7 @@ void PoolingLayer<Dtype>::Backward_gpu(const vector<Blob<Dtype>*>& top,
         height_, width_, pooled_height_, pooled_width_,
         kernel_h_, kernel_w_, stride_h_, stride_w_, pad_h_, pad_w_,
         bottom_diff);
-    if (Caffe::derivative_compute()) {
+    if (this->layer_param_.compute_2nd_derivative()) {
       MaxPoolBackward<Dtype><<<CAFFE_GET_BLOCKS(count), CAFFE_CUDA_NUM_THREADS>>>(
           count, top_ddiff, mask, top_mask, top[0]->num(), channels_,
           height_, width_, pooled_height_, pooled_width_,
@@ -414,7 +414,7 @@ void PoolingLayer<Dtype>::Backward_gpu(const vector<Blob<Dtype>*>& top,
         count, top_diff, top[0]->num(), channels_,
         height_, width_, pooled_height_, pooled_width_, kernel_h_,
         kernel_w_, stride_h_, stride_w_, pad_h_, pad_w_, bottom_diff);
-    if (Caffe::derivative_compute()) {
+    if (this->layer_param_.compute_2nd_derivative()) {
       AvePoolBackwardBackward<Dtype><<<CAFFE_GET_BLOCKS(count), CAFFE_CUDA_NUM_THREADS>>>(
         count, top_ddiff, top[0]->num(), channels_,
         height_, width_, pooled_height_, pooled_width_, kernel_h_,

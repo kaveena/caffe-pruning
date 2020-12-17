@@ -63,7 +63,7 @@ void LRNLayer<Dtype>::LayerSetUp(const vector<Blob<Dtype>*>& bottom,
     product_layer_.reset(new EltwiseLayer<Dtype>(product_param));
     product_layer_->SetUp(product_bottom_vec_, top);
   }
-  if (Caffe::derivative_compute()) {
+  if (this->layer_param_.compute_2nd_derivative()) {
     this->helper_.Reshape(top[0]->shape());
   }
 }
@@ -81,7 +81,7 @@ void LRNLayer<Dtype>::Reshape(const vector<Blob<Dtype>*>& bottom,
   case LRNParameter_NormRegion_ACROSS_CHANNELS:
     top[0]->Reshape(num_, channels_, height_, width_);
     scale_.Reshape(num_, channels_, height_, width_);
-    if (Caffe::derivative_compute()) {
+    if (this->layer_param_.compute_2nd_derivative()) {
       helper_.Reshape(num_, channels_, height_, width_);
     }
     break;
@@ -239,7 +239,7 @@ void LRNLayer<Dtype>::CrossChannelBackward_cpu(
           padded_ratio_data + padded_ratio.offset(0, c), accum_ratio_data);
     }
   }
-  if (Caffe::derivative_compute()) {
+  if (this->layer_param_.compute_2nd_derivative()) {
     top_ddiff = top[0]->cpu_ddiff();
     bottom_ddiff = bottom[0]->mutable_cpu_ddiff();
 
@@ -372,7 +372,7 @@ void LRNLayer<Dtype>::WithinChannelBackward(
     // -4 * beta * alpha / n  yijk nijk ** (- 1) dE/dyijk
     // -4 * beta * alpha / n yijk**2 nijk** (- 1) d2E/dy2ijk
     // nijk = ( k + alpha/n * sum_u sum_v xi,j-u,k-v **2 ) => use axpy on output of pool layer to get this
-    if (Caffe::derivative_compute()) {
+    if (this->layer_param_.compute_2nd_derivative()) {
       int count = bottom[0]->count();
       Dtype* helper_data_ = this->helper_.mutable_cpu_data();
       Dtype* helper_data2_ = this->helper_.mutable_cpu_diff();

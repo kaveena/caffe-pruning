@@ -275,7 +275,7 @@ void LRNLayer<Dtype>::CrossChannelBackward_gpu(
       scale_.gpu_data(), top[0]->gpu_diff(), num_, channels_, height_, width_,
       size_, -beta_, Dtype(2. * alpha_ * beta_ / size_),
       bottom[0]->mutable_gpu_diff());
-  if (Caffe::derivative_compute()) {
+  if (this->layer_param_.compute_2nd_derivative()) {
     scale_data = scale_.gpu_data();
     top_data = top[0]->gpu_data();
     top_diff = top[0]->gpu_diff();
@@ -316,7 +316,7 @@ void LRNLayer<Dtype>::WithinChannelBackward_gpu(
     // -4 * beta * alpha / n  yijk nijk ** (- 1) dE/dyijk
     // -4 * beta * alpha / n yijk**2 nijk** (- 1) d2E/dy2ijk
     // nijk = ( k + alpha/n * sum_u sum_v xi,j-u,k-v **2 ) => use axpy on output of pool layer to get this
-    if (Caffe::derivative_compute()) {
+    if (this->layer_param_.compute_2nd_derivative()) {
       int count = bottom[0]->count();
       Dtype* helper_data_ = this->helper_.mutable_gpu_data();
       Dtype* helper_data2_ = this->helper_.mutable_gpu_diff();

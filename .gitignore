@@ -5,6 +5,7 @@ Makefile*
 
 # Make sure not to accidentally commit in-tree build files
 CMakeFiles/
+CMakeCache.txt
 *cmake_install*
 
 # Compiled Object files
@@ -80,6 +81,7 @@ models/*
 
 # build, distribute, and bins (+ python proto bindings)
 build
+install
 .build_debug/*
 .build_release/*
 distribute/*

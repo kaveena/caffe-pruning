@@ -171,30 +171,34 @@ void BatchNormLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
     const vector<Blob<Dtype>*>& bottom) {
   const Dtype* top_diff;
   const Dtype* top_ddiff;
+  Dtype* bottom_diff;
+  Dtype* bottom_ddiff;
   if (bottom[0] != top[0]) {
     top_diff = top[0]->cpu_diff();
-    if (Caffe::derivative_compute()) {
+    if (this->layer_param_.compute_2nd_derivative()) {
       top_ddiff = top[0]->cpu_ddiff();
     }
   } else {
     caffe_copy(x_norm_.count(), top[0]->cpu_diff(), x_norm_.mutable_cpu_diff());
     top_diff = x_norm_.cpu_diff();
-    if (Caffe::derivative_compute()) {
+    if (this->layer_param_.compute_2nd_derivative()) {
       caffe_copy(x_norm_.count(), top[0]->cpu_ddiff(), x_norm_.mutable_cpu_ddiff());
       top_ddiff = x_norm_.cpu_ddiff();
     }
   }
-  Dtype* bottom_diff = bottom[0]->mutable_cpu_diff();
-  Dtype* bottom_ddiff = bottom[0]->mutable_cpu_ddiff();
+  bottom_diff = bottom[0]->mutable_cpu_diff();
+  if (this->layer_param_.compute_2nd_derivative()) {
+    bottom_ddiff = bottom[0]->mutable_cpu_ddiff();
+  }
   if (use_global_stats_) {
     caffe_div(temp_.count(), top_diff, temp_.cpu_data(), bottom_diff);
-    if (Caffe::derivative_compute()) {
+    if (this->layer_param_.compute_2nd_derivative()) {
       caffe_div(temp_.count(), top_ddiff, temp_.cpu_data(), bottom_ddiff);
       caffe_div(temp_.count(), bottom_ddiff, temp_.cpu_data(), bottom_ddiff);
     }
     return;
   }
-  if (Caffe::derivative_compute()) {
+  if (this->layer_param_.compute_2nd_derivative()) {
     LOG(FATAL) << "Second order derivative propagation not implemented for batch norm layer during TRAIN phase";
   }
   const Dtype* top_data = x_norm_.cpu_data();
