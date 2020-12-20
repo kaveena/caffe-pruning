@@ -180,6 +180,8 @@ void BaseConvolutionLayer<Dtype>::LayerSetUp(const vector<Blob<Dtype>*>& bottom,
     LOG(INFO) << "Setting activation quantization scheme " << this->activation_quantization_mask.to_string('*');
   }
   int saliency_shape_0_ = 0;
+  int pos_output_channel_saliency = this->saliency_pos_;
+  int pos_input_channel_saliency = this->saliency_pos_;
   if (this->saliency_term_) {
     // check if the correct number of pointwise saliency, saliency input and norm have been provided
     if (!((conv_saliency_param.saliency_size() == conv_saliency_param.saliency_input_size()) 
@@ -187,6 +189,14 @@ void BaseConvolutionLayer<Dtype>::LayerSetUp(const vector<Blob<Dtype>*>& bottom,
       LOG(FATAL) << "saliency, saliency_input and saliency_norm for each saliency measure" ;
     }
     saliency_shape_0_ = conv_saliency_param.saliency_size();
+    this->output_channel_saliency_compute_ = this->layer_param_.convolution_saliency_param().output_channel_compute();
+    this->input_channel_saliency_compute_ = this->layer_param_.convolution_saliency_param().input_channel_compute();
+    if (!(this->output_channel_saliency_compute_ || this->input_channel_saliency_compute_)){
+      LOG(FATAL) << "Either output_channel_compute or input_channel_compute must be set if saliency_term is set" ;
+    }
+    if (this->output_channel_saliency_compute_ && this->input_channel_saliency_compute_){
+      pos_input_channel_saliency++
+    }
   }
   vector<int> saliency_out_shape = {saliency_shape_0_, this->num_output_};
   vector<int> saliency_in_shape = {saliency_shape_0_, this->channels_ / this->group_};
@@ -208,7 +218,9 @@ void BaseConvolutionLayer<Dtype>::LayerSetUp(const vector<Blob<Dtype>*>& bottom,
   }
   if (this->saliency_term_) {
     total_blobs++;
-    total_blobs++;
+    if (this->output_channel_saliency_compute_ && this->input_channel_saliency_compute_){
+      total_blobs++;
+    }
   }
   if (this->blobs_.size() > 0) {
     CHECK_EQ(1 + this->bias_term_, this->blobs_.size())
@@ -264,26 +276,26 @@ void BaseConvolutionLayer<Dtype>::LayerSetUp(const vector<Blob<Dtype>*>& bottom,
         mask_filler->Fill(this->blobs_[this->mask_pos_+1].get());
       }
     }
-    if (this->saliency_term_ && saliency_out_shape != this->blobs_[this->saliency_pos_]->shape()) {
+    if (this->saliency_term_ && this->output_channel_saliency_compute_ && saliency_out_shape != this->blobs_[this->pos_output_channel_saliency]->shape()) {
       Blob<Dtype> saliency_out_shaped_blob(saliency_out_shape);
       LOG(FATAL) << "Incorrect saliency out shape: expected shape "
           << saliency_out_shaped_blob.shape_string() << "; instead, shape was "
-          << this->blobs_[this->saliency_pos_]->shape_string();
+          << this->blobs_[this->pos_output_channel_saliency]->shape_string();
       LOG(INFO) << "Saliency Initialization";
-      this->blobs_[this->saliency_pos_].reset(new Blob<Dtype>(saliency_out_shape));
-      Blob<Dtype> * saliency_out_blob = this->blobs_[this->saliency_pos_].get();
+      this->blobs_[this->pos_output_channel_saliency].reset(new Blob<Dtype>(saliency_out_shape));
+      Blob<Dtype> * saliency_out_blob = this->blobs_[this->pos_output_channel_saliency].get();
       for (int i=0; i<saliency_out_blob->count(); ++i) {
         saliency_out_blob->mutable_cpu_data()[i] = (Dtype)0.0;
       }
     }
-    if (this->saliency_term_ && saliency_in_shape != this->blobs_[this->saliency_pos_+1]->shape()) {
+    if (this->saliency_term_ && this->input_channel_saliency_compute_ && saliency_in_shape != this->blobs_[pos_input_channel_saliency]->shape()) {
       Blob<Dtype> saliency_in_shaped_blob(saliency_in_shape);
       LOG(FATAL) << "Incorrect saliency in shape: expected shape "
           << saliency_in_shaped_blob.shape_string() << "; instead, shape was "
-          << this->blobs_[this->saliency_pos_+1]->shape_string();
+          << this->blobs_[this->pos_input_channel_saliency]->shape_string();
       LOG(INFO) << "Saliency Initialization";
-      this->blobs_[this->saliency_pos_+1].reset(new Blob<Dtype>(saliency_in_shape));
-      Blob<Dtype> * saliency_in_blob = this->blobs_[this->saliency_pos_+1].get();
+      this->blobs_[this->pos_input_channel_saliency].reset(new Blob<Dtype>(saliency_in_shape));
+      Blob<Dtype> * saliency_in_blob = this->blobs_[pos_input_channel_saliency].get();
       for (int i=0; i<saliency_in_blob->count(); ++i) {
         saliency_in_blob->mutable_cpu_data()[i] = (Dtype)0.0;
       }
@@ -334,15 +346,19 @@ void BaseConvolutionLayer<Dtype>::LayerSetUp(const vector<Blob<Dtype>*>& bottom,
       }
     }
     if (this->saliency_term_) {
-      this->blobs_[this->saliency_pos_].reset(new Blob<Dtype>(saliency_out_shape));
-      Blob<Dtype> * saliency_out_blob = this->blobs_[this->saliency_pos_].get();
-      for (int i=0; i<saliency_out_blob->count(); ++i) {
-        saliency_out_blob->mutable_cpu_data()[i] = (Dtype)0.0;
+      if (this->output_channel_saliency_compute_) {
+        this->blobs_[pos_output_channel_saliency].reset(new Blob<Dtype>(saliency_out_shape));
+        Blob<Dtype> * saliency_out_blob = this->blobs_[pos_output_channel_saliency].get();
+        for (int i=0; i<saliency_out_blob->count(); ++i) {
+          saliency_out_blob->mutable_cpu_data()[i] = (Dtype)0.0;
+        }
       }
-      this->blobs_[this->saliency_pos_+1].reset(new Blob<Dtype>(saliency_in_shape));
-      Blob<Dtype> * saliency_in_blob = this->blobs_[this->saliency_pos_+1].get();
-      for (int i=0; i<saliency_in_blob->count(); ++i) {
-        saliency_in_blob->mutable_cpu_data()[i] = (Dtype)0.0;
+      if (this->input_channel_saliency_compute_) {
+        this->blobs_[pos_input_channel_saliency].reset(new Blob<Dtype>(saliency_in_shape));
+        Blob<Dtype> * saliency_in_blob = this->blobs_[pos_input_channel_saliency].get();
+        for (int i=0; i<saliency_in_blob->count(); ++i) {
+          saliency_in_blob->mutable_cpu_data()[i] = (Dtype)0.0;
+        }
       }
   }
   this->kernel_dim_ = this->blobs_[0]->count(1);

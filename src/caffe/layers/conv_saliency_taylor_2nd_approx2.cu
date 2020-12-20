@@ -14,18 +14,26 @@ __global__ void taylor_2nd_approx2_kernel_gpu(const int N, const int num, const 
 }
 
 template <typename Dtype>
-void ConvolutionLayer<Dtype>::compute_taylor_2nd_approx2_gpu(const Dtype *  act_data, const Dtype * act_diff, caffe::ConvolutionSaliencyParameter::NORM saliency_norm_, Dtype * taylor_2nd_out) {
+void ConvolutionLayer<Dtype>::compute_taylor_2nd_approx2_gpu(const Dtype * bottom_data, const Dtype * bottom_diff, const Dtype *  top_data, const Dtype * top_diff, caffe::ConvolutionSaliencyParameter::NORM saliency_norm_, Dtype * taylor_2nd_in, Dtype * taylor_2nd_out) {
   Dtype * output_saliency_data = NULL;
-  output_saliency_data = output_saliencies_points_.mutable_gpu_data();
-  taylor_2nd_approx2_kernel_gpu<Dtype><<<CAFFE_GET_BLOCKS(output_saliencies_points_.count()), CAFFE_CUDA_NUM_THREADS>>>(
-      output_saliencies_points_.count(), this->num_, act_data, act_diff, output_saliency_data);
-  CUDA_POST_KERNEL_CHECK;
-  compute_norm_and_batch_avg_gpu(output_saliency_data, saliency_norm_, taylor_2nd_out);
-
+  Dtype * input_saliency_data = NULL;
+  if (this->output_channel_saliency_compute_){
+    output_saliency_data = output_saliencies_points_.mutable_gpu_data();
+    taylor_2nd_approx2_kernel_gpu<Dtype><<<CAFFE_GET_BLOCKS(output_saliencies_points_.count()), CAFFE_CUDA_NUM_THREADS>>>(
+        output_saliencies_points_.count(), this->num_, top_data, top_diff, output_saliency_data);
+    CUDA_POST_KERNEL_CHECK;
+  }
+  if (this->input_channel_saliency_compute_){
+    input_saliency_data = input_saliencies_points_.mutable_gpu_data();
+    taylor_2nd_approx2_kernel_gpu<Dtype><<<CAFFE_GET_BLOCKS(input_saliencies_points_.count()), CAFFE_CUDA_NUM_THREADS>>>(
+        input_saliencies_points_.count(), this->num_, bottom_data, bottom_diff, input_saliency_data);
+    CUDA_POST_KERNEL_CHECK;
+  }
+  compute_norm_and_batch_avg_gpu(input_saliency_data, output_saliency_data, saliency_norm_, taylor_2nd_in, taylor_2nd_out);
 }
 
 template <typename Dtype>
-void ConvolutionLayer<Dtype>::compute_taylor_2nd_approx2_weights_gpu(Blob<Dtype> * weights_n, Blob<Dtype> * bias_n, caffe::ConvolutionSaliencyParameter::NORM saliency_norm_, Dtype * taylor_2nd_out) {
+void ConvolutionLayer<Dtype>::compute_taylor_2nd_approx2_weights_gpu(Blob<Dtype> * weights_n, Blob<Dtype> * bias_n, caffe::ConvolutionSaliencyParameter::NORM saliency_norm_, Dtype * taylor_2nd_in, Dtype * taylor_2nd_out) {
   const Dtype* weights = this->blobs_[0]->gpu_data();
   const Dtype* weights_n_diff = weights_n->gpu_diff();
   Dtype* points_saliency_data = weights_n->mutable_gpu_data();
@@ -69,12 +77,12 @@ void ConvolutionLayer<Dtype>::compute_taylor_2nd_approx2_weights_gpu(Blob<Dtype>
     caffe_gpu_scal(bias_n->count(), (Dtype)(this->num_), bias_saliency_data);
   }
 
-  compute_norm_and_batch_avg_weights_gpu(points_saliency_data, bias_saliency_data, saliency_norm_, taylor_2nd_out);
+  compute_norm_and_batch_avg_weights_gpu(points_saliency_data, bias_saliency_data, saliency_norm_, taylor_2nd_in, taylor_2nd_out);
 }
 
-template void ConvolutionLayer<float>::compute_taylor_2nd_approx2_gpu(const float *  act_data, const float * act_diff, caffe::ConvolutionSaliencyParameter::NORM saliency_norm_, float * taylor_2nd_out);
-template void ConvolutionLayer<double>::compute_taylor_2nd_approx2_gpu(const double *  act_data, const double * act_diff, caffe::ConvolutionSaliencyParameter::NORM saliency_norm_, double * taylor_2nd_out);
+template void ConvolutionLayer<float>::compute_taylor_2nd_approx2_gpu(const float * bottom_data, const float * bottom_diff, const float *  top_data, const float * top_diff, caffe::ConvolutionSaliencyParameter::NORM saliency_norm_, float * taylor_2nd_in, float * taylor_2nd_out);
+template void ConvolutionLayer<double>::compute_taylor_2nd_approx2_gpu(const double * bottom_data, const double * bottom_diff, const double *  top_data, const double * top_diff, caffe::ConvolutionSaliencyParameter::NORM saliency_norm_, double * taylor_2nd_in, double * taylor_2nd_out);
 
-template void ConvolutionLayer<float>::compute_taylor_2nd_approx2_weights_gpu(Blob<float> * weights_n, Blob<float> * bias_n, caffe::ConvolutionSaliencyParameter::NORM saliency_norm_, float * taylor_2nd_out);
-template void ConvolutionLayer<double>::compute_taylor_2nd_approx2_weights_gpu(Blob<double> * weights_n, Blob<double> * bias_n, caffe::ConvolutionSaliencyParameter::NORM saliency_norm_, double * taylor_2nd_out);
+template void ConvolutionLayer<float>::compute_taylor_2nd_approx2_weights_gpu(Blob<float> * weights_n, Blob<float> * bias_n, caffe::ConvolutionSaliencyParameter::NORM saliency_norm_, float * taylor_2nd_in, float * taylor_2nd_out);
+template void ConvolutionLayer<double>::compute_taylor_2nd_approx2_weights_gpu(Blob<double> * weights_n, Blob<double> * bias_n, caffe::ConvolutionSaliencyParameter::NORM saliency_norm_, double * taylor_2nd_in, double * taylor_2nd_out);
 }  // namespace caffe

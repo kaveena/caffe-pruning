@@ -6,19 +6,26 @@
 namespace caffe {
 
 template <typename Dtype>
-void ConvolutionLayer<Dtype>::compute_hessian_diag_gpu(const Dtype *  act_data, const Dtype *  act_ddiff, caffe::ConvolutionSaliencyParameter::NORM saliency_norm_, Dtype * hessian_diag_out) {
+void ConvolutionLayer<Dtype>::compute_hessian_diag_gpu(const Dtype * bottom_data, const Dtype * bottom_ddiff, const Dtype * top_data, const Dtype * top_ddiff, caffe::ConvolutionSaliencyParameter::NORM saliency_norm_, Dtype * hessian_diag_in, Dtype * hessian_diag_out) {
   Dtype* output_saliency_data = NULL;
-  output_saliency_data = output_saliencies_points_.mutable_gpu_data();
-  caffe_gpu_mul(output_saliencies_points_.count(), act_data, act_data, output_saliency_data);
-  caffe_gpu_mul(output_saliencies_points_.count(), output_saliency_data, act_ddiff, output_saliency_data);
-  caffe_gpu_scal(output_saliencies_points_.count(), 1/(Dtype)(2), output_saliency_data);
-
-  compute_norm_and_batch_avg_gpu(output_saliency_data, saliency_norm_, hessian_diag_out);
-
+  Dtype * input_saliency_data = NULL;
+  if (this->output_channel_saliency_compute_){
+    output_saliency_data = output_saliencies_points_.mutable_gpu_data();
+    caffe_gpu_mul(output_saliencies_points_.count(), top_data, top_data, output_saliency_data);
+    caffe_gpu_mul(output_saliencies_points_.count(), output_saliency_data, top_ddiff, output_saliency_data);
+    caffe_gpu_scal(output_saliencies_points_.count(), 1/(Dtype)(2), output_saliency_data);
+  }
+  if (this->input_channel_saliency_compute_){
+    input_saliency_data = input_saliencies_points_.mutable_gpu_data();
+    caffe_gpu_mul(input_saliencies_points_.count(), bottom_data, bottom_data, input_saliency_data);
+    caffe_gpu_mul(input_saliencies_points_.count(), input_saliency_data, bottom_ddiff, input_saliency_data);
+    caffe_gpu_scal(input_saliencies_points_.count(), 1/(Dtype)(2), input_saliency_data);
+  }
+  compute_norm_and_batch_avg_gpu(input_saliency_data, output_saliency_data, saliency_norm_, hessian_diag_in, hessian_diag_out);
 }
 
 template <typename Dtype>
-void ConvolutionLayer<Dtype>::compute_hessian_diag_weights_gpu(Blob<Dtype> * weights_n, Blob<Dtype> * bias_n, caffe::ConvolutionSaliencyParameter::NORM saliency_norm_, Dtype * hessian_diag_out) {
+void ConvolutionLayer<Dtype>::compute_hessian_diag_weights_gpu(Blob<Dtype> * weights_n, Blob<Dtype> * bias_n, caffe::ConvolutionSaliencyParameter::NORM saliency_norm_, Dtype * hessian_diag_in, Dtype * hessian_diag_out) {
   const Dtype* weights = this->blobs_[0]->gpu_data();
   const Dtype* weights_n_ddiff = weights_n->gpu_ddiff();
   Dtype* points_saliency_data = weights_n->mutable_gpu_data();
@@ -52,12 +59,12 @@ void ConvolutionLayer<Dtype>::compute_hessian_diag_weights_gpu(Blob<Dtype> * wei
     caffe_gpu_scal(bias_n->count(), 1/(Dtype)(2), bias_saliency_data);
   }
 
-  compute_norm_and_batch_avg_weights_gpu(points_saliency_data, bias_saliency_data, saliency_norm_, hessian_diag_out);
+  compute_norm_and_batch_avg_weights_gpu(points_saliency_data, bias_saliency_data, saliency_norm_, hessian_diag_in, hessian_diag_out);
 }
 
-template void ConvolutionLayer<float>::compute_hessian_diag_gpu(const float *  act_data, const float *  act_ddiff, caffe::ConvolutionSaliencyParameter::NORM saliency_norm_, float * hessian_diag_out);
-template void ConvolutionLayer<double>::compute_hessian_diag_gpu(const double *  act_data, const double *  act_ddiff, caffe::ConvolutionSaliencyParameter::NORM saliency_norm_, double * hessian_diag_out);
+template void ConvolutionLayer<float>::compute_hessian_diag_gpu(const float * bottom_data, const float * bottom_ddiff, const float * top_data, const float * top_ddiff, caffe::ConvolutionSaliencyParameter::NORM saliency_norm_, float * hessian_diag_in, float * hessian_diag_out);
+template void ConvolutionLayer<double>::compute_hessian_diag_gpu(const double * bottom_data, const double * bottom_ddiff, const double * top_data, const double * top_ddiff, caffe::ConvolutionSaliencyParameter::NORM saliency_norm_, double * hessian_diag_in, double * hessian_diag_out);
 
-template void ConvolutionLayer<float>::compute_hessian_diag_weights_gpu(Blob<float> * weights_n, Blob<float> * bias_n, caffe::ConvolutionSaliencyParameter::NORM saliency_norm_, float * hessian_diag_out);
-template void ConvolutionLayer<double>::compute_hessian_diag_weights_gpu(Blob<double> * weights_n, Blob<double> * bias_n, caffe::ConvolutionSaliencyParameter::NORM saliency_norm_, double * hessian_diag_out);
+template void ConvolutionLayer<float>::compute_hessian_diag_weights_gpu(Blob<float> * weights_n, Blob<float> * bias_n, caffe::ConvolutionSaliencyParameter::NORM saliency_norm_, float * hessian_diag_in, float * hessian_diag_out);
+template void ConvolutionLayer<double>::compute_hessian_diag_weights_gpu(Blob<double> * weights_n, Blob<double> * bias_n, caffe::ConvolutionSaliencyParameter::NORM saliency_norm_, double * hessian_diag_in, double * hessian_diag_out);
 }  // namespace caffe

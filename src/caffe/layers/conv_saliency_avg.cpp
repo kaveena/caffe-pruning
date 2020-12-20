@@ -6,21 +6,29 @@
 namespace caffe {
 
 template <typename Dtype>
-void ConvolutionLayer<Dtype>::compute_weight_avg_cpu(const Dtype *  act_data, caffe::ConvolutionSaliencyParameter::NORM saliency_norm_, Dtype * saliency_info_out) {
+void ConvolutionLayer<Dtype>::compute_weight_avg_cpu(const Dtype * bottom_data, const Dtype *  top_data, caffe::ConvolutionSaliencyParameter::NORM saliency_norm_, Dtype * saliency_info_in, Dtype * saliency_info_out) {
   Dtype* output_saliency_data = NULL;
-  output_saliency_data = output_saliencies_points_.mutable_cpu_data();
-  caffe_copy(output_saliencies_points_.count(), act_data, output_saliency_data);
-  compute_norm_and_batch_avg_cpu(output_saliency_data, saliency_norm_, saliency_info_out);
+  Dtype * input_saliency_data = NULL;
+  if (this->output_channel_saliency_compute_){
+    output_saliency_data = output_saliencies_points_.mutable_cpu_data();
+    caffe_copy(output_saliencies_points_.count(), top_data, output_saliency_data);
+  }
+  if (this->input_channel_saliency_compute_){
+    input_saliency_data = input_saliencies_points_.mutable_cpu_data();
+    caffe_copy(input_saliencies_points_.count(), bottom_data, input_saliency_data);
+  }
+  compute_norm_and_batch_avg_cpu(input_saliency_data, output_saliency_data, saliency_norm_, saliency_info_in, saliency_info_out);
 }
 
 template <typename Dtype>
-void ConvolutionLayer<Dtype>::compute_weight_avg_weights_cpu(Blob<Dtype> * weights_n, Blob<Dtype> * bias_n, caffe::ConvolutionSaliencyParameter::NORM saliency_norm_, Dtype * saliency_info_out) {
+void ConvolutionLayer<Dtype>::compute_weight_avg_weights_cpu(Blob<Dtype> * weights_n, Blob<Dtype> * bias_n, caffe::ConvolutionSaliencyParameter::NORM saliency_norm_, Dtype * saliency_info_in, Dtype * saliency_info_out) {
   const Dtype* weights = this->blobs_[0]->cpu_data();
   Dtype* points_saliency_data = weights_n->mutable_cpu_data();
 
   const Dtype* bias;
   Dtype* bias_saliency_data;
 
+  int kernel_size = this->blobs_[0]->count(2,4);
   int weights_count = this->blobs_[0]->count();
   int bias_count;
 
@@ -62,19 +70,34 @@ void ConvolutionLayer<Dtype>::compute_weight_avg_weights_cpu(Blob<Dtype> * weigh
       }
     } break;
   }
-
-  caffe_sum(this->num_output_, this->blobs_[0]->count(1,4), points_saliency_data, saliency_info_out);
-  if (this->saliency_bias_ && this->bias_term_ && bias_saliency_data != NULL){
-    caffe_add(this->num_output_, bias_saliency_data, saliency_info_out, saliency_info_out);
+  if (this->output_channel_saliency_compute_) {
+    caffe_sum(this->num_output_, this->blobs_[0]->count(1,4), points_saliency_data, saliency_info_out);
+    if (this->saliency_bias_ && this->bias_term_ && bias_saliency_data != NULL){
+      caffe_add(this->num_output_, bias_saliency_data, saliency_info_out, saliency_info_out);
+    }
   }
-  
+  if (this->input_channel_saliency_compute_) {
+    caffe_sum(this->num_output_ * this->channels_ / this->group_, kernel_size, points_saliency_data, points_saliency_data);
+    caffe_strided_sum(this->channels_ / this->group_, this->num_output_, points_saliency_data, saliency_info_in);
+  }
+
   switch (saliency_norm_) {
     case (caffe::ConvolutionSaliencyParameter::ABS_SUM): {
-      caffe_abs(this->num_output_, saliency_info_out, saliency_info_out);
+      if (this->output_channel_saliency_compute_) {
+        caffe_abs(this->num_output_, saliency_info_out, saliency_info_out);
+      }
+      if (this->input_channel_saliency_compute_) {
+        caffe_abs(this->channels_ / this->group_, saliency_info_in, saliency_info_in);
+      }
     } break;
 
     case (caffe::ConvolutionSaliencyParameter::SQR_SUM): {
-      caffe_powx(this->num_output_, saliency_info_out, (Dtype) 2, saliency_info_out);
+      if (this->output_channel_saliency_compute_) {
+        caffe_powx(this->num_output_, saliency_info_out, (Dtype) 2, saliency_info_out);
+      }
+      if (this->input_channel_saliency_compute_) {
+        caffe_powx(this->channels_ / this->group_, saliency_info_in, (Dtype) 2, saliency_info_in);
+      }
     } break;
 
     default: {
@@ -83,23 +106,33 @@ void ConvolutionLayer<Dtype>::compute_weight_avg_weights_cpu(Blob<Dtype> * weigh
 }
 
 template <typename Dtype>
-void ConvolutionLayer<Dtype>::compute_apoz_cpu(const Dtype *  act_data, caffe::ConvolutionSaliencyParameter::NORM saliency_norm_, Dtype * saliency_info_out) {
+void ConvolutionLayer<Dtype>::compute_apoz_cpu(const Dtype * bottom_data, const Dtype *  top_data, caffe::ConvolutionSaliencyParameter::NORM saliency_norm_, Dtype * saliency_info_in, Dtype * saliency_info_out) {
   Dtype* output_saliency_data = NULL;
-  output_saliency_data = output_saliencies_points_.mutable_cpu_data();
-  for (int i=0; i<output_saliencies_points_.count() ; i++) {
-    output_saliency_data[i] = act_data[i] > 0 ? 1 : 0;
+  Dtype * input_saliency_data = NULL;
+  if (this->output_channel_saliency_compute_){
+    output_saliency_data = output_saliencies_points_.mutable_cpu_data();
+    for (int i=0; i<output_saliencies_points_.count() ; i++) {
+      output_saliency_data[i] = top_data[i] > 0 ? 1 : 0;
+    }
   }
-  compute_norm_and_batch_avg_cpu(output_saliency_data, saliency_norm_, saliency_info_out);
+  if (this->input_channel_saliency_compute_){
+    input_saliency_data = input_saliencies_points_.mutable_cpu_data();
+    for (int i=0; i<input_saliencies_points_.count() ; i++) {
+      input_saliency_data[i] = bottom_data[i] > 0 ? 1 : 0;
+    }
+  }
+  compute_norm_and_batch_avg_cpu(input_saliency_data, output_saliency_data, saliency_norm_, saliency_info_in, saliency_info_out);
 }
 
 template <typename Dtype>
-void ConvolutionLayer<Dtype>::compute_apoz_weights_cpu(Blob<Dtype> * weights_n, Blob<Dtype> * bias_n, caffe::ConvolutionSaliencyParameter::NORM saliency_norm_, Dtype * saliency_info_out) {
+void ConvolutionLayer<Dtype>::compute_apoz_weights_cpu(Blob<Dtype> * weights_n, Blob<Dtype> * bias_n, caffe::ConvolutionSaliencyParameter::NORM saliency_norm_, Dtype * saliency_info_in, Dtype * saliency_info_out) {
   const Dtype* weights = this->blobs_[0]->cpu_data();
   Dtype* points_saliency_data = weights_n->mutable_cpu_data();
 
   const Dtype* bias;
   Dtype* bias_saliency_data;
 
+  int kernel_size = this->blobs_[0]->count(2,4);
   int weights_count = this->blobs_[0]->count();
   int bias_count;
 
@@ -128,15 +161,26 @@ void ConvolutionLayer<Dtype>::compute_apoz_weights_cpu(Blob<Dtype> * weights_n, 
     }
   }
 
-  caffe_sum(this->num_output_, this->blobs_[0]->count(1,4), points_saliency_data, saliency_info_out);
-  if (this->saliency_bias_ && this->bias_term_ && bias_saliency_data != NULL){
-    caffe_add(this->num_output_, bias_saliency_data, saliency_info_out, saliency_info_out);
+  if (this->output_channel_saliency_compute_) {
+    caffe_sum(this->num_output_, this->blobs_[0]->count(1,4), points_saliency_data, saliency_info_out);
+    if (this->saliency_bias_ && this->bias_term_ && bias_saliency_data != NULL){
+      caffe_add(this->num_output_, bias_saliency_data, saliency_info_out, saliency_info_out);
+    }
   }
-  
+  if (this->input_channel_saliency_compute_) {
+    caffe_sum(this->num_output_ * this->channels_ / this->group_, kernel_size, points_saliency_data, points_saliency_data);
+    caffe_strided_sum(this->channels_ / this->group_, this->num_output_, points_saliency_data, saliency_info_in);
+  }
+
   switch (saliency_norm_) {
 
-  case (caffe::ConvolutionSaliencyParameter::SQR_SUM): {
-      caffe_powx(this->num_output_, saliency_info_out, (Dtype) 2, saliency_info_out);
+    case (caffe::ConvolutionSaliencyParameter::SQR_SUM): {
+      if (this->output_channel_saliency_compute_) {
+        caffe_powx(this->num_output_, saliency_info_out, (Dtype) 2, saliency_info_out);
+      }
+      if (this->input_channel_saliency_compute_) {
+        caffe_powx(this->channels_ / this->group_, saliency_info_in, (Dtype) 2, saliency_info_in);
+      }
     } break;
 
     default: {
@@ -145,17 +189,25 @@ void ConvolutionLayer<Dtype>::compute_apoz_weights_cpu(Blob<Dtype> * weights_n, 
 }
 
 template <typename Dtype>
-void ConvolutionLayer<Dtype>::compute_diff_avg_cpu(const Dtype *  act_diff, caffe::ConvolutionSaliencyParameter::NORM saliency_norm_, Dtype * saliency_info_out) {
+void ConvolutionLayer<Dtype>::compute_diff_avg_cpu(const Dtype * bottom_diff, const Dtype * top_diff, caffe::ConvolutionSaliencyParameter::NORM saliency_norm_, Dtype * saliency_info_in, Dtype * saliency_info_out) {
   Dtype* output_saliency_data = NULL;
-  output_saliency_data = output_saliencies_points_.mutable_cpu_data();
-  caffe_copy(output_saliencies_points_.count(), act_diff, output_saliency_data);
-  caffe_scal(output_saliencies_points_.count(), (Dtype) this->num_, output_saliency_data);
+  Dtype * input_saliency_data = NULL;
+  if (this->output_channel_saliency_compute_){
+    output_saliency_data = output_saliencies_points_.mutable_cpu_data();
+    caffe_copy(output_saliencies_points_.count(), top_diff, output_saliency_data);
+    caffe_scal(output_saliencies_points_.count(), (Dtype) this->num_, output_saliency_data);
+  }
+  if (this->input_channel_saliency_compute_){
+    input_saliency_data = input_saliencies_points_.mutable_cpu_data();
+    caffe_copy(input_saliencies_points_.count(), bottom_diff, input_saliency_data);
+    caffe_scal(input_saliencies_points_.count(), (Dtype) this->num_, input_saliency_data);
+  }
 
-  compute_norm_and_batch_avg_cpu(output_saliency_data, saliency_norm_, saliency_info_out);
+  compute_norm_and_batch_avg_cpu(input_saliency_data, output_saliency_data, saliency_norm_, saliency_info_in, saliency_info_out);
 }
 
 template <typename Dtype>
-void ConvolutionLayer<Dtype>::compute_diff_avg_weights_cpu(Blob<Dtype> * weights_n, Blob<Dtype> * bias_n, caffe::ConvolutionSaliencyParameter::NORM saliency_norm_, Dtype * saliency_info_out) {
+void ConvolutionLayer<Dtype>::compute_diff_avg_weights_cpu(Blob<Dtype> * weights_n, Blob<Dtype> * bias_n, caffe::ConvolutionSaliencyParameter::NORM saliency_norm_, Dtype * saliency_info_in, Dtype * saliency_info_out) {
   const Dtype* weights_n_diff = weights_n->cpu_diff();
   Dtype* points_saliency_data = weights_n->mutable_cpu_data();
 
@@ -172,25 +224,25 @@ void ConvolutionLayer<Dtype>::compute_diff_avg_weights_cpu(Blob<Dtype> * weights
     caffe_scal(bias_n->count(), (Dtype) this->num_, bias_saliency_data);
   }
 
-  compute_norm_and_batch_avg_weights_cpu(points_saliency_data, bias_saliency_data, saliency_norm_, saliency_info_out);
+  compute_norm_and_batch_avg_weights_cpu(points_saliency_data, bias_saliency_data, saliency_norm_, saliency_info_in, saliency_info_out);
 }
 
-template void ConvolutionLayer<float>::compute_weight_avg_cpu(const float *  act_data, caffe::ConvolutionSaliencyParameter::NORM saliency_norm_, float * saliency_info_out);
-template void ConvolutionLayer<double>::compute_weight_avg_cpu(const double *  act_data, caffe::ConvolutionSaliencyParameter::NORM saliency_norm_, double * saliency_info_out);
+template void ConvolutionLayer<float>::compute_weight_avg_cpu(const float * bottom_data, const float *  top_data, caffe::ConvolutionSaliencyParameter::NORM saliency_norm_, float * saliency_info_in, float * saliency_info_out);
+template void ConvolutionLayer<double>::compute_weight_avg_cpu(const double * bottom_data, const double *  top_data, caffe::ConvolutionSaliencyParameter::NORM saliency_norm_, double * saliency_info_in, double * saliency_info_out);
 
-template void ConvolutionLayer<float>::compute_weight_avg_weights_cpu(Blob<float> * weights_n, Blob<float> * bias_n, caffe::ConvolutionSaliencyParameter::NORM saliency_norm_, float * saliency_info_out);
-template void ConvolutionLayer<double>::compute_weight_avg_weights_cpu(Blob<double> * weights_n, Blob<double> * bias_n, caffe::ConvolutionSaliencyParameter::NORM saliency_norm_, double * saliency_info_out);
+template void ConvolutionLayer<float>::compute_weight_avg_weights_cpu(Blob<float> * weights_n, Blob<float> * bias_n, caffe::ConvolutionSaliencyParameter::NORM saliency_norm_, float * saliency_info_in, float * saliency_info_out);
+template void ConvolutionLayer<double>::compute_weight_avg_weights_cpu(Blob<double> * weights_n, Blob<double> * bias_n, caffe::ConvolutionSaliencyParameter::NORM saliency_norm_, double * saliency_info_in, double * saliency_info_out);
 
-template void ConvolutionLayer<float>::compute_apoz_cpu(const float *  act_data, caffe::ConvolutionSaliencyParameter::NORM saliency_norm_, float * saliency_info_out);
-template void ConvolutionLayer<double>::compute_apoz_cpu(const double *  act_data, caffe::ConvolutionSaliencyParameter::NORM saliency_norm_, double * saliency_info_out);
+template void ConvolutionLayer<float>::compute_apoz_cpu(const float * bottom_data, const float *  top_data, caffe::ConvolutionSaliencyParameter::NORM saliency_norm_, float * saliency_info_in, float * saliency_info_out);
+template void ConvolutionLayer<double>::compute_apoz_cpu(const double * bottom_data, const double *  top_data, caffe::ConvolutionSaliencyParameter::NORM saliency_norm_, double * saliency_info_in, double * saliency_info_out);
 
-template void ConvolutionLayer<float>::compute_apoz_weights_cpu(Blob<float> * weights_n, Blob<float> * bias_n, caffe::ConvolutionSaliencyParameter::NORM saliency_norm_, float * saliency_info_out);
-template void ConvolutionLayer<double>::compute_apoz_weights_cpu(Blob<double> * weights_n, Blob<double> * bias_n, caffe::ConvolutionSaliencyParameter::NORM saliency_norm_, double * saliency_info_out);
+template void ConvolutionLayer<float>::compute_apoz_weights_cpu(Blob<float> * weights_n, Blob<float> * bias_n, caffe::ConvolutionSaliencyParameter::NORM saliency_norm_, float * saliency_info_in, float * saliency_info_out);
+template void ConvolutionLayer<double>::compute_apoz_weights_cpu(Blob<double> * weights_n, Blob<double> * bias_n, caffe::ConvolutionSaliencyParameter::NORM saliency_norm_, double * saliency_info_in, double * saliency_info_out);
 
-template void ConvolutionLayer<float>::compute_diff_avg_cpu(const float *  act_diff, caffe::ConvolutionSaliencyParameter::NORM saliency_norm_, float * saliency_info_out);
-template void ConvolutionLayer<double>::compute_diff_avg_cpu(const double *  act_diff, caffe::ConvolutionSaliencyParameter::NORM saliency_norm_, double * saliency_info_out);
+template void ConvolutionLayer<float>::compute_diff_avg_cpu(const float * bottom_diff, const float * top_diff, caffe::ConvolutionSaliencyParameter::NORM saliency_norm_, float * saliency_info_in, float * saliency_info_out);
+template void ConvolutionLayer<double>::compute_diff_avg_cpu(const double * bottom_diff, const double * top_diff, caffe::ConvolutionSaliencyParameter::NORM saliency_norm_, double * saliency_info_in, double * saliency_info_out);
 
-template void ConvolutionLayer<float>::compute_diff_avg_weights_cpu(Blob<float> * weights_n, Blob<float> * bias_n, caffe::ConvolutionSaliencyParameter::NORM saliency_norm_, float * saliency_info_out);
-template void ConvolutionLayer<double>::compute_diff_avg_weights_cpu(Blob<double> * weights_n, Blob<double> * bias_n, caffe::ConvolutionSaliencyParameter::NORM saliency_norm_, double * saliency_info_out);
+template void ConvolutionLayer<float>::compute_diff_avg_weights_cpu(Blob<float> * weights_n, Blob<float> * bias_n, caffe::ConvolutionSaliencyParameter::NORM saliency_norm_, float * saliency_info_in, float * saliency_info_out);
+template void ConvolutionLayer<double>::compute_diff_avg_weights_cpu(Blob<double> * weights_n, Blob<double> * bias_n, caffe::ConvolutionSaliencyParameter::NORM saliency_norm_, double * saliency_info_in, double * saliency_info_out);
 
 }  // namespace caffe
