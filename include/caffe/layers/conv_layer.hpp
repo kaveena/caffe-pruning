@@ -99,10 +99,10 @@ class ConvolutionLayer : public BaseConvolutionLayer<Dtype> {
 
  private:
 
-  void compute_taylor_cpu(const Dtype * bottom_data, const Dtype * bottom_diff, const * top_data, const Dtype * top_diff, caffe::ConvolutionSaliencyParameter::NORM saliency_norm_,  Dtype * taylor_in, Dtype * taylor_in);
+  void compute_taylor_cpu(const Dtype * bottom_data, const Dtype * bottom_diff, const Dtype * top_data, const Dtype * top_diff, caffe::ConvolutionSaliencyParameter::NORM saliency_norm_,  Dtype * taylor_in, Dtype * taylor_out);
   void compute_hessian_diag_cpu(const Dtype * bottom_data, const Dtype * bottom_ddiff, const Dtype * top_data, const Dtype * top_ddiff, caffe::ConvolutionSaliencyParameter::NORM saliency_norm_, Dtype * hessian_diag_in, Dtype * hessian_diag_out);
-  void compute_hessian_diag_approx2_cpu(const Dtype * bottom_data, const * bottom_diff, const Dtype * top_data, const Dtype * top_diff, caffe::ConvolutionSaliencyParameter::NORM saliency_norm_, Dtype * hessian_diag_in, Dtype * hessian_diag_out);
-  void compute_taylor_2nd_cpu(const Dtype * bottom_data, const Dtype * bottom_diff, Dtype * bottom_ddiff, const * top_data, const Dtype * top_diff, Dtype * top_ddiff, caffe::ConvolutionSaliencyParameter::NORM saliency_norm_, Dtype * taylor_2nd_in, Dtype * taylor_2nd_out);
+  void compute_hessian_diag_approx2_cpu(const Dtype * bottom_data, const Dtype * bottom_diff, const Dtype * top_data, const Dtype * top_diff, caffe::ConvolutionSaliencyParameter::NORM saliency_norm_, Dtype * hessian_diag_in, Dtype * hessian_diag_out);
+  void compute_taylor_2nd_cpu(const Dtype * bottom_data, const Dtype * bottom_diff, const Dtype * bottom_ddiff, const Dtype * top_data, const Dtype * top_diff, const Dtype * top_ddiff, caffe::ConvolutionSaliencyParameter::NORM saliency_norm_, Dtype * taylor_2nd_in, Dtype * taylor_2nd_out);
   void compute_taylor_2nd_approx2_cpu(const Dtype * bottom_data, const Dtype * bottom_diff, const Dtype *  top_data, const Dtype * top_diff, caffe::ConvolutionSaliencyParameter::NORM saliency_norm_, Dtype * taylor_2nd_in, Dtype * taylor_2nd_out);
   void compute_weight_avg_cpu(const Dtype * bottom_data, const Dtype *  top_data, caffe::ConvolutionSaliencyParameter::NORM saliency_norm_, Dtype * saliency_info_in, Dtype * saliency_info_out);
   void compute_apoz_cpu(const Dtype * bottom_data, const Dtype *  top_data, caffe::ConvolutionSaliencyParameter::NORM saliency_norm_, Dtype * saliency_info_in, Dtype * saliency_info_out);
@@ -120,10 +120,10 @@ class ConvolutionLayer : public BaseConvolutionLayer<Dtype> {
   void compute_norm_and_batch_avg_cpu(Dtype * in_saliency_data, Dtype * out_saliency_data, caffe::ConvolutionSaliencyParameter::NORM saliency_norm_, Dtype * in_channel_saliency, Dtype * out_channel_saliency);
   void compute_norm_and_batch_avg_weights_cpu(Dtype * weight_saliency_data, Dtype * bias_saliency_data, caffe::ConvolutionSaliencyParameter::NORM saliency_norm_, Dtype * in_channel_saliency, Dtype * out_channel_saliency);
 
-  void compute_taylor_gpu(const Dtype * bottom_data, const Dtype * bottom_diff, const * top_data, const Dtype * top_diff, caffe::ConvolutionSaliencyParameter::NORM saliency_norm_,  Dtype * taylor_in, Dtype * taylor_in);
+  void compute_taylor_gpu(const Dtype * bottom_data, const Dtype * bottom_diff, const Dtype * top_data, const Dtype * top_diff, caffe::ConvolutionSaliencyParameter::NORM saliency_norm_,  Dtype * taylor_in, Dtype * taylor_out);
   void compute_hessian_diag_gpu(const Dtype * bottom_data, const Dtype * bottom_ddiff, const Dtype * top_data, const Dtype * top_ddiff, caffe::ConvolutionSaliencyParameter::NORM saliency_norm_, Dtype * hessian_diag_in, Dtype * hessian_diag_out);
-  void compute_hessian_diag_approx2_gpu(const Dtype * bottom_data, const * bottom_diff, const Dtype * top_data, const Dtype * top_diff, caffe::ConvolutionSaliencyParameter::NORM saliency_norm_, Dtype * hessian_diag_in, Dtype * hessian_diag_out);
-  void compute_taylor_2nd_gpu(const Dtype * bottom_data, const Dtype * bottom_diff, Dtype * bottom_ddiff, const * top_data, const Dtype * top_diff, Dtype * top_ddiff, caffe::ConvolutionSaliencyParameter::NORM saliency_norm_, Dtype * taylor_2nd_in, Dtype * taylor_2nd_out);
+  void compute_hessian_diag_approx2_gpu(const Dtype * bottom_data, const Dtype * bottom_diff, const Dtype * top_data, const Dtype * top_diff, caffe::ConvolutionSaliencyParameter::NORM saliency_norm_, Dtype * hessian_diag_in, Dtype * hessian_diag_out);
+  void compute_taylor_2nd_gpu(const Dtype * bottom_data, const Dtype * bottom_diff, const Dtype * bottom_ddiff, const Dtype * top_data, const Dtype * top_diff, const Dtype * top_ddiff, caffe::ConvolutionSaliencyParameter::NORM saliency_norm_, Dtype * taylor_2nd_in, Dtype * taylor_2nd_out);
   void compute_taylor_2nd_approx2_gpu(const Dtype * bottom_data, const Dtype * bottom_diff, const Dtype *  top_data, const Dtype * top_diff, caffe::ConvolutionSaliencyParameter::NORM saliency_norm_, Dtype * taylor_2nd_in, Dtype * taylor_2nd_out);
   void compute_weight_avg_gpu(const Dtype * bottom_data, const Dtype *  top_data, caffe::ConvolutionSaliencyParameter::NORM saliency_norm_, Dtype * saliency_info_in, Dtype * saliency_info_out);
   void compute_apoz_gpu(const Dtype * bottom_data, const Dtype *  top_data, caffe::ConvolutionSaliencyParameter::NORM saliency_norm_, Dtype * saliency_info_in, Dtype * saliency_info_out);

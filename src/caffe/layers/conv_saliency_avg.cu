@@ -132,7 +132,7 @@ void ConvolutionLayer<Dtype>::compute_apoz_gpu(const Dtype * bottom_data, const 
 }
 
 template <typename Dtype>
-void ConvolutionLayer<Dtype>::compute_apoz_weights_gpu(Blob<Dtype> * weights_n, Blob<Dtype> * bias_n, caffe::ConvolutionSaliencyParameter::NORM saliency_norm_, Dtype * saliency_info_out) {
+void ConvolutionLayer<Dtype>::compute_apoz_weights_gpu(Blob<Dtype> * weights_n, Blob<Dtype> * bias_n, caffe::ConvolutionSaliencyParameter::NORM saliency_norm_, Dtype * saliency_info_in, Dtype * saliency_info_out) {
   const Dtype* weights = this->blobs_[0]->gpu_data();
   Dtype* points_saliency_data = weights_n->mutable_gpu_data();
 

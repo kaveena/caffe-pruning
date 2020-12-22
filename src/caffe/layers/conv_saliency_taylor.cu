@@ -6,7 +6,7 @@
 namespace caffe {
 
 template <typename Dtype>
-void ConvolutionLayer<Dtype>::compute_taylor_gpu(const Dtype * bottom_data, const Dtype * bottom_diff, const * top_data, const Dtype * top_diff, caffe::ConvolutionSaliencyParameter::NORM saliency_norm_,  Dtype * taylor_in, Dtype * taylor_in) {
+void ConvolutionLayer<Dtype>::compute_taylor_gpu(const Dtype * bottom_data, const Dtype * bottom_diff, const Dtype * top_data, const Dtype * top_diff, caffe::ConvolutionSaliencyParameter::NORM saliency_norm_,  Dtype * taylor_in, Dtype * taylor_out) {
   Dtype * output_saliency_data = NULL;
   Dtype * input_saliency_data = NULL;
   if (this->output_channel_saliency_compute_){

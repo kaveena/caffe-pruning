@@ -66,6 +66,8 @@ template <typename Dtype>
 void caffe_sum(const int N, const int num, const Dtype* a, Dtype* y);
 template <typename Dtype>
 void caffe_strided_sum(const int N, const int num, const Dtype* a, Dtype* y);
+template <typename Dtype>
+void caffe_strided_sum_inner(const int N, const int M, const int C, const Dtype* a, Dtype* y);
 
 template <typename Dtype>
 void caffe_add(const int N, const Dtype* a, const Dtype* b, Dtype* y);
@@ -251,6 +253,9 @@ void caffe_gpu_sum(const int N, const int num, const Dtype* a, Dtype* y);
 
 template <typename Dtype>
 void caffe_gpu_strided_sum(const int N, const int num, const Dtype* a, Dtype* y);
+
+template <typename Dtype>
+void caffe_gpu_strided_sum_inner(const int N, const int M, const int C, const Dtype* a, Dtype* y);
 
 template <typename Dtype>
 void caffe_gpu_sum(const int N, const int M, const int C, const Dtype* a, Dtype* y);

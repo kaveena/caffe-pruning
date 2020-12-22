@@ -6,7 +6,7 @@
 namespace caffe {
 
 template <typename Dtype>
-void ConvolutionLayer<Dtype>::compute_hessian_diag_approx2_cpu(const Dtype * bottom_data, const * bottom_diff, const Dtype * top_data, const Dtype * top_diff, caffe::ConvolutionSaliencyParameter::NORM saliency_norm_, Dtype * hessian_diag_in, Dtype * hessian_diag_out) {
+void ConvolutionLayer<Dtype>::compute_hessian_diag_approx2_cpu(const Dtype * bottom_data, const Dtype * bottom_diff, const Dtype * top_data, const Dtype * top_diff, caffe::ConvolutionSaliencyParameter::NORM saliency_norm_, Dtype * hessian_diag_in, Dtype * hessian_diag_out) {
 
   Dtype * output_saliency_data = NULL;
   Dtype * input_saliency_data = NULL;
@@ -64,8 +64,8 @@ void ConvolutionLayer<Dtype>::compute_hessian_diag_approx2_weights_cpu(Blob<Dtyp
   compute_norm_and_batch_avg_weights_cpu(points_saliency_data, bias_saliency_data, saliency_norm_, hessian_diag_in, hessian_diag_out);
 }
 
-template void ConvolutionLayer<float>::compute_hessian_diag_approx2_cpu(const float * bottom_data, const * bottom_diff, const float * top_data, const float * top_diff, caffe::ConvolutionSaliencyParameter::NORM saliency_norm_, float * hessian_diag_in, float * hessian_diag_out);
-template void ConvolutionLayer<double>::compute_hessian_diag_approx2_cpu(const double * bottom_data, const * bottom_diff, const double * top_data, const double * top_diff, caffe::ConvolutionSaliencyParameter::NORM saliency_norm_, double * hessian_diag_in, double * hessian_diag_out);
+template void ConvolutionLayer<float>::compute_hessian_diag_approx2_cpu(const float * bottom_data, const float * bottom_diff, const float * top_data, const float * top_diff, caffe::ConvolutionSaliencyParameter::NORM saliency_norm_, float * hessian_diag_in, float * hessian_diag_out);
+template void ConvolutionLayer<double>::compute_hessian_diag_approx2_cpu(const double * bottom_data, const double * bottom_diff, const double * top_data, const double * top_diff, caffe::ConvolutionSaliencyParameter::NORM saliency_norm_, double * hessian_diag_in, double * hessian_diag_out);
 
 template void ConvolutionLayer<float>::compute_hessian_diag_approx2_weights_cpu(Blob<float> * weights_n, Blob<float> * bias_n, caffe::ConvolutionSaliencyParameter::NORM saliency_norm_, float * hessian_diag_in, float * hessian_diag_out);
 template void ConvolutionLayer<double>::compute_hessian_diag_approx2_weights_cpu(Blob<double> * weights_n, Blob<double> * bias_n, caffe::ConvolutionSaliencyParameter::NORM saliency_norm_, double * hessian_diag_in, double * hessian_diag_out);
