@@ -180,8 +180,8 @@ void BaseConvolutionLayer<Dtype>::LayerSetUp(const vector<Blob<Dtype>*>& bottom,
     LOG(INFO) << "Setting activation quantization scheme " << this->activation_quantization_mask.to_string('*');
   }
   int saliency_shape_0_ = 0;
-  int pos_output_channel_saliency = this->saliency_pos_;
-  int pos_input_channel_saliency = this->saliency_pos_;
+  int pos_output_channel_saliency;
+  int pos_input_channel_saliency;
   if (this->saliency_term_) {
     // check if the correct number of pointwise saliency, saliency input and norm have been provided
     if (!((conv_saliency_param.saliency_size() == conv_saliency_param.saliency_input_size()) 
@@ -193,9 +193,6 @@ void BaseConvolutionLayer<Dtype>::LayerSetUp(const vector<Blob<Dtype>*>& bottom,
     this->input_channel_saliency_compute_ = this->layer_param_.convolution_saliency_param().input_channel_compute();
     if (!(this->output_channel_saliency_compute_ || this->input_channel_saliency_compute_)){
       LOG(FATAL) << "Either output_channel_compute or input_channel_compute must be set if saliency_term is set" ;
-    }
-    if (this->output_channel_saliency_compute_ && this->input_channel_saliency_compute_){
-      pos_input_channel_saliency++;
     }
   }
   vector<int> saliency_out_shape = {saliency_shape_0_, this->num_output_};
@@ -214,6 +211,11 @@ void BaseConvolutionLayer<Dtype>::LayerSetUp(const vector<Blob<Dtype>*>& bottom,
     if (this->bias_term_) {
       total_blobs++;
       this->saliency_pos_++;
+    }
+    pos_output_channel_saliency = this->saliency_pos_;
+    pos_input_channel_saliency = this->saliency_pos_;
+    if (this->output_channel_saliency_compute_ && this->input_channel_saliency_compute_){
+      pos_input_channel_saliency++;
     }
   }
   if (this->saliency_term_) {
@@ -301,66 +303,67 @@ void BaseConvolutionLayer<Dtype>::LayerSetUp(const vector<Blob<Dtype>*>& bottom,
       }
     }
   } else {
-      this->blobs_.resize(total_blobs);
-    }
-    // Initialize and fill the weights:
-    // output channels x input channels per-group x kernel height x kernel width
-    this->blobs_[0].reset(new Blob<Dtype>(weight_shape));
-    shared_ptr<Filler<Dtype> > weight_filler(GetFiller<Dtype>(
-        this->layer_param_.convolution_param().weight_filler()));
-    weight_filler->Fill(this->blobs_[0].get());
-    // If necessary, initialize and fill the biases.
-    if (this->bias_term_) {
-      this->blobs_[1].reset(new Blob<Dtype>(bias_shape));
-      shared_ptr<Filler<Dtype> > bias_filler(GetFiller<Dtype>(
-          this->layer_param_.convolution_param().bias_filler()));
-      bias_filler->Fill(this->blobs_[1].get());
-    }
-    // If necessary, initialize and fill the mask.
-    if ((this->mask_term_ || this->quantize_term_)) {
-      this->blobs_[this->mask_pos_].reset(new Blob<Dtype>(weight_shape));
-      if (this->layer_param_.convolution_mask_param().default_init()) {
-        Blob<Dtype> * mask_blob = this->blobs_[this->mask_pos_].get();
-        for (int i=0; i<mask_blob->count(); ++i) {
-          mask_blob->mutable_cpu_data()[i] = (Dtype)1.0;
-        }
-      }
-      else {
-        shared_ptr<Filler<Dtype> > mask_filler(GetFiller<Dtype>(
-            this->layer_param_.convolution_mask_param().mask_filler()));
-        mask_filler->Fill(this->blobs_[this->mask_pos_].get());
-      }
-    }
-    if (this->bias_term_ && (this->mask_term_ || this->quantize_term_)) {
-      this->blobs_[this->mask_pos_ +1 ].reset(new Blob<Dtype>(bias_shape));
-      if (this->layer_param_.convolution_mask_param().default_init()) {
-        Blob<Dtype> * mask_blob = this->blobs_[this->mask_pos_+1].get();
-        for (int i=0; i<mask_blob->count(); ++i) {
-          mask_blob->mutable_cpu_data()[i] = (Dtype)1.0;
-        }
-      }
-      else {
-        shared_ptr<Filler<Dtype> > mask_filler(GetFiller<Dtype>(
-            this->layer_param_.convolution_mask_param().mask_filler()));
-        mask_filler->Fill(this->blobs_[this->mask_pos_+1].get());
-      }
-    }
-    if (this->saliency_term_) {
-      if (this->output_channel_saliency_compute_) {
-        this->blobs_[pos_output_channel_saliency].reset(new Blob<Dtype>(saliency_out_shape));
-        Blob<Dtype> * saliency_out_blob = this->blobs_[pos_output_channel_saliency].get();
-        for (int i=0; i<saliency_out_blob->count(); ++i) {
-          saliency_out_blob->mutable_cpu_data()[i] = (Dtype)0.0;
-        }
-      }
-      if (this->input_channel_saliency_compute_) {
-        this->blobs_[pos_input_channel_saliency].reset(new Blob<Dtype>(saliency_in_shape));
-        Blob<Dtype> * saliency_in_blob = this->blobs_[pos_input_channel_saliency].get();
-        for (int i=0; i<saliency_in_blob->count(); ++i) {
-          saliency_in_blob->mutable_cpu_data()[i] = (Dtype)0.0;
-        }
-      }
+    this->blobs_.resize(total_blobs);
   }
+  // Initialize and fill the weights:
+  // output channels x input channels per-group x kernel height x kernel width
+  this->blobs_[0].reset(new Blob<Dtype>(weight_shape));
+  shared_ptr<Filler<Dtype> > weight_filler(GetFiller<Dtype>(
+      this->layer_param_.convolution_param().weight_filler()));
+  weight_filler->Fill(this->blobs_[0].get());
+  // If necessary, initialize and fill the biases.
+  if (this->bias_term_) {
+    this->blobs_[1].reset(new Blob<Dtype>(bias_shape));
+    shared_ptr<Filler<Dtype> > bias_filler(GetFiller<Dtype>(
+        this->layer_param_.convolution_param().bias_filler()));
+    bias_filler->Fill(this->blobs_[1].get());
+  }
+  // If necessary, initialize and fill the mask.
+  if ((this->mask_term_ || this->quantize_term_)) {
+    this->blobs_[this->mask_pos_].reset(new Blob<Dtype>(weight_shape));
+    if (this->layer_param_.convolution_mask_param().default_init()) {
+      Blob<Dtype> * mask_blob = this->blobs_[this->mask_pos_].get();
+      for (int i=0; i<mask_blob->count(); ++i) {
+        mask_blob->mutable_cpu_data()[i] = (Dtype)1.0;
+      }
+    }
+    else {
+      shared_ptr<Filler<Dtype> > mask_filler(GetFiller<Dtype>(
+          this->layer_param_.convolution_mask_param().mask_filler()));
+      mask_filler->Fill(this->blobs_[this->mask_pos_].get());
+    }
+  }
+  if (this->bias_term_ && (this->mask_term_ || this->quantize_term_)) {
+    this->blobs_[this->mask_pos_ +1 ].reset(new Blob<Dtype>(bias_shape));
+    if (this->layer_param_.convolution_mask_param().default_init()) {
+      Blob<Dtype> * mask_blob = this->blobs_[this->mask_pos_+1].get();
+      for (int i=0; i<mask_blob->count(); ++i) {
+        mask_blob->mutable_cpu_data()[i] = (Dtype)1.0;
+      }
+    }
+    else {
+      shared_ptr<Filler<Dtype> > mask_filler(GetFiller<Dtype>(
+          this->layer_param_.convolution_mask_param().mask_filler()));
+      mask_filler->Fill(this->blobs_[this->mask_pos_+1].get());
+    }
+  }
+  if (this->saliency_term_) {
+    if (this->output_channel_saliency_compute_) {
+      this->blobs_[pos_output_channel_saliency].reset(new Blob<Dtype>(saliency_out_shape));
+      Blob<Dtype> * saliency_out_blob = this->blobs_[pos_output_channel_saliency].get();
+      for (int i=0; i<saliency_out_blob->count(); ++i) {
+        saliency_out_blob->mutable_cpu_data()[i] = (Dtype)0.0;
+      }
+    }
+    if (this->input_channel_saliency_compute_) {
+      this->blobs_[pos_input_channel_saliency].reset(new Blob<Dtype>(saliency_in_shape));
+      Blob<Dtype> * saliency_in_blob = this->blobs_[pos_input_channel_saliency].get();
+      for (int i=0; i<saliency_in_blob->count(); ++i) {
+        saliency_in_blob->mutable_cpu_data()[i] = (Dtype)0.0;
+      }
+    }
+  }
+  
   this->kernel_dim_ = this->blobs_[0]->count(1);
   this->weight_offset_ = this->conv_out_channels_ * this->kernel_dim_ / this->group_;
   // Propagate gradients to the parameters (as directed by backward pass).

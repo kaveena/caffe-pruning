@@ -338,45 +338,44 @@ void ConvolutionLayer<Dtype>::Backward_gpu(const vector<Blob<Dtype>*>& top,
 template <typename Dtype>
 void ConvolutionLayer<Dtype>::compute_norm_and_batch_avg_gpu(Dtype * in_saliency_data, Dtype * out_saliency_data, caffe::ConvolutionSaliencyParameter::NORM saliency_norm_, Dtype * in_channel_saliency, Dtype * out_channel_saliency) {
   int count, channels;
-  Dtype* filter_data, *filter2_data, *saliency_data, *channel_saliency;
+  Dtype* filter_data, *saliency_data, *channel_saliency;
   if (this->input_channel_saliency_compute_){
     saliency_data = in_saliency_data;
     channel_saliency = in_channel_saliency;
     count = this->input_saliencies_points_.count(2,4);
     filter_data = this->input_saliencies_filter_.mutable_gpu_data();
     channels = this->channels_;
-    filter2_data = channel_saliency;
     switch (saliency_norm_) {
       case (caffe::ConvolutionSaliencyParameter::L1): {
         caffe_gpu_abs(this->num_ * channels * count, saliency_data, saliency_data);
         caffe_gpu_sum(this->num_ * channels, count, saliency_data, filter_data); //sum hxw
-        caffe_gpu_strided_sum(channels, this->num_, filter_data, filter2_data);
+        caffe_gpu_strided_sum(channels, this->num_, filter_data, filter_data);
     } break;
 
       case (caffe::ConvolutionSaliencyParameter::L2): {
         caffe_gpu_powx(this->num_ * channels * count, saliency_data, (Dtype) 2, saliency_data);
         caffe_gpu_sum(this->num_ * channels, count, saliency_data, filter_data); //sum hxw
-        caffe_gpu_strided_sum(channels, this->num_, filter_data, filter2_data);
+        caffe_gpu_strided_sum(channels, this->num_, filter_data, filter_data);
       } break;
 
       case (caffe::ConvolutionSaliencyParameter::ABS_SUM): {
         caffe_gpu_sum(this->num_ * channels, count, saliency_data, filter_data); //sum hxw
         caffe_gpu_abs(this->num_ * channels, filter_data, filter_data);
-        caffe_gpu_strided_sum(channels, this->num_, filter_data, filter2_data);
+        caffe_gpu_strided_sum(channels, this->num_, filter_data, filter_data);
       } break;
 
       case (caffe::ConvolutionSaliencyParameter::SQR_SUM): {
         caffe_gpu_sum(this->num_ * channels, count, saliency_data, filter_data); //sum hxw
         caffe_gpu_powx(this->num_ * channels, filter_data, (Dtype) 2, filter_data);
-        caffe_gpu_strided_sum(channels, this->num_, filter_data, filter2_data);
+        caffe_gpu_strided_sum(channels, this->num_, filter_data, filter_data);
       } break;
 
       default: {
         caffe_gpu_sum(this->num_ * channels, count, saliency_data, filter_data); //sum hxw
-        caffe_gpu_strided_sum(channels, this->num_, filter_data, filter2_data);
+        caffe_gpu_strided_sum(channels, this->num_, filter_data, filter_data);
       } break;
     }
-    caffe_gpu_strided_sum(this->channels_ /this->group_, this->group_, filter2_data, channel_saliency);
+    caffe_gpu_strided_sum(this->channels_ /this->group_, this->group_, filter_data, channel_saliency);
     caffe_gpu_scal(channels, (Dtype) 1.0 / (Dtype)(this->num_), channel_saliency);
   }
   if (this->output_channel_saliency_compute_){
@@ -385,35 +384,34 @@ void ConvolutionLayer<Dtype>::compute_norm_and_batch_avg_gpu(Dtype * in_saliency
     count = this->output_saliencies_points_.count(2,4);
     filter_data = this->output_saliencies_filter_.mutable_gpu_data();
     channels = this->num_output_;
-    filter2_data = filter_data;
     switch (saliency_norm_) {
       case (caffe::ConvolutionSaliencyParameter::L1): {
         caffe_gpu_abs(this->num_ * channels * count, saliency_data, saliency_data);
         caffe_gpu_sum(this->num_ * channels, count, saliency_data, filter_data); //sum hxw
-        caffe_gpu_strided_sum(channels, this->num_, filter_data, filter2_data);
+        caffe_gpu_strided_sum(channels, this->num_, filter_data, channel_saliency);
     } break;
 
       case (caffe::ConvolutionSaliencyParameter::L2): {
         caffe_gpu_powx(this->num_ * channels * count, saliency_data, (Dtype) 2, saliency_data);
         caffe_gpu_sum(this->num_ * channels, count, saliency_data, filter_data); //sum hxw
-        caffe_gpu_strided_sum(channels, this->num_, filter_data, filter2_data);
+        caffe_gpu_strided_sum(channels, this->num_, filter_data, channel_saliency);
       } break;
 
       case (caffe::ConvolutionSaliencyParameter::ABS_SUM): {
         caffe_gpu_sum(this->num_ * channels, count, saliency_data, filter_data); //sum hxw
         caffe_gpu_abs(this->num_ * channels, filter_data, filter_data);
-        caffe_gpu_strided_sum(channels, this->num_, filter_data, filter2_data);
+        caffe_gpu_strided_sum(channels, this->num_, filter_data, channel_saliency);
       } break;
 
       case (caffe::ConvolutionSaliencyParameter::SQR_SUM): {
         caffe_gpu_sum(this->num_ * channels, count, saliency_data, filter_data); //sum hxw
         caffe_gpu_powx(this->num_ * channels, filter_data, (Dtype) 2, filter_data);
-        caffe_gpu_strided_sum(channels, this->num_, filter_data, filter2_data);
+        caffe_gpu_strided_sum(channels, this->num_, filter_data, channel_saliency);
       } break;
 
       default: {
         caffe_gpu_sum(this->num_ * channels, count, saliency_data, filter_data); //sum hxw
-        caffe_gpu_strided_sum(channels, this->num_, filter_data, filter2_data);
+        caffe_gpu_strided_sum(channels, this->num_, filter_data, channel_saliency);
       } break;
     }
     caffe_gpu_scal(channels, (Dtype) 1.0 / (Dtype)(this->num_), channel_saliency);
@@ -543,8 +541,8 @@ void ConvolutionLayer<Dtype>::compute_norm_and_batch_avg_weights_gpu(Dtype * wei
 }
 
 template void ConvolutionLayer<float>::compute_norm_and_batch_avg_gpu(float * in_saliency_data, float * out_saliency_data, caffe::ConvolutionSaliencyParameter::NORM saliency_norm_, float * in_channel_saliency, float * out_channel_saliency);
-template void ConvolutionLayer<float>::compute_norm_and_batch_avg_weights_gpu(float * weight_saliency_data, float * bias_saliency_data, caffe::ConvolutionSaliencyParameter::NORM saliency_norm_, float * in_channel_saliency, float * out_channel_saliency);
 template void ConvolutionLayer<double>::compute_norm_and_batch_avg_gpu(double * in_saliency_data, double * out_saliency_data, caffe::ConvolutionSaliencyParameter::NORM saliency_norm_, double * in_channel_saliency, double * out_channel_saliency);
+template void ConvolutionLayer<float>::compute_norm_and_batch_avg_weights_gpu(float * weight_saliency_data, float * bias_saliency_data, caffe::ConvolutionSaliencyParameter::NORM saliency_norm_, float * in_channel_saliency, float * out_channel_saliency);
 template void ConvolutionLayer<double>::compute_norm_and_batch_avg_weights_gpu(double * weight_saliency_data, double * bias_saliency_data, caffe::ConvolutionSaliencyParameter::NORM saliency_norm_, double * in_channel_saliency, double * out_channel_saliency);
 
 #ifdef CPU_ONLY
