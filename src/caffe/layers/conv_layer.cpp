@@ -497,13 +497,11 @@ void ConvolutionLayer<Dtype>::compute_norm_and_batch_avg_weights_cpu(Dtype * wei
   switch (saliency_norm_) {
     case (caffe::ConvolutionSaliencyParameter::L1): {
       caffe_abs(this->num_ * weights_count, weight_saliency_data, weight_saliency_data);
-      if (this->saliency_bias_ && this->bias_term_ && bias_saliency_data != NULL){
-        caffe_abs(this->num_ * bias_count, bias_saliency_data, bias_saliency_data);
-      }
       if (this->output_channel_saliency_compute_){
         filter_data = output_saliencies_filter_.mutable_cpu_data();
         caffe_sum(this->num_ * this->num_output_, this->channels_ * kernel_size / this->group_, weight_saliency_data, filter_data);
         if (this->saliency_bias_ && this->bias_term_ && bias_saliency_data != NULL){
+          caffe_abs(this->num_ * bias_count, bias_saliency_data, bias_saliency_data);
           caffe_add(this->num_ * bias_count, bias_saliency_data, filter_data, filter_data);
         }
         caffe_strided_sum(this->num_output_, this->num_, filter_data, out_channel_saliency);
@@ -512,7 +510,7 @@ void ConvolutionLayer<Dtype>::compute_norm_and_batch_avg_weights_cpu(Dtype * wei
       if (this->input_channel_saliency_compute_) {
         filter_data = input_saliencies_filter_.mutable_cpu_data();
         caffe_sum(this->num_ * this->num_output_ * this->channels_ / this->group_, kernel_size, weight_saliency_data, weight_saliency_data);
-        caffe_strided_sum_inner(this->num_, this->num_output_, this->channels_ / this->group_, filter_data, filter_data);
+        caffe_strided_sum_inner(this->num_, this->num_output_, this->channels_ / this->group_, weight_saliency_data, filter_data);
         caffe_strided_sum(this->channels_ / this->group_, this->num_, filter_data, in_channel_saliency);
         caffe_scal(this->channels_ / this->group_, (Dtype) 1.0 / (Dtype)(this->num_), in_channel_saliency);
       }
@@ -520,13 +518,11 @@ void ConvolutionLayer<Dtype>::compute_norm_and_batch_avg_weights_cpu(Dtype * wei
 
     case (caffe::ConvolutionSaliencyParameter::L2): {
       caffe_powx(this->num_ * weights_count, weight_saliency_data, (Dtype) 2, weight_saliency_data);
-      if (this->saliency_bias_ && this->bias_term_ && bias_saliency_data != NULL){
-        caffe_powx(this->num_ * bias_count, bias_saliency_data, (Dtype) 2, bias_saliency_data);
-      }
       if (this->output_channel_saliency_compute_){
         filter_data = output_saliencies_filter_.mutable_cpu_data();
         caffe_sum(this->num_ * this->num_output_, this->channels_ * kernel_size / this->group_, weight_saliency_data, filter_data);
         if (this->saliency_bias_ && this->bias_term_ && bias_saliency_data != NULL){
+          caffe_powx(this->num_ * bias_count, bias_saliency_data, (Dtype) 2, bias_saliency_data);
           caffe_add(this->num_ * bias_count, bias_saliency_data, filter_data, filter_data);
         }
         caffe_strided_sum(this->num_output_, this->num_, filter_data, out_channel_saliency);
@@ -535,7 +531,7 @@ void ConvolutionLayer<Dtype>::compute_norm_and_batch_avg_weights_cpu(Dtype * wei
       if (this->input_channel_saliency_compute_) {
         filter_data = input_saliencies_filter_.mutable_cpu_data();
         caffe_sum(this->num_ * this->num_output_ * this->channels_ / this->group_, kernel_size, weight_saliency_data, weight_saliency_data);
-        caffe_strided_sum_inner(this->num_, this->num_output_, this->channels_ / this->group_, filter_data, filter_data);
+        caffe_strided_sum_inner(this->num_, this->num_output_, this->channels_ / this->group_, weight_saliency_data, filter_data);
         caffe_strided_sum(this->channels_ / this->group_, this->num_, filter_data, in_channel_saliency);
         caffe_scal(this->channels_ / this->group_, (Dtype) 1.0 / (Dtype)(this->num_), in_channel_saliency);
       }
@@ -555,8 +551,8 @@ void ConvolutionLayer<Dtype>::compute_norm_and_batch_avg_weights_cpu(Dtype * wei
       if (this->input_channel_saliency_compute_) {
         filter_data = input_saliencies_filter_.mutable_cpu_data();
         caffe_sum(this->num_ * this->num_output_ * this->channels_ / this->group_, kernel_size, weight_saliency_data, weight_saliency_data);
-        caffe_strided_sum_inner(this->num_, this->num_output_, this->channels_ / this->group_, filter_data, filter_data);
-        caffe_abs(this->num_ * this->num_output_, filter_data, filter_data);
+        caffe_strided_sum_inner(this->num_, this->num_output_, this->channels_ / this->group_, weight_saliency_data, filter_data);
+        caffe_abs(this->num_ * this->channels_ / this->group_, filter_data, filter_data);
         caffe_strided_sum(this->channels_ / this->group_, this->num_, filter_data, in_channel_saliency);
         caffe_scal(this->channels_ / this->group_, (Dtype) 1.0 / (Dtype)(this->num_), in_channel_saliency);
       }
@@ -576,8 +572,8 @@ void ConvolutionLayer<Dtype>::compute_norm_and_batch_avg_weights_cpu(Dtype * wei
       if (this->input_channel_saliency_compute_) {
         filter_data = input_saliencies_filter_.mutable_cpu_data();
         caffe_sum(this->num_ * this->num_output_ * this->channels_ / this->group_, kernel_size, weight_saliency_data, weight_saliency_data);
-        caffe_strided_sum_inner(this->num_, this->num_output_, this->channels_ / this->group_, filter_data, filter_data);
-        caffe_powx(this->num_ * this->num_output_, filter_data, (Dtype) 2, filter_data);
+        caffe_strided_sum_inner(this->num_, this->num_output_, this->channels_ / this->group_, weight_saliency_data, filter_data);
+        caffe_powx(this->num_ * this->channels_ / this->group_, filter_data, (Dtype) 2, filter_data);
         caffe_strided_sum(this->channels_ / this->group_, this->num_, filter_data, in_channel_saliency);
         caffe_scal(this->channels_ / this->group_, (Dtype) 1.0 / (Dtype)(this->num_), in_channel_saliency);
       }
@@ -596,7 +592,7 @@ void ConvolutionLayer<Dtype>::compute_norm_and_batch_avg_weights_cpu(Dtype * wei
       if (this->input_channel_saliency_compute_) {
         filter_data = input_saliencies_filter_.mutable_cpu_data();
         caffe_sum(this->num_ * this->num_output_ * this->channels_ / this->group_, kernel_size, weight_saliency_data, weight_saliency_data);
-        caffe_strided_sum_inner(this->num_, this->num_output_, this->channels_ / this->group_, filter_data, filter_data);
+        caffe_strided_sum_inner(this->num_, this->num_output_, this->channels_ / this->group_, weight_saliency_data, filter_data);
         caffe_strided_sum(this->channels_ / this->group_, this->num_, filter_data, in_channel_saliency);
         caffe_scal(this->channels_ / this->group_, (Dtype) 1.0 / (Dtype)(this->num_), in_channel_saliency);
       }

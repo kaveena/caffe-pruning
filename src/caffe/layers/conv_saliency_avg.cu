@@ -118,13 +118,11 @@ void ConvolutionLayer<Dtype>::compute_apoz_gpu(const Dtype * bottom_data, const 
   Dtype * input_saliency_data = NULL;
   if (this->output_channel_saliency_compute_){
     output_saliency_data = output_saliencies_points_.mutable_gpu_data();
-    caffe_copy(output_saliencies_points_.count(), top_data, output_saliency_data);
     PositiveCount<Dtype><<<CAFFE_GET_BLOCKS(output_saliencies_points_.count()), CAFFE_CUDA_NUM_THREADS>>>( 
         output_saliencies_points_.count(), top_data, output_saliency_data);
   }
   if (this->input_channel_saliency_compute_){
     input_saliency_data = input_saliencies_points_.mutable_gpu_data();
-    caffe_copy(input_saliencies_points_.count(), bottom_data, input_saliency_data);
     PositiveCount<Dtype><<<CAFFE_GET_BLOCKS(input_saliencies_points_.count()), CAFFE_CUDA_NUM_THREADS>>>( 
         input_saliencies_points_.count(), bottom_data, input_saliency_data);
   }
