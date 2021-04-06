@@ -128,7 +128,7 @@ void ConvolutionLayer<Dtype>::Backward_gpu(const vector<Blob<Dtype>*>& top,
 
   if (this->saliency_term_) {
     if (this->layer_param_.compute_2nd_derivative()) {
-      weight_ddiff = this->blobs_[0]->mutable_gpu_diff();
+      weight_ddiff = this->blobs_[0]->mutable_gpu_ddiff();
       if (this->separate_weight_diff_) {
         full_weights_ddiff = weights_n_masked_.mutable_gpu_ddiff();
       }
