@@ -16,6 +16,7 @@
 #include "caffe/layers/sigmoid_layer.hpp"
 #include "caffe/layers/softmax_layer.hpp"
 #include "caffe/layers/tanh_layer.hpp"
+#include "caffe/layers/gelu_layer.hpp"
 #include "caffe/proto/caffe.pb.h"
 
 #ifdef USE_CUDNN
@@ -286,6 +287,30 @@ shared_ptr<Layer<Dtype> > GetTanHLayer(const LayerParameter& param) {
 }
 
 REGISTER_LAYER_CREATOR(TanH, GetTanHLayer);
+
+// Get tanh layer according to engine.
+template <typename Dtype>
+shared_ptr<Layer<Dtype> > GetGELULayer(const LayerParameter& param) {
+  GELUParameter_Engine engine = param.gelu_param().engine();
+  if (engine == GELUParameter_Engine_DEFAULT) {
+    engine = GELUParameter_Engine_CAFFE;
+#ifdef USE_CUDNN
+    engine = GELUParameter_Engine_CUDNN;
+    LOG(FATAL) << "Layer " << param.name() << " does not have CuDNN implementation.";
+#endif
+  }
+  if (engine == GELUParameter_Engine_CAFFE) {
+    return shared_ptr<Layer<Dtype> >(new GELULayer<Dtype>(param));
+#ifdef USE_CUDNN
+    LOG(FATAL) << "Layer " << param.name() << " does not have CuDNN implementation.";
+#endif
+  } else {
+    LOG(FATAL) << "Layer " << param.name() << " has unknown engine.";
+    throw;  // Avoids missing return warning
+  }
+}
+
+REGISTER_LAYER_CREATOR(GELU, GetGELULayer);
 
 #ifdef WITH_PYTHON_LAYER
 template <typename Dtype>
