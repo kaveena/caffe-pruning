@@ -27,8 +27,6 @@ class GELULayer : public NeuronLayer<Dtype> {
    */
    explicit GELULayer (const LayerParameter& param)
         : NeuronLayer<Dtype>(param) {}
-   virtual void Reshape(const vector<Blob<Dtype>*>& bottom,
-      const vector<Blob<Dtype>*>& top);
 
   virtual inline const char* type() const { return "GELU"; }
 
@@ -69,9 +67,6 @@ class GELULayer : public NeuronLayer<Dtype> {
       const vector<bool>& propagate_down, const vector<Blob<Dtype>*>& bottom);
   virtual void Backward_gpu(const vector<Blob<Dtype>*>& top,
       const vector<bool>& propagate_down, const vector<Blob<Dtype>*>& bottom);
-  
-  // helper blobs for gradient computation
-  Blob<Dtype> tanhx;
 };
 
 }  // namespace caffe

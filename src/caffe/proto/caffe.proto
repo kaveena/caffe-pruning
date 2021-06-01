@@ -1166,6 +1166,8 @@ message GELUParameter {
     CUDNN = 2;
   }
   optional Engine engine = 1 [default = DEFAULT];
+  // Scale the output by coeff
+  optional float coeff = 2 [default = 1.0];
 }
 
 message ReshapeParameter {
