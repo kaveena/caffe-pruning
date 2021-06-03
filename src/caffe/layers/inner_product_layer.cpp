@@ -10,7 +10,7 @@ template <typename Dtype>
 void InnerProductLayer<Dtype>::LayerSetUp(const vector<Blob<Dtype>*>& bottom,
       const vector<Blob<Dtype>*>& top) {
   const int num_output = this->layer_param_.inner_product_param().num_output();
-  mask_term_ = this->layer_param_.inner_product_param().mask_term();
+  mask_term_ = this->layer_param_.inner_product_mask_param().mask_term();
   bias_term_ = this->layer_param_.inner_product_param().bias_term();
   transpose_ = this->layer_param_.inner_product_param().transpose();
   N_ = num_output;
