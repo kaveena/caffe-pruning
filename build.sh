@@ -4,8 +4,8 @@ export CMAKE_BUILD_TYPE="Release"
 
 export CMAKE_PARALLEL_LEVEL=`grep processor /proc/cpuinfo | wc -l`
 
-CMAKE_OPTIONS="-DCPU_ONLY=ON \
-               -DUSE_NCCL=OFF \
+CMAKE_OPTIONS="-DCPU_ONLY=OFF \
+               -DUSE_NCCL=ON \
                -DBUILD_tools=OFF \
                -DBUILD_SHARED_LIBS=OFF \
                -DBUILD_python=ON \
