@@ -412,6 +412,7 @@ message LayerParameter {
   optional InfogainLossParameter infogain_loss_param = 116;
   optional InnerProductParameter inner_product_param = 117;
   optional InnerProductMaskParameter inner_product_mask_param = 154;
+  optional InnerProductSaliencyParameter inner_product_saliency_param = 156;
   optional InputParameter input_param = 143;
   optional LogParameter log_param = 134;
   optional LRNParameter lrn_param = 118;
@@ -981,6 +982,39 @@ message InnerProductMaskParameter {
   optional FillerParameter mask_filler = 3; // The filler for the weight and bias
 }
 
+message InnerProductSaliencyParameter {
+  enum SALIENCY {
+    TAYLOR = 0;
+    TAYLOR_2ND_APPROX2 = 4;
+    AVERAGE_INPUT = 5;
+  }
+  enum NORM {
+    NONE = 0;
+    L1 = 1;
+    L2 = 2;
+    ABS_SUM = 3;
+    SQR_SUM = 4;
+  }
+  enum INPUT {
+    ACTIVATION = 0;
+    WEIGHT = 1;
+  }
+  enum INPUT_LAYER {
+    NCHW = 0; // input blob is nchw and input saliency will be c
+    NC = 1; // input blob is nc and input saliency will be c
+  }
+
+  required bool saliency_term = 1 [default = false];
+  optional bool saliency_bias = 2 [default = true];
+  optional bool accum = 3 [default = true];
+  optional bool output_channel_compute = 4 [default = true];
+  optional bool input_channel_compute = 5 [default = true];
+  repeated SALIENCY saliency = 6;
+  repeated NORM saliency_norm = 7;
+  repeated INPUT saliency_input = 8;
+  optional INPUT_LAYER input_layer = 9 [default = NCHW];
+}
+
 message InputParameter {
   // This layer produces N >= 1 top blob(s) to be assigned manually.
   // Define N shapes to set a shape for each top.
@@ -1468,6 +1502,7 @@ message V1LayerParameter {
   optional InfogainLossParameter infogain_loss_param = 16;
   optional InnerProductParameter inner_product_param = 17;
   optional InnerProductMaskParameter inner_product_mask_param = 55;
+  optional InnerProductSaliencyParameter inner_product_saliency_param = 56;
   optional LRNParameter lrn_param = 18;
   optional MemoryDataParameter memory_data_param = 22;
   optional MVNParameter mvn_param = 34;
